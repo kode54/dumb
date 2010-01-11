@@ -4047,6 +4047,19 @@ static float calculate_volume(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *play
 		if (vol > 64 << 5)
 			vol = 64 << 5;
 
+		if ( sigrenderer->sigdata->flags & IT_WAS_A_PTM )
+		{
+			int v = aiPTMVolScaled[ vol >> 5 ];
+			if ( vol < 64 << 5 )
+			{
+				int f = vol & ( ( 1 << 5 ) - 1 );
+				int f2 = ( 1 << 5 ) - f;
+				int v2 = aiPTMVolScaled[ ( vol >> 5 ) + 1 ];
+				v = ( v * f2 + v2 * f ) >> 5;
+			}
+			vol = v << 1;
+		}
+
 		volume *= vol; /* 64 << 5 */
 		volume *= playing->sample->global_volume; /* 64 */
 		volume *= playing->channel_volume; /* 64 */

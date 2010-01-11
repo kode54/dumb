@@ -282,7 +282,7 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( struct riff * stream )
 			ptr = ( unsigned char * ) c->data;
 			memcpy( sigdata->name, c->data, 28 );
 			sigdata->name[ 28 ] = 0;
-			sigdata->flags = IT_WAS_AN_XM | IT_WAS_A_MOD | IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX;
+			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX;
 			sigdata->n_orders = ptr[ 36 ] | ( ptr[ 37 ] << 8 );
 			//sigdata->n_samples = ptr[ 38 ] | ( ptr[ 39 ] << 8 ); // whatever
 			//sigdata->n_patterns = ptr[ 40 ] | ( ptr[ 41 ] << 8 );
