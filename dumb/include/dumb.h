@@ -350,6 +350,7 @@ int dumb_it_callback_midi_block(void *data, int channel, unsigned char midi_byte
 DUH *dumb_load_it(const char *filename);
 DUH *dumb_load_xm(const char *filename);
 DUH *dumb_load_s3m(const char *filename);
+DUH *dumb_load_stm(const char *filename);
 DUH *dumb_load_mod(const char *filename, int restrict);
 DUH *dumb_load_ptm(const char *filename);
 DUH *dumb_load_669(const char *filename);
@@ -361,6 +362,7 @@ DUH *dumb_load_riff(const char *filename);
 DUH *dumb_read_it(DUMBFILE *f);
 DUH *dumb_read_xm(DUMBFILE *f);
 DUH *dumb_read_s3m(DUMBFILE *f);
+DUH *dumb_read_stm(DUMBFILE *f);
 DUH *dumb_read_mod(DUMBFILE *f, int restrict);
 DUH *dumb_read_ptm(DUMBFILE *f);
 DUH *dumb_read_669(DUMBFILE *f);
