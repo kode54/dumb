@@ -202,7 +202,7 @@
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
-				WarningLevel="3"
+				WarningLevel="4"
 				SuppressStartupBanner="true"
 				CompileAs="0"
 			/>
@@ -1484,6 +1484,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\it\readam.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\it\readdsmf.c"
 					>
 				</File>
 				<File

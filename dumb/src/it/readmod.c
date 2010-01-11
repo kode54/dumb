@@ -224,6 +224,10 @@ static int it_mod_read_sample_data(IT_SAMPLE *sample, DUMBFILE *f, unsigned long
 				}
 			}
 		}
+		else
+		{
+			i = dumbfile_getnc(sample->left, sample->length, f);
+		}
 		if (i < sample->length)
 		{
 			if (i <= 0)

@@ -9,7 +9,7 @@
  *                                                      /  \
  *                                                     / .  \
  * readam.c - Code to read a RIFF AM module           / / \  \
- *             from an open file.                    | <  /   \_
+ *             from a parsed RIFF structure.         | <  /   \_
  *                                                   |  \/ /\   /
  * By Chris Moeller.                                  \_  /  > /
  *                                                      | \ / /
@@ -130,6 +130,8 @@ static int it_riff_am_process_sample( IT_SAMPLE * sample, const unsigned char * 
 			if ( flags & 0x10 ) sample->flags |= IT_SAMPLE_PINGPONG_LOOP;
 		}
 	}
+
+	length_bytes = sample->length << ( ( flags & 0x04 ) >> 2 );
 
 	sample->left = malloc( length_bytes );
 	if ( ! sample->left )
@@ -346,7 +348,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( struct riff * stream )
 			ptr = ( unsigned char * ) c->data;
 			memcpy( sigdata->name, c->data, 64 );
 			sigdata->name[ 64 ] = 0;
-			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_WAS_AN_S3M;
+			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_WAS_AN_S3M;
 			if ( ! ( ptr[ 0x40 ] & 1 ) ) sigdata->flags |= IT_LINEAR_SLIDES;
 			if ( ( ptr[ 0x40 ] & ~3 ) || ! ( ptr[ 0x40 ] & 2 ) ) goto error_usd; // unknown flags
 			sigdata->n_pchannels = ptr[ 0x41 ];
@@ -569,7 +571,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( struct riff * stream )
 			ptr = ( unsigned char * ) c->data;
 			memcpy( sigdata->name, c->data, 64 );
 			sigdata->name[ 64 ] = 0;
-			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_WAS_AN_S3M;
+			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_WAS_AN_S3M;
 			if ( ! ( ptr[ 0x40 ] & 1 ) ) sigdata->flags |= IT_LINEAR_SLIDES;
 			if ( ( ptr[ 0x40 ] & ~3 ) || ! ( ptr[ 0x40 ] & 2 ) ) goto error_usd; // unknown flags
 			sigdata->n_pchannels = ptr[ 0x41 ];
