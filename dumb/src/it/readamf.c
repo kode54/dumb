@@ -288,6 +288,8 @@ static DUMB_IT_SIGDATA *it_amf_load_sigdata(DUMBFILE *f, int * version)
 		return NULL;
 	}
 
+	memset( sigdata->channel_volume, 64, DUMB_IT_N_CHANNELS );
+
 	if ( ver >= 11 ) {
 		int nchannels = ( ver >= 13 ) ? 32 : 16;
 		for ( i = 0; i < nchannels; i++ ) {
