@@ -94,7 +94,8 @@ static int it_old_psm_read_samples(IT_SAMPLE ** sample, DUMBFILE * f, int * num,
 		finetune = buffer[(n * 64) + 60];
 		s->default_volume = buffer[(n * 64) + 61];
 		s->C5_speed = buffer[(n * 64) + 62] | (buffer[(n * 64) + 63] << 8);
-		if (finetune < 16) {
+		if (finetune & 15) {
+			finetune &= 15;
 			if (finetune >= 8) finetune -= 16;
 			//s->C5_speed = (long)((double)s->C5_speed * pow(DUMB_PITCH_BASE, finetune*32));
 			s->finetune = finetune * 32;
@@ -289,7 +290,7 @@ static int it_old_psm_read_patterns(IT_PATTERN * pattern, DUMBFILE * f, int num,
 				if (channel >= chans)
 				{
 					//channel = 0;
-					goto error_fb;
+					//goto error_fb;
 				}
 				if (flags & 0x80) {
 					if ((*ptr < 60) && (channel < pchans)) {
