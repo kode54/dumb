@@ -1200,6 +1200,10 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\..\src\it\loadasy.c"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\it\loadmod.c"
 					>
 					<FileConfiguration
@@ -1489,6 +1493,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\it\readam.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\it\readasy.c"
 					>
 				</File>
 				<File

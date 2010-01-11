@@ -358,6 +358,7 @@ DUH *dumb_load_psm(const char *filename, int subsong);
 DUH *dumb_load_old_psm(const char * filename);
 DUH *dumb_load_mtm(const char *filename);
 DUH *dumb_load_riff(const char *filename);
+DUH *dumb_load_asy(const char *filename);
 
 DUH *dumb_read_it(DUMBFILE *f);
 DUH *dumb_read_xm(DUMBFILE *f);
@@ -370,6 +371,7 @@ DUH *dumb_read_psm(DUMBFILE *f, int subsong);
 DUH *dumb_read_old_psm(DUMBFILE *f);
 DUH *dumb_read_mtm(DUMBFILE *f);
 DUH *dumb_read_riff(DUMBFILE *f);
+DUH *dumb_read_asy(DUMBFILE *f);
 
 int dumb_get_psm_subsong_count(DUMBFILE *f);
 
