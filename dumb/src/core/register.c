@@ -62,7 +62,7 @@ void dumb_register_sigtype(DUH_SIGTYPE_DESC *desc)
 
 	ASSERT((desc->load_sigdata && desc->unload_sigdata) || (!desc->load_sigdata && !desc->unload_sigdata));
 	ASSERT((desc->start_sigrenderer && desc->end_sigrenderer) || (!desc->start_sigrenderer && !desc->end_sigrenderer));
-	ASSERT(desc->sigrenderer_get_samples && desc->sigrenderer_get_current_sample);
+	ASSERT(desc->sigrenderer_generate_samples && desc->sigrenderer_get_current_sample);
 
 	if (desc_link) {
 		do {

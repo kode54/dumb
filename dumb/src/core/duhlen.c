@@ -8,8 +8,8 @@
  * /_______/ynamic    \____/niversal  /__\  /____\usic   /|  .  . ibliotheque
  *                                                      /  \
  *                                                     / .  \
- * duhlen.c - Function to return the length of        / / \  \
- *            a DUH.                                 | <  /   \_
+ * duhlen.c - Functions to set and return the         / / \  \
+ *            length of a DUH.                       | <  /   \_
  *                                                   |  \/ /\   /
  * By entheh.                                         \_  /  > /
  *                                                      | \ / /
@@ -31,4 +31,12 @@
 long duh_get_length(DUH *duh)
 {
 	return duh ? duh->length : 0;
+}
+
+
+
+void duh_set_length(DUH *duh, long length)
+{
+	if (duh)
+		duh->length = length;
 }

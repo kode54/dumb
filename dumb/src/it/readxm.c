@@ -29,7 +29,6 @@
 /** TODO:
 
  * XM_TREMOLO                        doesn't sound quite right...
- * XM_E_SET_FINETUNE                 todo.
  * XM_SET_ENVELOPE_POSITION          todo.
 
  * VIBRATO conversion needs to be checked (sample/effect/volume). Plus check
@@ -583,6 +582,8 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	int old;
 	long i;
 	long truncated_size;
+	int n_channels;
+	long datasize;
 
 	if (!(sample->flags & IT_SAMPLE_EXISTS))
 		return dumbfile_skip(f, roguebytes);
@@ -595,15 +596,12 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 		truncated_size = 0;
 	}
 
-	sample->left = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
-	if (!sample->left)
-		return -1;
+	n_channels = sample->flags & IT_SAMPLE_STEREO ? 2 : 1;
+	datasize = sample->length * n_channels;
 
-	if (sample->flags & IT_SAMPLE_STEREO) {
-		sample->right = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
-		if (!sample->right)
-			return -1;
-	}
+	sample->data = malloc(datasize * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
+	if (!sample->data)
+		return -1;
 
 	if (roguebytes == 4)
 	{
@@ -617,10 +615,10 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 		old = 0;
 		if (sample->flags & IT_SAMPLE_16BIT)
 			for (i = 0; i < sample->length; i++)
-				((short *)sample->left)[i] = old += dumbfile_igetw(f);
+				((short *)sample->data)[i*n_channels] = old += dumbfile_igetw(f);
 		else
 			for (i = 0; i < sample->length; i++)
-				((signed char *)sample->left)[i] = old += dumbfile_getc(f);
+				((signed char *)sample->data)[i*n_channels] = old += dumbfile_getc(f);
 	}
 
 	/* skip truncated data */
@@ -629,11 +627,11 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	if (sample->flags & IT_SAMPLE_STEREO) {
 		old = 0;
 		if (sample->flags & IT_SAMPLE_16BIT)
-			for (i = 0; i < sample->length; i++)
-				((short *)sample->right)[i] = old += dumbfile_igetw(f);
+			for (i = 1; i < datasize; i += 2)
+				((short *)sample->data)[i] = old += dumbfile_igetw(f);
 		else
-			for (i = 0; i < sample->length; i++)
-				((signed char *)sample->right)[i] = old += dumbfile_getc(f);
+			for (i = 1; i < datasize; i += 2)
+				((signed char *)sample->data)[i] = old += dumbfile_getc(f);
 
 		/* skip truncated data */
 		dumbfile_skip(f, (sample->flags & IT_SAMPLE_16BIT) ? (2*truncated_size) : (truncated_size));
@@ -850,7 +848,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 					return NULL;
 				}
 				for (j = total_samples; j < total_samples+extra.n_samples; j++)
-					sigdata->sample[j].right = sigdata->sample[j].left = NULL;
+					sigdata->sample[j].data = NULL;
 
 				/* read instrument's samples */
 				for (j = 0; j < extra.n_samples; j++) {
@@ -929,7 +927,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 					return NULL;
 				}
 				for (j = total_samples; j < total_samples+extra.n_samples; j++)
-					sigdata->sample[j].right = sigdata->sample[j].left = NULL;
+					sigdata->sample[j].data = NULL;
 
 				/* read instrument's samples */
 				for (j = 0; j < extra.n_samples; j++) {
@@ -1069,7 +1067,7 @@ long it_compute_length(const DUMB_IT_SIGDATA *sigdata)
 
 	/* for each PATTERN */
 	for (order = 0; order < sigdata->n_orders; order++) {
-		
+
 		if (sigdata->order[order] == IT_ORDER_END) break;
 		if (sigdata->order[order] == IT_ORDER_SKIP) continue;
 
@@ -1174,10 +1172,9 @@ static char hexdigit(int in)
 	else return in + 'A' - 10;
 }
 
-DUH *dumb_read_xm(DUMBFILE *f)
+DUH *dumb_read_xm_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 	int ver;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
@@ -1186,8 +1183,6 @@ DUH *dumb_read_xm(DUMBFILE *f)
 
 	if (!sigdata)
 		return NULL;
-
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
 
 	{
 		char version[16];
@@ -1205,6 +1200,6 @@ DUH *dumb_read_xm(DUMBFILE *f)
 		version[7] = hexdigit( ver & 15 );
 		version[8] = 0;
 		tag[1][1] = ( const char * ) & version;
-		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

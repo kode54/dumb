@@ -101,11 +101,11 @@ static int it_stm_read_sample_data( IT_SAMPLE *sample, DUMBFILE *f )
 			return -1;
 	}
 
-	sample->left = malloc( sample->length );
-	if (!sample->left)
+	sample->data = malloc( sample->length );
+	if (!sample->data)
 		return -1;
 
-	if ( dumbfile_getnc( sample->left, sample->length, f ) != sample->length )
+	if ( dumbfile_getnc( sample->data, sample->length, f ) != sample->length )
 		return -1;
 
 	return 0;
@@ -278,7 +278,7 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f /*, int * version*/)
 		return NULL;
 	}
 	for (n = 0; n < sigdata->n_samples; n++)
-		sigdata->sample[n].right = sigdata->sample[n].left = NULL;
+		sigdata->sample[n].data = NULL;
 
 	if (sigdata->n_patterns) {
 		sigdata->pattern = malloc(sigdata->n_patterns * sizeof(*sigdata->pattern));
@@ -360,10 +360,9 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f /*, int * version*/)
 	else return in + 'A' - 10;
 }*/
 
-DUH *dumb_read_stm(DUMBFILE *f)
+DUH *dumb_read_stm_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 	int ver;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
@@ -372,8 +371,6 @@ DUH *dumb_read_stm(DUMBFILE *f)
 
 	if (!sigdata)
 		return NULL;
-
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
 
 	{
 		/*char version[16];*/
@@ -393,6 +390,6 @@ DUH *dumb_read_stm(DUMBFILE *f)
 		version[8] = hexdigit(ver & 15);
 		version[9] = 0;
 		tag[1][1] = (const char *) &version;*/
-		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

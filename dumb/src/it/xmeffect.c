@@ -170,10 +170,11 @@ if (log) printf(" - %2d %02X", effect, value);
 			break;
 
 		case XM_KEY_OFF:
-			/** WARNING: In FT2, the value seems to do something... Oh well,
-			 * this is undocumented anyway!
-			 */
 			effect = IT_XM_KEY_OFF;
+			break;
+
+		case XM_SET_ENVELOPE_POSITION:
+			effect = IT_XM_SET_ENVELOPE_POSITION;
 			break;
 
 		case EBASE+XM_E_SET_FILTER:            effect = SBASE+IT_S_SET_FILTER;            break;

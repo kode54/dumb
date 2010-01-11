@@ -125,7 +125,7 @@ static DUMB_CLICK *dumb_click_mergesort(DUMB_CLICK *click, int n_clicks)
 
 
 
-void dumb_remove_clicks(DUMB_CLICK_REMOVER *cr, sample_t *samples, long length, float halflife)
+void dumb_remove_clicks(DUMB_CLICK_REMOVER *cr, sample_t *samples, long length, int step, float halflife)
 {
 	DUMB_CLICK *click;
 	long pos = 0;
@@ -140,21 +140,26 @@ void dumb_remove_clicks(DUMB_CLICK_REMOVER *cr, sample_t *samples, long length, 
 	cr->click = NULL;
 	cr->n_clicks = 0;
 
+	length *= step;
+
 	while (click) {
 		DUMB_CLICK *next = click->next;
-		ASSERT(click->pos <= length);
+		int end = click->pos * step;
+		ASSERT(end <= length);
 		offset = cr->offset;
 		if (offset < 0) {
 			offset = -offset;
-			while (pos < click->pos) {
-				samples[pos++] -= offset;
+			while (pos < end) {
+				samples[pos] -= offset;
 				offset = (int)(((LONG_LONG)(offset << 1) * factor) >> 32);
+				pos += step;
 			}
 			offset = -offset;
 		} else {
-			while (pos < click->pos) {
-				samples[pos++] += offset;
+			while (pos < end) {
+				samples[pos] += offset;
 				offset = (int)(((LONG_LONG)(offset << 1) * factor) >> 32);
+				pos += step;
 			}
 		}
 		cr->offset = offset - click->step;
@@ -166,14 +171,16 @@ void dumb_remove_clicks(DUMB_CLICK_REMOVER *cr, sample_t *samples, long length, 
 	if (offset < 0) {
 		offset = -offset;
 		while (pos < length) {
-			samples[pos++] -= offset;
+			samples[pos] -= offset;
 			offset = (int)((LONG_LONG)(offset << 1) * factor >> 32);
+			pos += step;
 		}
 		offset = -offset;
 	} else {
 		while (pos < length) {
-			samples[pos++] += offset;
+			samples[pos] += offset;
 			offset = (int)((LONG_LONG)(offset << 1) * factor >> 32);
+			pos += step;
 		}
 	}
 	cr->offset = offset;
@@ -242,8 +249,12 @@ void dumb_remove_clicks_array(int n, DUMB_CLICK_REMOVER **cr, sample_t **samples
 {
 	if (cr) {
 		int i;
-		for (i = 0; i < n; i++)
-			dumb_remove_clicks(cr[i], samples[i], length, halflife);
+		for (i = 0; i < n >> 1; i++) {
+			dumb_remove_clicks(cr[i << 1], samples[i], length, 2, halflife);
+			dumb_remove_clicks(cr[(i << 1) + 1], samples[i] + 1, length, 2, halflife);
+		}
+		if (n & 1)
+			dumb_remove_clicks(cr[i << 1], samples[i], length, 1, halflife);
 	}
 }
 

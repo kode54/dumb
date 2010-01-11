@@ -12,8 +12,8 @@
  *             file, opening and closing it for      | <  /   \_
  *             you.                                  |  \/ /\   /
  *                                                    \_  /  > /
- * By Chris Moeller, mostly based on loadmod.c          | \ / /
- * by entheh.                                           |  ' /
+ * By Chris Moeller                                     | \ / /
+ *                                                      |  ' /
  *                                                       \__/
  */
 
@@ -22,11 +22,11 @@
 
 
 
-/* dumb_load_mtm(): loads a MTM file into a DUH struct, returning a pointer
- * to the DUH struct. When you have finished with it, you must pass the
- * pointer to unload_duh() so that the memory can be freed.
+/* dumb_load_mtm_quick(): loads a MTM file into a DUH struct, returning a
+ * pointer to the DUH struct. When you have finished with it, you must
+ * pass the pointer to unload_duh() so that the memory can be freed.
  */
-DUH *dumb_load_mtm(const char *filename)
+DUH *dumb_load_mtm_quick(const char *filename)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -34,7 +34,7 @@ DUH *dumb_load_mtm(const char *filename)
 	if (!f)
 		return NULL;
 
-	duh = dumb_read_mtm(f);
+	duh = dumb_read_mtm_quick(f);
 
 	dumbfile_close(f);
 

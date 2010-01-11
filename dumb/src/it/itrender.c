@@ -116,9 +116,8 @@ static IT_PLAYING *dup_playing(IT_PLAYING *src, IT_CHANNEL *dstchannel, IT_CHANN
 	dst->filter_state[0] = src->filter_state[0];
 	dst->filter_state[1] = src->filter_state[1];
 
-	dst->resampler[0] = src->resampler[0];
-	dst->resampler[1] = src->resampler[1];
-	dst->resampler[1].pickup_data = dst->resampler[0].pickup_data = dst;
+	dst->resampler = src->resampler;
+	dst->resampler.pickup_data = dst;
 	dst->time_lost = src->time_lost;
 
 	return dst;
@@ -203,6 +202,7 @@ static void dup_channel(IT_CHANNEL *dst, IT_CHANNEL *src)
 	dst->lastS = src->lastS;
 	dst->pat_loop_row = src->pat_loop_row;
 	dst->pat_loop_count = src->pat_loop_count;
+	//dst->pat_loop_end_row = src->pat_loop_end_row;
 	dst->lastW = src->lastW;
 
 	dst->xm_lastE1 = src->xm_lastE1;
@@ -493,12 +493,14 @@ static void it_reset_filter_state(IT_FILTER_STATE *state)
  * output starting at dst[pos]. The pos parameter is required for getting
  * click removal right.
  */
-static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int sampfreq, int cutoff, int resonance)
+static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
 {
-	float currsample = state->currsample;
-	float prevsample = state->prevsample;
+	sample_t currsample = state->currsample;
+	sample_t prevsample = state->prevsample;
 
 	float a, b, c;
+
+	long datasize;
 
 	{
 		float inv_angle = (float)(sampfreq * pow(0.5, 0.25 + cutoff*(1.0/(24<<IT_ENVELOPE_SHIFT))) * (1.0/(2*3.14159265358979323846*110.0)));
@@ -523,12 +525,8 @@ static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *
 #endif
 	}
 
-	dst += pos;
-
-	if (cr) {
-		float startstep = src[0]*a + currsample*b + prevsample*c;
-		dumb_record_click(cr, pos, (sample_t)startstep);
-	}
+	dst += pos * step;
+	datasize = size * step;
 
 #define INT_FILTERS
 #ifdef INT_FILTERS
@@ -538,21 +536,34 @@ static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *
 		int ai = (int)(a * (1 << (16+SCALEB)));
 		int bi = (int)(b * (1 << (16+SCALEB)));
 		int ci = (int)(c * (1 << (16+SCALEB)));
-		sample_t csi = (sample_t)currsample;
-		sample_t psi = (sample_t)prevsample;
-		sample_t *dst_end = dst + size;
-		while (dst < dst_end) {
-			{
-				sample_t nsi = MULSCA(*src++, ai) + MULSCA(csi, bi) + MULSCA(psi, ci);
-				psi = csi;
-				csi = nsi;
-			}
-			*dst++ += csi;
+		int i;
+
+		if (cr) {
+			sample_t startstep = MULSCA(src[0], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
+			dumb_record_click(cr, pos, startstep);
 		}
-		currsample = csi;
-		prevsample = psi;
+
+		for (i = 0; i < datasize; i += step) {
+			{
+				sample_t newsample = MULSCA(src[i], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
+				prevsample = currsample;
+				currsample = newsample;
+			}
+			dst[i] += currsample;
+		}
+
+		if (cr) {
+			sample_t endstep = MULSCA(src[datasize], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
+			dumb_record_click(cr, pos + size, -endstep);
+		}
 	}
 #else
+#error This version is broken - it does not use step, and state should contain floats for it
+	if (cr) {
+		float startstep = src[0]*a + currsample*b + prevsample*c;
+		dumb_record_click(cr, pos, (sample_t)startstep);
+	}
+
 	{
 		int i = size % 3;
 		while (i > 0) {
@@ -574,12 +585,12 @@ static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *
 			i--;
 		}
 	}
-#endif
 
 	if (cr) {
-		float endstep = *src*a + currsample*b + prevsample*c;
+		float endstep = src[datasize]*a + currsample*b + prevsample*c;
 		dumb_record_click(cr, pos + size, -(sample_t)endstep);
 	}
+#endif
 
 	state->currsample = currsample;
 	state->prevsample = prevsample;
@@ -814,32 +825,28 @@ static void it_pickup_stop_at_end(DUMB_RESAMPLER *resampler, void *data)
 static void it_playing_update_resamplers(IT_PLAYING *playing)
 {
 	if ((playing->sample->flags & IT_SAMPLE_SUS_LOOP) && !(playing->flags & IT_PLAYING_SUSTAINOFF)) {
-		playing->resampler[0].start = playing->sample->sus_loop_start;
-		playing->resampler[0].end = playing->sample->sus_loop_end;
+		playing->resampler.start = playing->sample->sus_loop_start;
+		playing->resampler.end = playing->sample->sus_loop_end;
 		if (playing->sample->flags & IT_SAMPLE_PINGPONG_SUS_LOOP)
-			playing->resampler[0].pickup = &it_pickup_pingpong_loop;
+			playing->resampler.pickup = &it_pickup_pingpong_loop;
 		else
-			playing->resampler[0].pickup = &it_pickup_loop;
+			playing->resampler.pickup = &it_pickup_loop;
 	} else if (playing->sample->flags & IT_SAMPLE_LOOP) {
-		playing->resampler[0].start = playing->sample->loop_start;
-		playing->resampler[0].end = playing->sample->loop_end;
+		playing->resampler.start = playing->sample->loop_start;
+		playing->resampler.end = playing->sample->loop_end;
 		if (playing->sample->flags & IT_SAMPLE_PINGPONG_LOOP)
-			playing->resampler[0].pickup = &it_pickup_pingpong_loop;
+			playing->resampler.pickup = &it_pickup_pingpong_loop;
 		else
-			playing->resampler[0].pickup = &it_pickup_loop;
+			playing->resampler.pickup = &it_pickup_loop;
 	} else {
 		if (playing->sample->flags & IT_SAMPLE_SUS_LOOP)
-			playing->resampler[0].start = playing->sample->sus_loop_start;
+			playing->resampler.start = playing->sample->sus_loop_start;
 		else
-			playing->resampler[0].start = 0;
-		playing->resampler[0].end = playing->sample->length;
-		playing->resampler[0].pickup = &it_pickup_stop_at_end;
+			playing->resampler.start = 0;
+		playing->resampler.end = playing->sample->length;
+		playing->resampler.pickup = &it_pickup_stop_at_end;
 	}
-	playing->resampler[1].start = playing->resampler[0].start;
-	playing->resampler[1].end = playing->resampler[0].end;
-	playing->resampler[1].pickup = playing->resampler[0].pickup;
-	ASSERT(playing->resampler[0].pickup_data == playing);
-	ASSERT(playing->resampler[1].pickup_data == playing);
+	ASSERT(playing->resampler.pickup_data == playing);
 }
 
 
@@ -849,11 +856,11 @@ static void it_playing_reset_resamplers(IT_PLAYING *playing, long pos)
 {
 	int bits = playing->sample->flags & IT_SAMPLE_16BIT ? 16 : 8;
 	int quality = playing->resampling_quality;
+	int channels = playing->sample->flags & IT_SAMPLE_STEREO ? 2 : 1;
 	if (playing->sample->max_resampling_quality >= 0 && quality > playing->sample->max_resampling_quality)
 		quality = playing->sample->max_resampling_quality;
-	dumb_reset_resampler_n(bits, &playing->resampler[0], playing->sample->left, pos, 0, 0, quality);
-	dumb_reset_resampler_n(bits, &playing->resampler[1], playing->sample->right, pos, 0, 0, quality);
-	playing->resampler[1].pickup_data = playing->resampler[0].pickup_data = playing;
+	dumb_reset_resampler_n(bits, &playing->resampler, playing->sample->data, channels, pos, 0, 0, quality);
+	playing->resampler.pickup_data = playing;
 	playing->time_lost = 0;
 	playing->flags &= ~IT_PLAYING_DEAD;
 	it_playing_update_resamplers(playing);
@@ -1321,13 +1328,13 @@ static void fix_sample_looping(IT_PLAYING *playing)
 {
 	if ((playing->sample->flags & (IT_SAMPLE_LOOP | IT_SAMPLE_SUS_LOOP)) ==
 	                              (IT_SAMPLE_LOOP | IT_SAMPLE_SUS_LOOP)) {
-		if (playing->resampler[0].dir < 0) {
-			playing->resampler[1].pos = playing->resampler[0].pos = (playing->sample->sus_loop_end << 1) - 1 - playing->resampler[0].pos;
-			playing->resampler[1].subpos = playing->resampler[0].subpos ^= 65535;
-			playing->resampler[1].dir = playing->resampler[0].dir = 1;
+		if (playing->resampler.dir < 0) {
+			playing->resampler.pos = (playing->sample->sus_loop_end << 1) - 1 - playing->resampler.pos;
+			playing->resampler.subpos ^= 65535;
+			playing->resampler.dir = 1;
 		}
 
-		playing->resampler[1].pos = playing->resampler[0].pos += playing->time_lost;
+		playing->resampler.pos += playing->time_lost;
 		// XXX what
 		playing->time_lost = 0;
 	}
@@ -1704,7 +1711,7 @@ static void get_true_pan(DUMB_IT_SIGDATA *sigdata, IT_CHANNEL *channel)
 		IT_INSTRUMENT *instrument = &sigdata->instrument[channel->instrument-1];
 		int truepan = channel->truepan;
 		truepan += (channel->note - instrument->pp_centre) * instrument->pp_separation << (IT_ENVELOPE_SHIFT - 3);
-		channel->truepan = MID(0, truepan, 64 << IT_ENVELOPE_SHIFT);
+		channel->truepan = (unsigned short)MID(0, truepan, 64 << IT_ENVELOPE_SHIFT);
 	}
 }
 
@@ -1820,6 +1827,32 @@ static void it_send_midi(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *channel, 
 			}
 	}
 }
+
+
+
+static void xm_envelope_calculate_value(IT_ENVELOPE *envelope, IT_PLAYING_ENVELOPE *pe)
+{
+	if (pe->next_node <= 0)
+		pe->value = envelope->node_y[0] << IT_ENVELOPE_SHIFT;
+	else if (pe->next_node >= envelope->n_nodes)
+		pe->value = envelope->node_y[envelope->n_nodes-1] << IT_ENVELOPE_SHIFT;
+	else {
+		int ys = envelope->node_y[pe->next_node-1] << IT_ENVELOPE_SHIFT;
+		int ts = envelope->node_t[pe->next_node-1];
+		int te = envelope->node_t[pe->next_node];
+
+		if (ts == te)
+			pe->value = ys;
+		else {
+			int ye = envelope->node_y[pe->next_node] << IT_ENVELOPE_SHIFT;
+			int t = pe->tick;
+
+			pe->value = ys + (ye - ys) * (t - ts) / (te - ts);
+		}
+	}
+}
+
+
 
 extern const char xm_convert_vibrato[];
 
@@ -2508,8 +2541,22 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 						int i, j;
 						for (i = 0, j = 1; i < n; i++, j <<= 1)
 							it_send_midi(sigrenderer, channel,
-								midi->SFmacroz[channel->SFmacro] & j ?
-									entry->effectvalue : midi->SFmacro[channel->SFmacro][i]);
+								(unsigned char)(midi->SFmacroz[channel->SFmacro] & j ?
+									entry->effectvalue : midi->SFmacro[channel->SFmacro][i]));
+					}
+				}
+				break;
+			case IT_XM_SET_ENVELOPE_POSITION:
+				if (channel->playing && channel->playing->env_instrument) {
+					IT_ENVELOPE *envelope = &channel->playing->env_instrument->volume_envelope;
+					if (envelope->flags & IT_ENVELOPE_ON) {
+						IT_PLAYING_ENVELOPE *pe = &channel->playing->volume_envelope;
+						pe->tick = entry->effectvalue;
+						if (pe->tick >= envelope->node_t[envelope->n_nodes-1])
+							pe->tick = envelope->node_t[envelope->n_nodes-1];
+						pe->next_node = 0;
+						while (pe->tick > envelope->node_t[pe->next_node]) pe->next_node++;
+						xm_envelope_calculate_value(envelope, pe);
 					}
 				}
 				break;
@@ -3168,6 +3215,7 @@ static void update_tick_counts(DUMB_IT_SIGRENDERER *sigrenderer)
 static int envelope_get_y(IT_ENVELOPE *envelope, IT_PLAYING_ENVELOPE *pe)
 {
 #if 1
+	(void)envelope; //TODO: remove the parameter
 	return pe->value;
 #else
 	int ys, ye;
@@ -3328,24 +3376,7 @@ static void update_xm_envelope(IT_PLAYING *playing, IT_ENVELOPE *envelope, IT_PL
 		}
 	}
 
-	if (pe->next_node <= 0)
-		pe->value = envelope->node_y[0] << IT_ENVELOPE_SHIFT;
-	else if (pe->next_node >= envelope->n_nodes)
-		pe->value = envelope->node_y[envelope->n_nodes-1] << IT_ENVELOPE_SHIFT;
-	else {
-		int ys = envelope->node_y[pe->next_node-1] << IT_ENVELOPE_SHIFT;
-		int ts = envelope->node_t[pe->next_node-1];
-		int te = envelope->node_t[pe->next_node];
-
-		if (ts == te)
-			pe->value = ys;
-		else {
-			int ye = envelope->node_y[pe->next_node] << IT_ENVELOPE_SHIFT;
-			int t = pe->tick;
-
-			pe->value = ys + (ye - ys) * (t - ts) / (te - ts);
-		}
-	}
+	xm_envelope_calculate_value(envelope, pe);
 }
 
 
@@ -3381,7 +3412,7 @@ static void playing_volume_setup(DUMB_IT_SIGRENDERER * sigrenderer, IT_PLAYING *
 
 	if ((sigrenderer->n_channels == 2) && (sigdata->flags & IT_STEREO)) {
 		pan = apply_pan_envelope(playing);
-		if ((sigdata->flags & IT_WAS_AN_S3M) && (pan > (64<<8))) {
+		if ((sigdata->flags & IT_WAS_AN_S3M) && IT_IS_SURROUND_SHIFTED(pan)) {
 			volume = -1.0f * (float)(pan) * (1.0f / (64.0f * 256.0f));
 		} else {
 			volume = 1.0f;
@@ -4000,7 +4031,12 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 {
 	int bits;
 
+	int pan;
+	float span; /* separated pan, range -1 to 1; garbage for surround */
+
 	long size_rendered;
+
+	DUMB_VOLUME_RAMP_INFO lvol, rvol;
 
 	if (playing->flags & IT_PLAYING_DEAD)
 		return 0;
@@ -4013,83 +4049,104 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 		int quality = sigrenderer->resampling_quality;
 		if (playing->sample->max_resampling_quality >= 0 && quality > playing->sample->max_resampling_quality)
 			quality = playing->sample->max_resampling_quality;
-		playing->resampler[0].quality = quality;
-		playing->resampler[1].quality = quality;
+		playing->resampler.quality = quality;
 	}
 #endif
 
 	bits = playing->sample->flags & IT_SAMPLE_16BIT ? 16 : 8;
 
-#define RESAMPLERV(rv, resampler, dst, rampvol, rampdelta, volume, mix_volume)						 \
-{																	 \
-	rv = dumb_resample_n(bits, resampler, dst, size, rampvol, rampdelta, volume, mix_volume, delta); \
-	if (store_end_sample)											 \
-		(dst)[rv] = RESAMPLE_VALUE(resampler, *(rampvol) * mix_volume);				 \
-}
-
-#define RESAMPLE(resampler, dst, rampvol, rampdelta, volume, mix_volume)   \
-{										   \
-	int i;								   \
-	RESAMPLERV(i, resampler, dst, rampvol, rampdelta, volume, mix_volume); \
-}
-
-#define RESAMPLE_VALUE(resampler, volume) \
-	dumb_resample_get_current_sample_n(bits, resampler, volume)
-
 	if (volume == 0) {
-		size_rendered = dumb_resample_n(bits, &playing->resampler[0], NULL, size, 0, 0, 0, 0, delta);
 		if (playing->sample->flags & IT_SAMPLE_STEREO)
-			dumb_resample_n(bits, &playing->resampler[1], NULL, size, 0, 0, 0, 0, delta);
+			size_rendered = dumb_resample_n_2_1(bits, &playing->resampler, NULL, size, 0, 0, delta);
+		else
+			size_rendered = dumb_resample_n_1_1(bits, &playing->resampler, NULL, size, 0, delta);
 	} else {
+		lvol.volume = playing->ramp_volume [0];
+		rvol.volume = playing->ramp_volume [1];
+		lvol.delta  = playing->ramp_delta [0] * main_delta;
+		rvol.delta  = playing->ramp_delta [1] * main_delta;
+		lvol.target = playing->float_volume [0];
+		rvol.target = playing->float_volume [1];
+		rvol.mix = lvol.mix = volume;
 		if (sigrenderer->n_channels == 2) {
-			DUMB_RESAMPLER start = playing->resampler[0];
-			if ((cr_record_which & 1) && sigrenderer->click_remover && sigrenderer->click_remover[0])
-				dumb_record_click(sigrenderer->click_remover[0], pos, RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[0] * volume));
-			RESAMPLERV(size_rendered, &playing->resampler[0], samples[0] + pos, &playing->ramp_volume[0], playing->ramp_delta[0] * main_delta, playing->float_volume[0], volume);
-			if ((cr_record_which & 2) && sigrenderer->click_remover && sigrenderer->click_remover[0])
-				dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[0] * volume));
 			if (playing->sample->flags & IT_SAMPLE_STEREO) {
-				if ((cr_record_which & 1) && sigrenderer->click_remover && sigrenderer->click_remover[1])
-					dumb_record_click(sigrenderer->click_remover[1], pos, RESAMPLE_VALUE(&playing->resampler[1], playing->ramp_volume[1] * volume));
-				RESAMPLE(&playing->resampler[1], samples[1] + pos, &playing->ramp_volume[1], playing->ramp_delta[1] * main_delta, playing->float_volume[1], volume);
-				if ((cr_record_which & 2) && sigrenderer->click_remover && sigrenderer->click_remover[1])
-					dumb_record_click(sigrenderer->click_remover[1], pos + size_rendered, -RESAMPLE_VALUE(&playing->resampler[1], playing->ramp_volume[1] * volume));
+				if ((cr_record_which & 1) && sigrenderer->click_remover) {
+					sample_t click[2];
+					dumb_resample_get_current_sample_n_2_2(bits, &playing->resampler, &lvol, &rvol, click);
+					dumb_record_click(sigrenderer->click_remover[0], pos, click[0]);
+					dumb_record_click(sigrenderer->click_remover[1], pos, click[1]);
+				}
+				size_rendered = dumb_resample_n_2_2(bits, &playing->resampler, samples[0] + pos*2, size, &lvol, &rvol, delta);
+				if (store_end_sample) {
+					sample_t click[2];
+					dumb_resample_get_current_sample_n_2_2(bits, &playing->resampler, &lvol, &rvol, click);
+					samples[0][(pos + size_rendered) * 2] = click[0];
+					samples[0][(pos + size_rendered) * 2 + 1] = click[1];
+				}
+				if ((cr_record_which & 2) && sigrenderer->click_remover) {
+					sample_t click[2];
+					dumb_resample_get_current_sample_n_2_2(bits, &playing->resampler, &lvol, &rvol, click);
+					dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click[0]);
+					dumb_record_click(sigrenderer->click_remover[1], pos + size_rendered, -click[1]);
+				}
 			} else {
-				playing->resampler[0] = start;
-				if ((cr_record_which & 1) && sigrenderer->click_remover && sigrenderer->click_remover[1])
-					dumb_record_click(sigrenderer->click_remover[1], pos, RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[1] * volume));
-				RESAMPLE(&playing->resampler[0], samples[1] + pos, &playing->ramp_volume[1], playing->ramp_delta[1] * main_delta, playing->float_volume[1], volume);
-				if ((cr_record_which & 2) && sigrenderer->click_remover && sigrenderer->click_remover[1])
-					dumb_record_click(sigrenderer->click_remover[1], pos + size_rendered, -RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[1] * volume));
+				if ((cr_record_which & 1) && sigrenderer->click_remover) {
+					sample_t click[2];
+					dumb_resample_get_current_sample_n_1_2(bits, &playing->resampler, &lvol, &rvol, click);
+					dumb_record_click(sigrenderer->click_remover[0], pos, click[0]);
+					dumb_record_click(sigrenderer->click_remover[1], pos, click[1]);
+				}
+				size_rendered = dumb_resample_n_1_2(bits, &playing->resampler, samples[0] + pos*2, size, &lvol, &rvol, delta);
+				if (store_end_sample) {
+					sample_t click[2];
+					dumb_resample_get_current_sample_n_1_2(bits, &playing->resampler, &lvol, &rvol, click);
+					samples[0][(pos + size_rendered) * 2] = click[0];
+					samples[0][(pos + size_rendered) * 2 + 1] = click[1];
+				}
+				if ((cr_record_which & 2) && sigrenderer->click_remover) {
+					sample_t click[2];
+					dumb_resample_get_current_sample_n_1_2(bits, &playing->resampler, &lvol, &rvol, click);
+					dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click[0]);
+					dumb_record_click(sigrenderer->click_remover[1], pos + size_rendered, -click[1]);
+				}
 			}
 		} else {
 			if (playing->sample->flags & IT_SAMPLE_STEREO) {
-				if (cr_record_which && sigrenderer->click_remover && sigrenderer->click_remover[0]) {
-					sample_t startstep, endstep;
-					startstep = RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[0] * volume);
-					RESAMPLE(&playing->resampler[0], samples[0] + pos, &playing->ramp_volume[0], playing->ramp_delta[0] * main_delta, playing->float_volume[0], volume);
-					endstep = RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[0] * volume);
-					startstep += RESAMPLE_VALUE(&playing->resampler[1], playing->ramp_volume[1] * volume);
-					RESAMPLERV(size_rendered, &playing->resampler[1], samples[0] + pos, &playing->ramp_volume[1], playing->ramp_delta[1] * main_delta, playing->float_volume[1], volume);
-					endstep += RESAMPLE_VALUE(&playing->resampler[1], playing->ramp_volume[1] * volume);
-					if (cr_record_which & 1) dumb_record_click(sigrenderer->click_remover[0], pos, startstep);
-					if (cr_record_which & 2) dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -endstep);
-				} else {
-					RESAMPLE(&playing->resampler[0], samples[0] + pos, &playing->ramp_volume[0], playing->ramp_delta[0] * main_delta, playing->float_volume[0], volume);
-					RESAMPLERV(size_rendered, &playing->resampler[1], samples[0] + pos, &playing->ramp_volume[1], playing->ramp_delta[1] * main_delta, playing->float_volume[1], volume);
+				if ((cr_record_which & 1) && sigrenderer->click_remover) {
+					sample_t click;
+					dumb_resample_get_current_sample_n_2_1(bits, &playing->resampler, &lvol, &rvol, &click);
+					dumb_record_click(sigrenderer->click_remover[0], pos, click);
+				}
+				size_rendered = dumb_resample_n_2_1(bits, &playing->resampler, samples[0] + pos, size, &lvol, &rvol, delta);
+				if (store_end_sample)
+					dumb_resample_get_current_sample_n_2_1(bits, &playing->resampler, &lvol, &rvol, &samples[0][pos + size_rendered]);
+				if ((cr_record_which & 2) && sigrenderer->click_remover) {
+					sample_t click;
+					dumb_resample_get_current_sample_n_2_1(bits, &playing->resampler, &lvol, &rvol, &click);
+					dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click);
 				}
 			} else {
-				if ((cr_record_which & 1) && sigrenderer->click_remover && sigrenderer->click_remover[0])
-					dumb_record_click(sigrenderer->click_remover[0], pos, RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[0] * volume));
-				RESAMPLERV(size_rendered, &playing->resampler[0], samples[0] + pos, &playing->ramp_volume[0], playing->ramp_delta[0] * main_delta, playing->float_volume[0], volume);
-				if ((cr_record_which & 2) && sigrenderer->click_remover && sigrenderer->click_remover[0])
-					dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -RESAMPLE_VALUE(&playing->resampler[0], playing->ramp_volume[0] * volume));
+				if ((cr_record_which & 1) && sigrenderer->click_remover) {
+					sample_t click;
+					dumb_resample_get_current_sample_n_1_1(bits, &playing->resampler, &lvol, &click);
+					dumb_record_click(sigrenderer->click_remover[0], pos, click);
+				}
+				size_rendered = dumb_resample_n_1_1(bits, &playing->resampler, samples[0] + pos, size, &lvol, delta);
+				if (store_end_sample)
+					dumb_resample_get_current_sample_n_1_1(bits, &playing->resampler, &lvol, &samples[0][pos + size_rendered]);
+				if ((cr_record_which & 2) && sigrenderer->click_remover) {
+					sample_t click;
+					dumb_resample_get_current_sample_n_1_1(bits, &playing->resampler, &lvol, &click);
+					dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click);
+				}
 			}
 		}
+		playing->ramp_volume [0] = lvol.volume;
+		playing->ramp_volume [1] = rvol.volume;
 		(*left_to_mix)--;
 	}
 
-	if (playing->resampler[0].dir == 0)
+	if (playing->resampler.dir == 0)
 		playing->flags |= IT_PLAYING_DEAD;
 
 	return size_rendered;
@@ -4109,8 +4166,7 @@ static long render_playing_ramp(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *pl
 		int quality = sigrenderer->resampling_quality;
 		if (playing->sample->max_resampling_quality >= 0 && quality > playing->sample->max_resampling_quality)
 			quality = playing->sample->max_resampling_quality;
-		playing->resampler[0].quality = quality;
-		playing->resampler[1].quality = quality;
+		playing->resampler.quality = quality;
 	}
 
 	if (ramp_style)
@@ -4336,7 +4392,7 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 
 		if (volume && (playing->true_filter_cutoff != 127 << IT_ENVELOPE_SHIFT || playing->true_filter_resonance != 0)) {
 			if (!samples_to_filter) {
-				samples_to_filter = create_sample_buffer(sigrenderer->n_channels, size + 1);
+				samples_to_filter = allocate_sample_buffer(sigrenderer->n_channels, size + 1);
 				if (!samples_to_filter) {
 					render_playing_ramp(sigrenderer, playing, 0, delta, note_delta, pos, size, NULL, 0, &left_to_mix, ramp_style);
 					continue;
@@ -4349,12 +4405,17 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 				sigrenderer->click_remover = NULL;
 				size_rendered = render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, 0, size, samples_to_filter, 1, &left_to_mix, ramp_style);
 				sigrenderer->click_remover = cr;
-				it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0], pos, samples_to_filter[0], size_rendered,
-					65536.0f/delta, playing->true_filter_cutoff, playing->true_filter_resonance);
-				if (sigrenderer->n_channels == 2)
-					it_filter(cr ? cr[1] : NULL, &playing->filter_state[1], samples[1], pos, samples_to_filter[1], size_rendered,
-						65536.0f/delta, playing->true_filter_cutoff, playing->true_filter_resonance);
-				// warning: filtering is not prevented by low left_to_mix!
+				if (sigrenderer->n_channels == 2) {
+					it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0], pos, samples_to_filter[0], size_rendered,
+						2, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
+					it_filter(cr ? cr[1] : NULL, &playing->filter_state[1], samples[0]+1, pos, samples_to_filter[0]+1, size_rendered,
+						2, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
+				} else {
+					it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0], pos, samples_to_filter[0], size_rendered,
+						1, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
+				}
+				// FIXME: filtering is not prevented by low left_to_mix!
+				// FIXME: change 'warning' to 'FIXME' everywhere
 			}
 		} else {
 			it_reset_filter_state(&playing->filter_state[0]);
@@ -4560,16 +4621,14 @@ void dumb_it_set_resampling_quality(DUMB_IT_SIGRENDERER * sigrenderer, int quali
 			{
 				IT_PLAYING * playing = sigrenderer->channel[i].playing;
 				playing->resampling_quality = quality;
-				playing->resampler[0].quality = quality;
-				playing->resampler[1].quality = quality;
+				playing->resampler.quality = quality;
 			}
 		}
 		for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
 			if (sigrenderer->playing[i]) {
 				IT_PLAYING * playing = sigrenderer->playing[i];
 				playing->resampling_quality = quality;
-				playing->resampler[0].quality = quality;
-				playing->resampler[1].quality = quality;
+				playing->resampler.quality = quality;
 			}
 		}
 	}
@@ -4655,7 +4714,7 @@ DUH_SIGRENDERER *dumb_it_start_at_order(DUH *duh, int n_channels, int startorder
 {
 	DUMB_IT_SIGDATA *itsd = duh_get_it_sigdata(duh);
 	DUMB_IT_SIGRENDERER *itsr = dumb_it_init_sigrenderer(itsd, n_channels, startorder);
-	/*duh->length = _dumb_it_build_checkpoints(itsd, startorder);*/
+	/*duh->length = dumb_it_build_checkpoints(itsd, startorder);*/
 	return duh_encapsulate_it_sigrenderer(itsr, n_channels, 0);
 }
 
@@ -4759,7 +4818,8 @@ static long it_sigrenderer_get_samples(
 	sigrenderer->sub_time_left = (long)t & 65535;
 	sigrenderer->time_left += (long)(t >> 16);
 
-	if (volume) dumb_remove_clicks_array(sigrenderer->n_channels, sigrenderer->click_remover, samples, pos, 512.0f / delta);
+	if (samples)
+		dumb_remove_clicks_array(sigrenderer->n_channels, sigrenderer->click_remover, samples, pos, 512.0f / delta);
 
 	return pos;
 }
@@ -4900,9 +4960,19 @@ int dumb_it_callback_midi_block(void *data, int channel, unsigned char midi_byte
 #define FUCKIT_THRESHOLD (120 * 60 * 65536) /* two hours? probably a pattern loop mess... */
 
 /* Returns the length of the module, up until it first loops. */
-long _dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder)
+long dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder)
 {
-	IT_CHECKPOINT *checkpoint = malloc(sizeof(*checkpoint));
+	IT_CHECKPOINT *checkpoint;
+	if (!sigdata) return 0;
+	checkpoint = sigdata->checkpoint;
+	while (checkpoint) {
+		IT_CHECKPOINT *next = checkpoint->next;
+		_dumb_it_end_sigrenderer(checkpoint->sigrenderer);
+		free(checkpoint);
+		checkpoint = next;
+	}
+	sigdata->checkpoint = NULL;
+	checkpoint = malloc(sizeof(*checkpoint));
 	if (!checkpoint) return 0;
 	checkpoint->time = 0;
 	checkpoint->sigrenderer = dumb_it_init_sigrenderer(sigdata, 0, startorder);
@@ -4957,6 +5027,18 @@ long _dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder)
 			checkpoint->next = NULL;
 			return 0;
 		}
+	}
+}
+
+
+
+void dumb_it_do_initial_runthrough(DUH *duh)
+{
+	if (duh) {
+		DUMB_IT_SIGDATA *sigdata = duh_get_it_sigdata(duh);
+
+		if (sigdata)
+			duh_set_length(duh, dumb_it_build_checkpoints(sigdata, 0));
 	}
 }
 
@@ -5096,7 +5178,7 @@ int dumb_it_trim_silent_patterns(DUH * duh) {
 
 	if (n < 0) return -1;
 
-	/*duh->length = _dumb_it_build_checkpoints(sigdata, 0);*/
+	/*duh->length = dumb_it_build_checkpoints(sigdata, 0);*/
 
 	return 0;
 }

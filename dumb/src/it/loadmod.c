@@ -22,11 +22,11 @@
 
 
 
-/* dumb_load_mod(): loads a MOD file into a DUH struct, returning a pointer
- * to the DUH struct. When you have finished with it, you must pass the
- * pointer to unload_duh() so that the memory can be freed.
+/* dumb_load_mod_quick(): loads a MOD file into a DUH struct, returning a
+ * pointer to the DUH struct. When you have finished with it, you must
+ * pass the pointer to unload_duh() so that the memory can be freed.
  */
-DUH *dumb_load_mod(const char *filename, int restrict)
+DUH *dumb_load_mod_quick(const char *filename, int restrict)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -34,7 +34,7 @@ DUH *dumb_load_mod(const char *filename, int restrict)
 	if (!f)
 		return NULL;
 
-	duh = dumb_read_mod(f, restrict);
+	duh = dumb_read_mod_quick(f, restrict);
 
 	dumbfile_close(f);
 

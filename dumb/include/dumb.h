@@ -14,7 +14,7 @@
  * which you wish to use the DUMB functions           \_  /  > /
  * and variables.                                       | \ / /
  *                                                      |  ' /
- *                                                       \__/
+ * Allegro users, you will probably want aldumb.h.       \__/
  */
 
 #ifndef DUMB_H
@@ -36,22 +36,22 @@
 
 #define DUMB_MAJOR_VERSION    0
 #define DUMB_MINOR_VERSION    9
-#define DUMB_REVISION_VERSION 2
+#define DUMB_REVISION_VERSION 3
 
 #define DUMB_VERSION (DUMB_MAJOR_VERSION*10000 + DUMB_MINOR_VERSION*100 + DUMB_REVISION_VERSION)
 
-#define DUMB_VERSION_STR "0.9.2"
+#define DUMB_VERSION_STR "0.9.3"
 
 #define DUMB_NAME "DUMB v"DUMB_VERSION_STR
 
-#define DUMB_YEAR  2003
-#define DUMB_MONTH 11
-#define DUMB_DAY   8
+#define DUMB_YEAR  2005
+#define DUMB_MONTH 8
+#define DUMB_DAY   7
 
-#define DUMB_YEAR_STR2  "03"
-#define DUMB_YEAR_STR4  "2003"
-#define DUMB_MONTH_STR1 "11"
-#define DUMB_DAY_STR1   "8"
+#define DUMB_YEAR_STR2  "05"
+#define DUMB_YEAR_STR4  "2005"
+#define DUMB_MONTH_STR1 "8"
+#define DUMB_DAY_STR1   "7"
 
 #if DUMB_MONTH < 10
 #define DUMB_MONTH_STR2 "0"DUMB_MONTH_STR1
@@ -246,13 +246,33 @@ void duh_sigrenderer_set_callback(
  * is undocumented, so contact me and I shall try to help. Contact details
  * are in readme.txt.)
  */
-#endif
 
 typedef void (*DUH_SIGRENDERER_ANALYSER_CALLBACK)(void *data, const sample_t *const *samples, int n_channels, long length);
+/* This is deprecated, but is not marked as such because GCC tends to
+ * complain spuriously when the typedef is used later. See comments below.
+ */
 
 void duh_sigrenderer_set_analyser_callback(
 	DUH_SIGRENDERER *sigrenderer,
 	DUH_SIGRENDERER_ANALYSER_CALLBACK callback, void *data
+) DUMB_DEPRECATED;
+/* This is deprecated because the meaning of the 'samples' parameter in the
+ * callback needed to change. For stereo applications, the array used to be
+ * indexed with samples[channel][pos]. It is now indexed with
+ * samples[0][pos*2+channel]. Mono sample data are still indexed with
+ * samples[0][pos]. The array is still 2D because samples will probably only
+ * ever be interleaved in twos. In order to fix your code, adapt it to the
+ * new sample layout and then call
+ * duh_sigrenderer_set_sample_analyser_callback below instead of this
+ * function.
+ */
+#endif
+
+typedef void (*DUH_SIGRENDERER_SAMPLE_ANALYSER_CALLBACK)(void *data, const sample_t *const *samples, int n_channels, long length);
+
+void duh_sigrenderer_set_sample_analyser_callback(
+	DUH_SIGRENDERER *sigrenderer,
+	DUH_SIGRENDERER_SAMPLE_ANALYSER_CALLBACK callback, void *data
 );
 
 int duh_sigrenderer_get_n_channels(DUH_SIGRENDERER *sigrenderer);
@@ -260,7 +280,20 @@ long duh_sigrenderer_get_position(DUH_SIGRENDERER *sigrenderer);
 
 void duh_sigrenderer_set_sigparam(DUH_SIGRENDERER *sigrenderer, unsigned char id, long value);
 
+#ifdef DUMB_DECLARE_DEPRECATED
 long duh_sigrenderer_get_samples(
+	DUH_SIGRENDERER *sigrenderer,
+	float volume, float delta,
+	long size, sample_t **samples
+) DUMB_DEPRECATED;
+/* The sample format has changed, so if you were using this function,
+ * you should switch to duh_sigrenderer_generate_samples() and change
+ * how you interpret the samples array. See the comments for
+ * duh_sigrenderer_set_analyser_callback().
+ */
+#endif
+
+long duh_sigrenderer_generate_samples(
 	DUH_SIGRENDERER *sigrenderer,
 	float volume, float delta,
 	long size, sample_t **samples
@@ -287,8 +320,8 @@ long duh_render_signal(
 	float volume, float delta,
 	long size, sample_t **samples
 ) DUMB_DEPRECATED;
-/* Please use duh_sigrenderer_get_samples(). Arguments and functionality are
- * identical.
+/* Please use duh_sigrenderer_generate_samples(), and see the
+ * comments for the deprecated duh_sigrenderer_get_samples() too.
  */
 
 typedef DUH_SIGRENDERER DUH_RENDERER DUMB_DEPRECATED;
@@ -373,6 +406,35 @@ DUH *dumb_read_mtm(DUMBFILE *f);
 DUH *dumb_read_riff(DUMBFILE *f);
 DUH *dumb_read_asy(DUMBFILE *f);
 
+DUH *dumb_load_it_quick(const char *filename);
+DUH *dumb_load_xm_quick(const char *filename);
+DUH *dumb_load_s3m_quick(const char *filename);
+DUH *dumb_load_stm_quick(const char *filename);
+DUH *dumb_load_mod_quick(const char *filename, int restrict);
+DUH *dumb_load_ptm_quick(const char *filename);
+DUH *dumb_load_669_quick(const char *filename);
+DUH *dumb_load_psm_quick(const char *filename, int subsong);
+DUH *dumb_load_old_psm_quick(const char * filename);
+DUH *dumb_load_mtm_quick(const char *filename);
+DUH *dumb_load_riff_quick(const char *filename);
+DUH *dumb_load_asy_quick(const char *filename);
+
+DUH *dumb_read_it_quick(DUMBFILE *f);
+DUH *dumb_read_xm_quick(DUMBFILE *f);
+DUH *dumb_read_s3m_quick(DUMBFILE *f);
+DUH *dumb_read_stm_quick(DUMBFILE *f);
+DUH *dumb_read_mod_quick(DUMBFILE *f, int restrict);
+DUH *dumb_read_ptm_quick(DUMBFILE *f);
+DUH *dumb_read_669_quick(DUMBFILE *f);
+DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong);
+DUH *dumb_read_old_psm_quick(DUMBFILE *f);
+DUH *dumb_read_mtm_quick(DUMBFILE *f);
+DUH *dumb_read_riff_quick(DUMBFILE *f);
+DUH *dumb_read_asy_quick(DUMBFILE *f);
+
+long dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder);
+void dumb_it_do_initial_runthrough(DUH *duh);
+
 int dumb_get_psm_subsong_count(DUMBFILE *f);
 
 const unsigned char *dumb_it_sd_get_song_message(DUMB_IT_SIGDATA *sd);
@@ -420,6 +482,9 @@ void dumb_it_sr_set_speed(DUMB_IT_SIGRENDERER *sr, int speed);
 /* Channels passed to any of these functions are 0-based */
 int dumb_it_sr_get_channel_volume(DUMB_IT_SIGRENDERER *sr, int channel);
 void dumb_it_sr_set_channel_volume(DUMB_IT_SIGRENDERER *sr, int channel, int volume);
+
+int dumb_it_sr_get_channel_muted(DUMB_IT_SIGRENDERER *sr, int channel);
+void dumb_it_sr_set_channel_muted(DUMB_IT_SIGRENDERER *sr, int channel, int muted);
 
 typedef struct DUMB_IT_CHANNEL_STATE DUMB_IT_CHANNEL_STATE;
 
@@ -483,7 +548,7 @@ typedef void (*DUH_SIGRENDERER_SET_SIGPARAM)(
 	unsigned char id, long value
 );
 
-typedef long (*DUH_SIGRENDERER_GET_SAMPLES)(
+typedef long (*DUH_SIGRENDERER_GENERATE_SAMPLES)(
 	sigrenderer_t *sigrenderer,
 	float volume, float delta,
 	long size, sample_t **samples
@@ -508,7 +573,7 @@ typedef struct DUH_SIGTYPE_DESC
 	DUH_LOAD_SIGDATA                   load_sigdata;
 	DUH_START_SIGRENDERER              start_sigrenderer;
 	DUH_SIGRENDERER_SET_SIGPARAM       sigrenderer_set_sigparam;
-	DUH_SIGRENDERER_GET_SAMPLES        sigrenderer_get_samples;
+	DUH_SIGRENDERER_GENERATE_SAMPLES   sigrenderer_generate_samples;
 	DUH_SIGRENDERER_GET_CURRENT_SAMPLE sigrenderer_get_current_sample;
 	DUH_END_SIGRENDERER                end_sigrenderer;
 	DUH_UNLOAD_SIGDATA                 unload_sigdata;
@@ -528,12 +593,19 @@ sigrenderer_t *duh_get_raw_sigrenderer(DUH_SIGRENDERER *sigrenderer, long type);
 
 /* Standard Signal Types */
 
-void dumb_register_sigtype_sample(void);
+//void dumb_register_sigtype_sample(void);
 
 
 /* Sample Buffer Allocation Helpers */
 
-sample_t **create_sample_buffer(int n_channels, long length);
+#ifdef DUMB_DECLARE_DEPRECATED
+sample_t **create_sample_buffer(int n_channels, long length) DUMB_DEPRECATED;
+/* DUMB has been changed to interleave stereo samples. Use
+ * allocate_sample_buffer() instead, and see the comments for
+ * duh_sigrenderer_set_analyser_callback().
+ */
+#endif
+sample_t **allocate_sample_buffer(int n_channels, long length);
 void destroy_sample_buffer(sample_t **samples);
 
 
@@ -548,7 +620,7 @@ typedef struct DUMB_CLICK_REMOVER DUMB_CLICK_REMOVER;
 
 DUMB_CLICK_REMOVER *dumb_create_click_remover(void);
 void dumb_record_click(DUMB_CLICK_REMOVER *cr, long pos, sample_t step);
-void dumb_remove_clicks(DUMB_CLICK_REMOVER *cr, sample_t *samples, long length, float halflife);
+void dumb_remove_clicks(DUMB_CLICK_REMOVER *cr, sample_t *samples, long length, int step, float halflife);
 sample_t dumb_click_remover_get_offset(DUMB_CLICK_REMOVER *cr);
 void dumb_destroy_click_remover(DUMB_CLICK_REMOVER *cr);
 
@@ -570,6 +642,8 @@ extern int dumb_resampling_quality;
 
 typedef struct DUMB_RESAMPLER DUMB_RESAMPLER;
 
+typedef struct DUMB_VOLUME_RAMP_INFO DUMB_VOLUME_RAMP_INFO;
+
 typedef void (*DUMB_RESAMPLE_PICKUP)(DUMB_RESAMPLER *resampler, void *data);
 
 struct DUMB_RESAMPLER
@@ -584,35 +658,67 @@ struct DUMB_RESAMPLER
 	int quality;
 	/* Everything below this point is internal: do not use. */
 	union {
-		sample_t x24[3];
-		short x16[3];
-		signed char x8[3];
+		sample_t x24[3*2];
+		short x16[3*2];
+		signed char x8[3*2];
 	} x;
 	int overshot;
 };
 
-void dumb_reset_resampler(DUMB_RESAMPLER *resampler, sample_t *src, long pos, long start, long end, int quality);
-DUMB_RESAMPLER *dumb_start_resampler(sample_t *src, long pos, long start, long end, int quality);
-long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, float * volume, float volume_delta, float volume_target, float volume_mix, float delta);
-sample_t dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, float volume);
+struct DUMB_VOLUME_RAMP_INFO
+{
+	float volume;
+	float delta;
+	float target;
+	float mix;
+};
+
+void dumb_reset_resampler(DUMB_RESAMPLER *resampler, sample_t *src, int src_channels, long pos, long start, long end, int quality);
+DUMB_RESAMPLER *dumb_start_resampler(sample_t *src, int src_channels, long pos, long start, long end, int quality);
+long dumb_resample_1_1(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume, float delta);
+long dumb_resample_1_2(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_2_1(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_2_2(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+void dumb_resample_get_current_sample_1_1(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume, sample_t *dst);
+void dumb_resample_get_current_sample_1_2(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_2_1(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_2_2(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
 void dumb_end_resampler(DUMB_RESAMPLER *resampler);
 
-void dumb_reset_resampler_16(DUMB_RESAMPLER *resampler, short *src, long pos, long start, long end, int quality);
-DUMB_RESAMPLER *dumb_start_resampler_16(short *src, long pos, long start, long end, int quality);
-long dumb_resample_16(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, float * volume, float volume_delta, float volume_target, float volume_mix, float delta);
-sample_t dumb_resample_get_current_sample_16(DUMB_RESAMPLER *resampler, float volume);
+void dumb_reset_resampler_16(DUMB_RESAMPLER *resampler, short *src, int src_channels, long pos, long start, long end, int quality);
+DUMB_RESAMPLER *dumb_start_resampler_16(short *src, int src_channels, long pos, long start, long end, int quality);
+long dumb_resample_16_1_1(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume, float delta);
+long dumb_resample_16_1_2(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_16_2_1(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_16_2_2(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+void dumb_resample_get_current_sample_16_1_1(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume, sample_t *dst);
+void dumb_resample_get_current_sample_16_1_2(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_16_2_1(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_16_2_2(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
 void dumb_end_resampler_16(DUMB_RESAMPLER *resampler);
 
-void dumb_reset_resampler_8(DUMB_RESAMPLER *resampler, signed char *src, long pos, long start, long end, int quality);
-DUMB_RESAMPLER *dumb_start_resampler_8(signed char *src, long pos, long start, long end, int quality);
-long dumb_resample_8(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, float * volume, float volume_delta, float volume_target, float volume_mix, float delta);
-sample_t dumb_resample_get_current_sample_8(DUMB_RESAMPLER *resampler, float volume);
+void dumb_reset_resampler_8(DUMB_RESAMPLER *resampler, signed char *src, int src_channels, long pos, long start, long end, int quality);
+DUMB_RESAMPLER *dumb_start_resampler_8(signed char *src, int src_channels, long pos, long start, long end, int quality);
+long dumb_resample_8_1_1(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume, float delta);
+long dumb_resample_8_1_2(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_8_2_1(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_8_2_2(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+void dumb_resample_get_current_sample_8_1_1(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume, sample_t *dst);
+void dumb_resample_get_current_sample_8_1_2(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_8_2_1(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_8_2_2(DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
 void dumb_end_resampler_8(DUMB_RESAMPLER *resampler);
 
-void dumb_reset_resampler_n(int n, DUMB_RESAMPLER *resampler, void *src, long pos, long start, long end, int quality);
-DUMB_RESAMPLER *dumb_start_resampler_n(int n, void *src, long pos, long start, long end, int quality);
-long dumb_resample_n(int n, DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, float * volume, float volume_delta, float volume_target, float volume_mix, float delta);
-sample_t dumb_resample_get_current_sample_n(int n, DUMB_RESAMPLER *resampler, float volume);
+void dumb_reset_resampler_n(int n, DUMB_RESAMPLER *resampler, void *src, int src_channels, long pos, long start, long end, int quality);
+DUMB_RESAMPLER *dumb_start_resampler_n(int n, void *src, int src_channels, long pos, long start, long end, int quality);
+long dumb_resample_n_1_1(int n, DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume, float delta);
+long dumb_resample_n_1_2(int n, DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_n_2_1(int n, DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+long dumb_resample_n_2_2(int n, DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, float delta);
+void dumb_resample_get_current_sample_n_1_1(int n, DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume, sample_t *dst);
+void dumb_resample_get_current_sample_n_1_2(int n, DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_n_2_1(int n, DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
+void dumb_resample_get_current_sample_n_2_2(int n, DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
 void dumb_end_resampler_n(int n, DUMB_RESAMPLER *resampler);
 
 
@@ -626,6 +732,8 @@ DUH *make_duh(
 	DUH_SIGTYPE_DESC *desc[],
 	sigdata_t *sigdata[]
 );
+
+void duh_set_length(DUH *duh, long length);
 
 
 #ifdef __cplusplus

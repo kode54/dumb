@@ -22,11 +22,11 @@
 
 
 
-/* dumb_load_stm(): loads an STM file into a DUH struct, returning a pointer
- * to the DUH struct. When you have finished with it, you must pass the
- * pointer to unload_duh() so that the memory can be freed.
+/* dumb_load_stm_quick(): loads an STM file into a DUH struct, returning a
+ * pointer to the DUH struct. When you have finished with it, you must
+ * pass the pointer to unload_duh() so that the memory can be freed.
  */
-DUH *dumb_load_stm(const char *filename)
+DUH *dumb_load_stm_quick(const char *filename)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -34,7 +34,7 @@ DUH *dumb_load_stm(const char *filename)
 	if (!f)
 		return NULL;
 
-	duh = dumb_read_stm(f);
+	duh = dumb_read_stm_quick(f);
 
 	dumbfile_close(f);
 

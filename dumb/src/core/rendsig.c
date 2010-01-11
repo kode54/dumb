@@ -35,7 +35,7 @@ struct DUH_SIGRENDERER
 	long pos;
 	int subpos;
 
-	DUH_SIGRENDERER_ANALYSER_CALLBACK callback;
+	DUH_SIGRENDERER_SAMPLE_ANALYSER_CALLBACK callback;
 	void *callback_data;
 };
 
@@ -111,6 +111,21 @@ void duh_sigrenderer_set_analyser_callback(
 	DUH_SIGRENDERER_ANALYSER_CALLBACK callback, void *data
 )
 {
+	(void)sigrenderer;
+	(void)callback;
+	(void)data;
+	fprintf(stderr,
+		"Call to deprecated function duh_sigrenderer_set_analyser_callback(). The\n"
+		"callback was not installed. See dumb/docs/deprec.txt for how to fix this.\n");
+}
+
+
+
+void duh_sigrenderer_set_sample_analyser_callback(
+	DUH_SIGRENDERER *sigrenderer,
+	DUH_SIGRENDERER_SAMPLE_ANALYSER_CALLBACK callback, void *data
+)
+{
 	if (sigrenderer) {
 		sigrenderer->callback = callback;
 		sigrenderer->callback_data = data;
@@ -157,7 +172,7 @@ void duh_sigrenderer_set_sigparam(
 
 
 
-long duh_sigrenderer_get_samples(
+long duh_sigrenderer_generate_samples(
 	DUH_SIGRENDERER *sigrenderer,
 	float volume, float delta,
 	long size, sample_t **samples
@@ -168,7 +183,7 @@ long duh_sigrenderer_get_samples(
 
 	if (!sigrenderer) return 0;
 
-	rendered = (*sigrenderer->desc->sigrenderer_get_samples)
+	rendered = (*sigrenderer->desc->sigrenderer_generate_samples)
 				(sigrenderer->sigrenderer, volume, delta, size, samples);
 
 	if (rendered) {
@@ -188,21 +203,49 @@ long duh_sigrenderer_get_samples(
 
 
 /* DEPRECATED */
+long duh_sigrenderer_get_samples(
+	DUH_SIGRENDERER *sigrenderer,
+	float volume, float delta,
+	long size, sample_t **samples
+)
+{
+	sample_t **s;
+	long rendered;
+	long i;
+	int j;
+	if (!samples) return duh_sigrenderer_generate_samples(sigrenderer, volume, delta, size, NULL);
+	s = allocate_sample_buffer(sigrenderer->n_channels, size);
+	if (!s) return 0;
+	dumb_silence(s[0], sigrenderer->n_channels * size);
+	rendered = duh_sigrenderer_generate_samples(sigrenderer, volume, delta, size, s);
+	for (j = 0; j < sigrenderer->n_channels; j++)
+		for (i = 0; i < rendered; i++)
+			samples[j][i] += s[0][i*sigrenderer->n_channels+j];
+	destroy_sample_buffer(s);
+	return rendered;
+}
+
+
+
+/* DEPRECATED */
 long duh_render_signal(
 	DUH_SIGRENDERER *sigrenderer,
 	float volume, float delta,
 	long size, sample_t **samples
 )
 {
-	sample_t **s = create_sample_buffer(sigrenderer->n_channels, size);
+	sample_t **s;
 	long rendered;
 	long i;
 	int j;
+	if (!samples) return duh_sigrenderer_generate_samples(sigrenderer, volume, delta, size, NULL);
+	s = allocate_sample_buffer(sigrenderer->n_channels, size);
 	if (!s) return 0;
-	rendered = duh_sigrenderer_get_samples(sigrenderer, volume, delta, size, s);
+	dumb_silence(s[0], sigrenderer->n_channels * size);
+	rendered = duh_sigrenderer_generate_samples(sigrenderer, volume, delta, size, s);
 	for (j = 0; j < sigrenderer->n_channels; j++)
 		for (i = 0; i < rendered; i++)
-			samples[j][i] += s[j][i] >> 8;
+			samples[j][i] += s[0][i*sigrenderer->n_channels+j] >> 8;
 	destroy_sample_buffer(s);
 	return rendered;
 }

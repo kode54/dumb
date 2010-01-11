@@ -107,44 +107,26 @@ long duh_render(
 	 */
 	ASSERT(n_channels <= 2);
 
-	sampptr = create_sample_buffer(n_channels, size);
+	sampptr = allocate_sample_buffer(n_channels, size);
 
 	if (!sampptr)
 		return 0;
 
 	dumb_silence(sampptr[0], n_channels * size);
 
-	size = duh_sigrenderer_get_samples(sigrenderer, volume, delta, size, sampptr);
+	size = duh_sigrenderer_generate_samples(sigrenderer, volume, delta, size, sampptr);
 
 	if (bits == 16) {
 		int signconv = unsign ? 0x8000 : 0x0000;
 
-		if (n_channels == 2) {
-			for (n = 0; n < size; n++) {
-				CONVERT16(sampptr[0][n], n << 1, signconv);
-			}
-			for (n = 0; n < size; n++) {
-				CONVERT16(sampptr[1][n], (n << 1) + 1, signconv);
-			}
-		} else {
-			for (n = 0; n < size; n++) {
-				CONVERT16(sampptr[0][n], n, signconv);
-			}
+		for (n = 0; n < size * n_channels; n++) {
+			CONVERT16(sampptr[0][n], n, signconv);
 		}
 	} else {
 		char signconv = unsign ? 0x80 : 0x00;
 
-		if (n_channels == 2) {
-			for (n = 0; n < size; n++) {
-				CONVERT8(sampptr[0][n], n << 1, signconv);
-			}
-			for (n = 0; n < size; n++) {
-				CONVERT8(sampptr[1][n], (n << 1) + 1, signconv);
-			}
-		} else {
-			for (n = 0; n < size; n++) {
-				CONVERT8(sampptr[0][n], n, signconv);
-			}
+		for (n = 0; n < size * n_channels; n++) {
+			CONVERT8(sampptr[0][n], n, signconv);
 		}
 	}
 

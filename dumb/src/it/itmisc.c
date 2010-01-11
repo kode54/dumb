@@ -226,3 +226,22 @@ void dumb_it_sr_set_channel_volume(DUMB_IT_SIGRENDERER *sr, int channel, int vol
 {
 	if (sr) sr->channel[channel].channelvolume = volume;
 }
+
+
+
+void dumb_it_sr_set_channel_muted(DUMB_IT_SIGRENDERER *sr, int channel, int muted)
+{
+	if (sr) {
+		if (muted)
+			sr->channel[channel].flags |= IT_CHANNEL_MUTED;
+		else
+			sr->channel[channel].flags &= ~IT_CHANNEL_MUTED;
+	}
+}
+
+
+
+int dumb_it_sr_get_channel_muted(DUMB_IT_SIGRENDERER *sr, int channel)
+{
+	return sr ? (sr->channel[channel].flags & IT_CHANNEL_MUTED) != 0 : 0;
+}

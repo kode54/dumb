@@ -118,8 +118,8 @@ static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data,
 		}
 	}
 
-	sample->left = malloc(sample->length);
-	if (!sample->left)
+	sample->data = malloc(sample->length);
+	if (!sample->data)
 		return -1;
 
 	flags = 0;
@@ -127,7 +127,7 @@ static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data,
 
 	for (insno = 0; insno < sample->length; insno++) {
 		flags += (signed char)(*data++);
-		((signed char *)sample->left)[insno] = flags;
+		((signed char *)sample->data)[insno] = flags;
 	}
 
 	return 0;
@@ -920,7 +920,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 	sigdata->sample = malloc(sigdata->n_samples * sizeof(*sigdata->sample));
 	if (!sigdata->sample) goto error_ev;
 	for (n = 0; n < sigdata->n_samples; n++)
-		sigdata->sample[n].right = sigdata->sample[n].left = NULL;
+		sigdata->sample[n].data = NULL;
 
 	o = 0;
 	for (n = 0; n < n_chunks; n++) {
@@ -1192,10 +1192,9 @@ int dumb_get_psm_subsong_count(DUMBFILE *f) {
 	return subsongs;
 }
 
-DUH *dumb_read_psm(DUMBFILE *f, int subsong)
+DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong)
 {
 	sigdata_t *sigdata;
-	long length;
 	int ver;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
@@ -1204,8 +1203,6 @@ DUH *dumb_read_psm(DUMBFILE *f, int subsong)
 
 	if (!sigdata)
 		return NULL;
-
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
 
 	{
 		char version[16];
@@ -1217,6 +1214,6 @@ DUH *dumb_read_psm(DUMBFILE *f, int subsong)
 		tag[2][0] = "FORMATVERSION";
 		itoa(ver, version, 10);
 		tag[2][1] = (const char *) &version;
-		return make_duh(length, 3, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 3, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

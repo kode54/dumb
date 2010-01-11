@@ -156,18 +156,19 @@ static int it_mtm_read_sample_data(IT_SAMPLE *sample, DUMBFILE *f)
 		truncated_size = 0;
 	}
 
-	sample->left = malloc(sample->length);
+	sample->data = malloc(sample->length);
 
-	if (!sample->left)
+	if (!sample->data)
 		return -1;
 
-	for (i = 0; i < sample->length; i++)
-		((signed char *)sample->left)[i] = dumbfile_getc(f) ^ 0x80;
-
+	dumbfile_getnc((char *)sample->data, sample->length, f);
 	dumbfile_skip(f, truncated_size);
 
 	if (dumbfile_error(f))
 		return -1;
+
+	for (i = 0; i < sample->length; i++)
+		((signed char *)sample->data)[i] ^= 0x80;
 
 	return 0;
 }
@@ -257,7 +258,7 @@ static DUMB_IT_SIGDATA *it_mtm_load_sigdata(DUMBFILE *f, int * version)
 	sigdata->n_pchannels = n_channels;
 
 	for (n = 0; n < sigdata->n_samples; n++)
-		sigdata->sample[n].right = sigdata->sample[n].left = NULL;
+		sigdata->sample[n].data = NULL;
 
 	for (n = 0; n < sigdata->n_samples; n++) {
 		if (it_mtm_read_sample_header(&sigdata->sample[n], f)) goto error_usd;
@@ -377,10 +378,9 @@ static char hexdigit(int in)
 	else return in + 'A' - 10;
 }
 
-DUH *dumb_read_mtm(DUMBFILE *f)
+DUH *dumb_read_mtm_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 	int ver;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
@@ -389,8 +389,6 @@ DUH *dumb_read_mtm(DUMBFILE *f)
 
 	if (!sigdata)
 		return NULL;
-
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
 
 	{
 		char version[16];
@@ -408,6 +406,6 @@ DUH *dumb_read_mtm(DUMBFILE *f)
 		version[7] = hexdigit(ver & 15);
 		version[8] = 0;
 		tag[1][1] = (const char *) &version;
-		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

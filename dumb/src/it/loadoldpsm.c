@@ -8,9 +8,9 @@
  * /_______/ynamic    \____/niversal  /__\  /____\usic   /|  .  . ibliotheque
  *                                                      /  \
  *                                                     / .  \
- * loads3m.c - Code to read a ProTracker Studio       / / \  \
- *             file, opening and closing it for      | <  /   \_
- *             you.                                  |  \/ /\   /
+ * loadoldpsm.c - Code to read a ProTracker Studio    / / \  \
+ *                file, opening and closing it for   | <  /   \_
+ *                you.                               |  \/ /\   /
  *                                                    \_  /  > /
  * By Chris Moeller.                                    | \ / /
  *                                                      |  ' /
@@ -22,11 +22,12 @@
 
 
 
-/* dumb_load_psm(): loads an old PSM file into a DUH struct, returning a pointer
- * to the DUH struct. When you have finished with it, you must pass the
- * pointer to unload_duh() so that the memory can be freed.
+/* dumb_load_old_psm_quick(): loads an old PSM file into a DUH struct,
+ * returning a pointer to the DUH struct. When you have finished with it,
+ * you must pass the pointer to unload_duh() so that the memory can be
+ * freed.
  */
-DUH *dumb_load_old_psm(const char *filename)
+DUH *dumb_load_old_psm_quick(const char *filename)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -34,7 +35,7 @@ DUH *dumb_load_old_psm(const char *filename)
 	if (!f)
 		return NULL;
 
-	duh = dumb_read_old_psm(f);
+	duh = dumb_read_old_psm_quick(f);
 
 	dumbfile_close(f);
 

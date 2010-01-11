@@ -133,11 +133,11 @@ static int it_riff_am_process_sample( IT_SAMPLE * sample, const unsigned char * 
 
 	length_bytes = sample->length << ( ( flags & 0x04 ) >> 2 );
 
-	sample->left = malloc( length_bytes );
-	if ( ! sample->left )
+	sample->data = malloc( length_bytes );
+	if ( ! sample->data )
 		return -1;
 
-	memcpy( sample->left, data + header_length, length_bytes );
+	memcpy( sample->data, data + header_length, length_bytes );
 
 	return 0;
 }
@@ -381,7 +381,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( struct riff * stream )
 	for ( n = 0; n < sigdata->n_samples; ++n )
 	{
 		IT_SAMPLE * sample = sigdata->sample + n;
-		sample->right = sample->left = NULL;
+		sample->data = NULL;
 		sample->flags = 0;
 		sample->name[ 0 ] = 0;
 	}
@@ -606,7 +606,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( struct riff * stream )
 	for ( n = 0; n < sigdata->n_samples; ++n )
 	{
 		IT_SAMPLE * sample = sigdata->sample + n;
-		sample->right = sample->left = NULL;
+		sample->data = NULL;
 		sample->flags = 0;
 		sample->name[ 0 ] = 0;
 	}
@@ -732,7 +732,6 @@ DUH *dumb_read_riff_amff( struct riff * stream )
 DUH *dumb_read_riff_am( struct riff * stream )
 {
 	sigdata_t *sigdata;
-	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
@@ -741,14 +740,12 @@ DUH *dumb_read_riff_am( struct riff * stream )
 	if (!sigdata)
 		return NULL;
 
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
-
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "RIFF AM";
-		return make_duh( length, 2, ( const char * const (*) [ 2 ] ) tag, 1, & descptr, & sigdata );
+		return make_duh( -1, 2, ( const char * const (*) [ 2 ] ) tag, 1, & descptr, & sigdata );
 	}
 }

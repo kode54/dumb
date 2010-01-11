@@ -42,31 +42,11 @@
  * FIXME: these comments are somewhat out of date now.
  */
 
-#include <math.h>
-#include "dumb.h"
 
 
-
-/* Compile with -DHEAVYDEBUG if you want to make sure the pick-up function is
- * called when it should be. There will be a considerable performance hit,
- * since at least one condition has to be tested for every sample generated.
- */
-#ifdef HEAVYDEBUG
-#define HEAVYASSERT(cond) ASSERT(cond)
-#else
-#define HEAVYASSERT(cond)
-#endif
-
-
-
-//#define MULSC(a, b) ((int)((LONG_LONG)(a) * (b) >> 16))
-//#define MULSC(a, b) ((a) * ((b) >> 2) >> 14)
-#define MULSC(a, b) ((int)((LONG_LONG)((a) << 4) * ((b) << 12) >> 32))
-
-
-
-void dumb_reset_resampler(DUMB_RESAMPLER *resampler, SRCTYPE *src, long pos, long start, long end, int quality)
+void dumb_reset_resampler(DUMB_RESAMPLER *resampler, SRCTYPE *src, int src_channels, long pos, long start, long end, int quality)
 {
+	int i;
 	resampler->src = src;
 	resampler->pos = pos;
 	resampler->subpos = 0;
@@ -87,458 +67,193 @@ void dumb_reset_resampler(DUMB_RESAMPLER *resampler, SRCTYPE *src, long pos, lon
 	{
 		resampler->quality = quality;
 	}
-	resampler->X[2] = resampler->X[1] = resampler->X[0] = 0;
+	for (i = 0; i < src_channels*3; i++) resampler->X[i] = 0;
 	resampler->overshot = -1;
 }
 
 
 
-DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, long pos, long start, long end, int quality)
+DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, long start, long end, int quality)
 {
 	DUMB_RESAMPLER *resampler = malloc(sizeof(*resampler));
 	if (!resampler) return NULL;
-	dumb_reset_resampler(resampler, src, pos, start, end, quality);
+	dumb_reset_resampler(resampler, src, src_channels, pos, start, end, quality);
 	return resampler;
 }
 
 
 
-/* For convenience, returns nonzero on stop. */
-static int process_pickup(DUMB_RESAMPLER *resampler)
-{
-	if (resampler->overshot < 0) {
-		resampler->overshot = 0;
-		dumb_resample(resampler, NULL, 2, 0, 0, 0, 0, 1.0f);
-		resampler->X[0] = resampler->X[1];
-	}
-
-	for (;;) {
-		SRCTYPE *src = resampler->src;
-
-		if (resampler->dir < 0) {
-			if (resampler->overshot >= 3 && resampler->pos+3 >= resampler->start) resampler->X[0] = src[resampler->pos+3];
-			if (resampler->overshot >= 2 && resampler->pos+2 >= resampler->start) resampler->X[1] = src[resampler->pos+2];
-			if (resampler->overshot >= 1 && resampler->pos+1 >= resampler->start) resampler->X[2] = src[resampler->pos+1];
-			resampler->overshot = resampler->start - resampler->pos - 1;
-		} else {
-			if (resampler->overshot >= 3 && resampler->pos-3 < resampler->end) resampler->X[0] = src[resampler->pos-3];
-			if (resampler->overshot >= 2 && resampler->pos-2 < resampler->end) resampler->X[1] = src[resampler->pos-2];
-			if (resampler->overshot >= 1 && resampler->pos-1 < resampler->end) resampler->X[2] = src[resampler->pos-1];
-			resampler->overshot = resampler->pos - resampler->end;
-		}
-
-		if (resampler->overshot < 0) {
-			resampler->overshot = 0;
-			return 0;
-		}
-
-		if (!resampler->pickup) {
-			resampler->dir = 0;
-			return 1;
-		}
-		(*resampler->pickup)(resampler, resampler->pickup_data);
-		if (resampler->dir == 0) return 1;
-		ASSERT(resampler->dir == -1 || resampler->dir == 1);
-	}
-}
-
-
-
-/* Executes the content 'iterator' times.
- * Clobbers the 'iterator' variable.
- * The loop is unrolled by four.
- */
-#define LOOP4(iterator, CONTENT) \
-{ \
-	if ((iterator) & 2) { \
-		CONTENT; \
-		CONTENT; \
-	} \
-	if ((iterator) & 1) { \
-		CONTENT; \
-	} \
-	(iterator) >>= 2; \
-	while (iterator) { \
-		CONTENT; \
-		CONTENT; \
-		CONTENT; \
-		CONTENT; \
-		(iterator)--; \
-	} \
-}
-
-#define UPDATE_VOLUME                                              \
-	if (volume) {                                                  \
-		if (volume_delta < 0) {                                    \
-			if (volume_target - *volume > volume_delta) {          \
-				*volume = volume_target;                           \
-				volume = NULL;                                     \
-				vol = (int)(volume_target * volume_mix * 65536.0 + 0.5);        \
+#define UPDATE_VOLUME( pvol, vol ) {                               \
+	if (pvol) {                                                    \
+		if (vol##d < 0) {                                          \
+			if (vol##t - vol##r > vol##d) {                        \
+				pvol->volume = pvol->target;                       \
+				pvol = NULL;                                       \
+				vol = MULSC( vol##t, vol##m );                     \
 			} else {                                               \
-				*volume += volume_delta;                           \
-				vol = (int)(*volume * volume_mix * 65536.0 + 0.5);              \
+				vol##r += vol##d;                                  \
+				vol = MULSC( vol##r, vol##m );                     \
 			}                                                      \
 		} else {                                                   \
-			if (volume_target - *volume < volume_delta) {          \
-				*volume = volume_target;                           \
-				volume = NULL;                                     \
-				vol = (int)(volume_target * volume_mix * 65536.0 + 0.5);        \
+			if (vol##t - vol##r < vol##d) {                        \
+				pvol->volume = pvol->target;                       \
+				pvol = NULL;                                       \
+				vol = MULSC( vol##t, vol##m );                     \
 			} else {                                               \
-				*volume += volume_delta;                           \
-				vol = (int)(*volume * volume_mix * 65536.0 + 0.5);              \
+				vol##r += vol##d;                                  \
+				vol = MULSC( vol##r, vol##m );                     \
 			}                                                      \
 		}                                                          \
-	}
-
-long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, float * volume, float volume_delta, float volume_target, float volume_mix, float delta)
-{
-	int dt;
-	int vol;
-	long done;
-	long todo;
-	int quality;
-
-	if (!resampler || resampler->dir == 0) return 0;
-	ASSERT(resampler->dir == -1 || resampler->dir == 1);
-
-	done = 0;
-	dt = (int)(delta * 65536.0 + 0.5);
-	if (volume) {
-		vol = (int)(*volume * volume_mix * 65536.0 + 0.5);
-		if (*volume == volume_target) volume = NULL;
-	}
-	else vol = 0;
-
-	if (vol == 0 && volume_target == 0) dst = NULL;
-
-	init_cubic();
-
-	quality = resampler->quality;
-
-	while (done < dst_size) {
-		if (process_pickup(resampler)) return done;
-
-		if ((resampler->dir ^ dt) < 0)
-			dt = -dt;
-
-		if (!dt)
-			todo = 0;
-		else if (resampler->dir < 0)
-			todo = (long)((((LONG_LONG)(resampler->pos - resampler->start) << 16) + resampler->subpos - dt) / -dt);
-		else
-			todo = (long)((((LONG_LONG)(resampler->end - resampler->pos) << 16) - resampler->subpos - 1 + dt) / dt);
-
-		if ((todo <= 0) ||
-			(todo > dst_size - done))
-			todo = dst_size - done;
-
-		done += todo;
-
-		{
-			SRCTYPE *src = resampler->src;
-			long pos = resampler->pos;
-			int subpos = resampler->subpos;
-			long diff = pos;
-			long overshot;
-			if (resampler->dir < 0) {
-				if (!dst) {
-					/* Silence or simulation */
-					LONG_LONG new_subpos = subpos + (LONG_LONG)dt * todo;
-					pos += (long)(new_subpos >> 16);
-					subpos = (long)new_subpos & 65535;
-				} else if (quality <= DUMB_RQ_ALIASING) {
-					/* Aliasing, backwards */
-					SRCTYPE xbuf[2];
-					SRCTYPE *x = &xbuf[0];
-					SRCTYPE *xstart;
-					xbuf[0] = resampler->X[1];
-					xbuf[1] = resampler->X[2];
-					while (todo && x < &xbuf[2]) {
-						HEAVYASSERT(pos >= resampler->start);
-						*dst++ += ALIAS(x[0]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x -= subpos >> 16;
-						subpos &= 65535;
-						todo--;
-						UPDATE_VOLUME;
-					}
-					x = xstart = &src[pos];
-					LOOP4(todo,
-						*dst++ += ALIAS(x[2]);
-						subpos += dt;
-						x += subpos >> 16;
-						subpos &= 65535;
-						UPDATE_VOLUME;
-					);
-					pos += x - xstart;
-				} else if (quality <= DUMB_RQ_LINEAR) {
-					/* Linear interpolation, backwards */
-					SRCTYPE xbuf[3];
-					SRCTYPE *x = &xbuf[1];
-					xbuf[0] = resampler->X[1];
-					xbuf[1] = resampler->X[2];
-					xbuf[2] = src[pos];
-					while (todo && x < &xbuf[3]) {
-						HEAVYASSERT(pos >= resampler->start);
-						*dst++ += LINEAR(x[0], x[-1]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x -= subpos >> 16;
-						subpos &= 65535;
-						todo--;
-						UPDATE_VOLUME;
-					}
-					x = &src[pos];
-					LOOP4(todo,
-						HEAVYASSERT(pos >= resampler->start);
-						*dst++ += LINEAR(x[1], x[2]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += subpos >> 16;
-						subpos &= 65535;
-						UPDATE_VOLUME;
-					);
-				} else {
-					/* Cubic interpolation, backwards */
-					SRCTYPE xbuf[6];
-					SRCTYPE *x = &xbuf[3];
-					//SRCTYPE *lastx = NULL;
-					//int a = 0, b = 0, c = 0;
-					xbuf[0] = resampler->X[0];
-					xbuf[1] = resampler->X[1];
-					xbuf[2] = resampler->X[2];
-					xbuf[3] = src[pos];
-					if (pos-1 >= resampler->start) xbuf[4] = src[pos-1];
-					if (pos-2 >= resampler->start) xbuf[5] = src[pos-2];
-					while (todo && x < &xbuf[6]) {
-						HEAVYASSERT(pos >= resampler->start);
-						//if (lastx != x) {
-						//	lastx = x;
-						//	SET_CUBIC_COEFFICIENTS(x[0], x[-1], x[-2], x[-3]);
-						//}
-						*dst++ += CUBIC(x[0], x[-1], x[-2], x[-3]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x -= subpos >> 16;
-						subpos &= 65535;
-						todo--;
-						UPDATE_VOLUME;
-					}
-					x = &src[pos];
-					//lastx = NULL;
-					LOOP4(todo,
-						HEAVYASSERT(pos >= resampler->start);
-						//if (lastx != x) {
-						//	lastx = x;
-						//	SET_CUBIC_COEFFICIENTS(x[0], x[1], x[2], x[3]);
-						//}
-						*dst++ += CUBIC(x[0], x[1], x[2], x[3]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += subpos >> 16;
-						subpos &= 65535;
-						UPDATE_VOLUME;
-					);
-				}
-				diff = diff - pos;
-				overshot = resampler->start - pos - 1;
-				if (diff >= 3) {
-					resampler->X[0] = overshot >= 3 ? 0 : src[pos+3];
-					resampler->X[1] = overshot >= 2 ? 0 : src[pos+2];
-					resampler->X[2] = overshot >= 1 ? 0 : src[pos+1];
-				} else if (diff >= 2) {
-					resampler->X[0] = resampler->X[2];
-					resampler->X[1] = overshot >= 2 ? 0 : src[pos+2];
-					resampler->X[2] = overshot >= 1 ? 0 : src[pos+1];
-				} else if (diff >= 1) {
-					resampler->X[0] = resampler->X[1];
-					resampler->X[1] = resampler->X[2];
-					resampler->X[2] = overshot >= 1 ? 0 : src[pos+1];
-				}
-			} else {
-				if (!dst) {
-					/* Silence or simulation */
-					LONG_LONG new_subpos = subpos + (LONG_LONG)dt * todo;
-					pos += (long)(new_subpos >> 16);
-					subpos = (long)new_subpos & 65535;
-				} else if (quality <= DUMB_RQ_ALIASING) {
-					/* Aliasing, forwards */
-					SRCTYPE xbuf[2];
-					SRCTYPE *x = &xbuf[0];
-					SRCTYPE *xstart;
-					xbuf[0] = resampler->X[1];
-					xbuf[1] = resampler->X[2];
-					while (todo && x < &xbuf[2]) {
-						HEAVYASSERT(pos < resampler->end);
-						*dst++ += ALIAS(x[0]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += subpos >> 16;
-						subpos &= 65535;
-						todo--;
-						UPDATE_VOLUME;
-					}
-					x = xstart = &src[pos];
-					LOOP4(todo,
-						*dst++ += ALIAS(x[-2]);
-						subpos += dt;
-						x += subpos >> 16;
-						subpos &= 65535;
-						UPDATE_VOLUME;
-					);
-					pos += x - xstart;
-				} else if (quality <= DUMB_RQ_LINEAR) {
-					/* Linear interpolation, forwards */
-					SRCTYPE xbuf[3];
-					SRCTYPE *x = &xbuf[1];
-					xbuf[0] = resampler->X[1];
-					xbuf[1] = resampler->X[2];
-					xbuf[2] = src[pos];
-					while (todo && x < &xbuf[3]) {
-						HEAVYASSERT(pos < resampler->end);
-						*dst++ += LINEAR(x[-1], x[0]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += subpos >> 16;
-						subpos &= 65535;
-						todo--;
-						UPDATE_VOLUME;
-					}
-					x = &src[pos];
-					LOOP4(todo,
-						HEAVYASSERT(pos < resampler->end);
-						*dst++ += LINEAR(x[-2], x[-1]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += subpos >> 16;
-						subpos &= 65535;
-						UPDATE_VOLUME;
-					);
-				} else {
-					/* Cubic interpolation, forwards */
-					SRCTYPE xbuf[6];
-					SRCTYPE *x = &xbuf[3];
-					//SRCTYPE *lastx = NULL;
-					//int a = 0, b = 0, c = 0;
-					xbuf[0] = resampler->X[0];
-					xbuf[1] = resampler->X[1];
-					xbuf[2] = resampler->X[2];
-					xbuf[3] = src[pos];
-					if (pos+1 < resampler->end) xbuf[4] = src[pos+1];
-					if (pos+2 < resampler->end) xbuf[5] = src[pos+2];
-					while (todo && x < &xbuf[6]) {
-						HEAVYASSERT(pos < resampler->end);
-						//if (lastx != x) {
-						//	lastx = x;
-						//	SET_CUBIC_COEFFICIENTS(x[-3], x[-2], x[-1], x[0]);
-						//}
-						*dst++ += CUBIC(x[-3], x[-2], x[-1], x[0]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += subpos >> 16;
-						subpos &= 65535;
-						todo--;
-						UPDATE_VOLUME;
-					}
-					x = &src[pos];
-					//lastx = NULL;
-					LOOP4(todo,
-						HEAVYASSERT(pos < resampler->end);
-						//if (lastx != x) {
-						//	lastx = x;
-						//	SET_CUBIC_COEFFICIENTS(x[-3], x[-2], x[-1], x[0]);
-						//}
-						*dst++ += CUBIC(x[-3], x[-2], x[-1], x[0]);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += subpos >> 16;
-						subpos &= 65535;
-						UPDATE_VOLUME;
-					);
-				}
-				diff = pos - diff;
-				overshot = pos - resampler->end;
-				if (diff >= 3) {
-					resampler->X[0] = overshot >= 3 ? 0 : src[pos-3];
-					resampler->X[1] = overshot >= 2 ? 0 : src[pos-2];
-					resampler->X[2] = overshot >= 1 ? 0 : src[pos-1];
-				} else if (diff >= 2) {
-					resampler->X[0] = resampler->X[2];
-					resampler->X[1] = overshot >= 2 ? 0 : src[pos-2];
-					resampler->X[2] = overshot >= 1 ? 0 : src[pos-1];
-				} else if (diff >= 1) {
-					resampler->X[0] = resampler->X[1];
-					resampler->X[1] = resampler->X[2];
-					resampler->X[2] = overshot >= 1 ? 0 : src[pos-1];
-				}
-			}
-			resampler->pos = pos;
-			resampler->subpos = subpos;
-		}
-	}
-
-	return done;
+	}                                                              \
 }
 
 
 
-sample_t dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, float volume)
-{
-	int vol;
-	SRCTYPE *src;
-	long pos;
-	int subpos;
-	int quality;
-
-	if (!resampler || resampler->dir == 0) return 0;
-	ASSERT(resampler->dir == -1 || resampler->dir == 1);
-
-	if (process_pickup(resampler)) return 0;
-
-	vol = (int)floor(volume * 65536.0 + 0.5);
-	if (vol == 0) return 0;
-
-	init_cubic();
-
-	quality = resampler->quality;
-
-	src = resampler->src;
-	pos = resampler->pos;
-	subpos = resampler->subpos;
-
-	if (resampler->dir < 0) {
-		HEAVYASSERT(pos >= resampler->start);
-		if (quality <= DUMB_RQ_ALIASING) {
-			/* Aliasing, backwards */
-			return ALIAS(src[pos]);
-		} else if (quality <= DUMB_RQ_LINEAR) {
-			/* Linear interpolation, backwards */
-			return LINEAR(resampler->X[2], resampler->X[1]);
-		} else {
-			/* Cubic interpolation, backwards */
-			SRCTYPE *x = resampler->X;
-			//int a, b, c;
-			//SET_CUBIC_COEFFICIENTS(src[pos], x[2], x[1], x[0]);
-			return CUBIC(src[pos], x[2], x[1], x[0]);
-		}
-	} else {
-		HEAVYASSERT(pos < resampler->end);
-		if (quality <= DUMB_RQ_ALIASING) {
-			/* Aliasing */
-			return ALIAS(src[pos]);
-		} else if (quality <= DUMB_RQ_LINEAR) {
-			/* Linear interpolation, forwards */
-			return LINEAR(resampler->X[1], resampler->X[2]);
-		} else {
-			/* Cubic interpolation, forwards */
-			SRCTYPE *x = resampler->X;
-			//int a, b, c;
-			//SET_CUBIC_COEFFICIENTS(x[0], x[1], x[2], src[pos]);
-			return CUBIC(x[0], x[1], x[2], src[pos]);
-		}
-	}
+/* Create mono source resampler. */
+#define SUFFIX2 _1
+#define SRC_CHANNELS 1
+#define DIVIDE_BY_SRC_CHANNELS(x) (x)
+#define COPYSRC(dstarray, dstindex, srcarray, srcindex) (dstarray)[dstindex] = (srcarray)[srcindex]
+#define COPYSRC2(dstarray, dstindex, condition, srcarray, srcindex) (dstarray)[dstindex] = condition ? (srcarray)[srcindex] : 0
+#define MONO_DEST_VOLUME_PARAMETERS DUMB_VOLUME_RAMP_INFO * volume
+#define MONO_DEST_VOLUME_VARIABLES vol, volr, vold, volt, volm
+#define MONO_DEST_VOLUME_ZEROS 0
+#define SET_MONO_DEST_VOLUME_VARIABLES { \
+	if ( volume ) { \
+		volr = (int)floor(volume->volume * 65536.0 + 0.5); \
+		vold = (int)floor(volume->delta * 65536.0 + 0.5); \
+		volt = (int)floor(volume->target * 65536.0 + 0.5); \
+		volm = (int)floor(volume->mix * 65536.0 + 0.5); \
+		vol = MULSC( volr, volm ); \
+		if ( volr == volt ) volume = NULL; \
+	} else { \
+		vol = 0; \
+		volt = 0; \
+	} \
 }
+#define RETURN_MONO_DEST_VOLUME_VARIABLES if ( volume ) volume->volume = (float)volr / 65536.0f
+#define MONO_DEST_VOLUMES_ARE_ZERO (vol == 0 && volt == 0)
+#define MONO_DEST_MIX_ALIAS(op, upd, offset) { \
+	*dst++ op ALIAS(x[offset], vol); \
+	if ( upd ) UPDATE_VOLUME( volume, vol ); \
+}
+#define STEREO_DEST_MIX_ALIAS(op, upd, offset) { \
+	int xm = x[offset]; \
+	*dst++ op ALIAS(xm, lvol); \
+	*dst++ op ALIAS(xm, rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#define MONO_DEST_MIX_LINEAR(op, upd, o0, o1) { \
+	*dst++ op MULSC(LINEAR(x[o0], x[o1]), vol); \
+	if ( upd ) UPDATE_VOLUME( volume, vol ); \
+}
+#define STEREO_DEST_MIX_LINEAR(op, upd, o0, o1) { \
+	int xm = LINEAR(x[o0], x[o1]); \
+	*dst++ op MULSC(xm, lvol); \
+	*dst++ op MULSC(xm, rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#define MONO_DEST_MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3) { \
+	*dst++ op CUBICVOL(CUBIC(x0[o0], x[o1], x[o2], x3[o3]), vol); \
+	if ( upd ) UPDATE_VOLUME( volume, vol ); \
+}
+#define STEREO_DEST_MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3) { \
+	int xm = CUBIC(x0[o0], x[o1], x[o2], x3[o3]); \
+	*dst++ op CUBICVOL(xm, lvol); \
+	*dst++ op CUBICVOL(xm, rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#include "resamp2.inc"
+
+/* Create stereo source resampler. */
+#define SUFFIX2 _2
+#define SRC_CHANNELS 2
+#define DIVIDE_BY_SRC_CHANNELS(x) ((x) >> 1)
+#define COPYSRC(dstarray, dstindex, srcarray, srcindex) { \
+	(dstarray)[(dstindex)*2] = (srcarray)[(srcindex)*2]; \
+	(dstarray)[(dstindex)*2+1] = (srcarray)[(srcindex)*2+1]; \
+}
+#define COPYSRC2(dstarray, dstindex, condition, srcarray, srcindex) { \
+	if (condition) { \
+		(dstarray)[(dstindex)*2] = (srcarray)[(srcindex)*2]; \
+		(dstarray)[(dstindex)*2+1] = (srcarray)[(srcindex)*2+1]; \
+	} else { \
+		(dstarray)[(dstindex)*2] = 0; \
+		(dstarray)[(dstindex)*2+1] = 0; \
+	} \
+}
+
+#define MONO_DEST_VOLUME_PARAMETERS DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right
+#define MONO_DEST_VOLUME_VARIABLES lvol, lvolr, lvold, lvolt, lvolm, rvol, rvolr, rvold, rvolt, rvolm
+#define MONO_DEST_VOLUME_ZEROS 0, 0
+#define SET_MONO_DEST_VOLUME_VARIABLES { \
+	if ( volume_left ) { \
+		lvolr = (int)floor(volume_left->volume * 65536.0 + 0.5); \
+		lvold = (int)floor(volume_left->delta * 65536.0 + 0.5); \
+		lvolt = (int)floor(volume_left->target * 65536.0 + 0.5); \
+		lvolm = (int)floor(volume_left->mix * 65536.0 + 0.5); \
+		lvol = MULSC( lvolr, lvolm ); \
+		if ( lvolr == lvolt ) volume_left = NULL; \
+	} else { \
+		lvol = 0; \
+		lvolt = 0; \
+	} \
+	if ( volume_right ) { \
+		rvolr = (int)floor(volume_right->volume * 65536.0 + 0.5); \
+		rvold = (int)floor(volume_right->delta * 65536.0 + 0.5); \
+		rvolt = (int)floor(volume_right->target * 65536.0 + 0.5); \
+		rvolm = (int)floor(volume_right->mix * 65536.0 + 0.5); \
+		rvol = MULSC( rvolr, rvolm ); \
+		if ( rvolr == rvolt ) volume_right = NULL; \
+	} else { \
+		rvol = 0; \
+		rvolt = 0; \
+	} \
+}
+#define RETURN_MONO_DEST_VOLUME_VARIABLES { \
+	if ( volume_left ) volume_left->volume = (float)lvolr / 65536.0f; \
+	if ( volume_right ) volume_right->volume = (float)rvolr / 65536.0f; \
+}
+#define MONO_DEST_VOLUMES_ARE_ZERO (lvol == 0 && lvolt == 0 && rvol == 0 && rvolt == 0)
+#define MONO_DEST_MIX_ALIAS(op, upd, offset) { \
+	*dst++ op ALIAS(x[(offset)*2], lvol) + ALIAS(x[(offset)*2+1], rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#define STEREO_DEST_MIX_ALIAS(op, upd, offset) { \
+	*dst++ op ALIAS(x[(offset)*2], lvol); \
+	*dst++ op ALIAS(x[(offset)*2+1], rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#define MONO_DEST_MIX_LINEAR(op, upd, o0, o1) { \
+	*dst++ op MULSC(LINEAR(x[(o0)*2], x[(o1)*2]), lvol) + MULSC(LINEAR(x[(o0)*2+1], x[(o1)*2+1]), rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#define STEREO_DEST_MIX_LINEAR(op, upd, o0, o1) { \
+	*dst++ op MULSC(LINEAR(x[(o0)*2], x[(o1)*2]), lvol); \
+	*dst++ op MULSC(LINEAR(x[(o0)*2+1], x[(o1)*2+1]), rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#define MONO_DEST_MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3) { \
+	*dst++ op \
+		CUBICVOL(CUBIC(x0[(o0)*2], x[(o1)*2], x[(o2)*2], x3[(o3)*2]), lvol) + \
+		CUBICVOL(CUBIC(x0[(o0)*2+1], x[(o1)*2+1], x[(o2)*2+1], x3[(o3)*2+1]), rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#define STEREO_DEST_MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3) { \
+	*dst++ op CUBICVOL(CUBIC(x0[(o0)*2], x[(o1)*2], x[(o2)*2], x3[(o3)*2]), lvol); \
+	*dst++ op CUBICVOL(CUBIC(x0[(o0)*2+1], x[(o1)*2+1], x[(o2)*2+1], x3[(o3)*2+1]), rvol); \
+	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
+	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
+}
+#include "resamp2.inc"
 
 
 
@@ -550,8 +265,8 @@ void dumb_end_resampler(DUMB_RESAMPLER *resampler)
 
 
 
+#undef CUBICVOL
 #undef CUBIC
-//#undef SET_CUBIC_COEFFICIENTS
 #undef LINEAR
 #undef ALIAS
 #undef SRCBITS

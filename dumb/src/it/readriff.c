@@ -26,11 +26,11 @@ DUH *dumb_read_riff_amff( struct riff * stream );
 DUH *dumb_read_riff_am( struct riff * stream );
 DUH *dumb_read_riff_dsmf( struct riff * stream );
 
-/* dumb_read_riff(): reads a RIFF file into a DUH struct, returning a pointer
- * to the DUH struct. When you have finished with it, you must pass the
- * pointer to unload_duh() so that the memory can be freed.
+/* dumb_read_riff_quick(): reads a RIFF file into a DUH struct, returning a
+ * pointer to the DUH struct. When you have finished with it, you must pass
+ * the pointer to unload_duh() so that the memory can be freed.
  */
-DUH *dumb_read_riff( DUMBFILE * f )
+DUH *dumb_read_riff_quick( DUMBFILE * f )
 {
 	DUH * duh;
 	struct riff * stream;

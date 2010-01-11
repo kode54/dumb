@@ -153,13 +153,13 @@ static int it_asy_read_sample_data( IT_SAMPLE *sample, DUMBFILE *f )
 		truncated_size = 0;
 	}
 
-	sample->left = malloc( sample->length );
+	sample->data = malloc( sample->length );
 
-	if ( !sample->left )
+	if ( !sample->data )
 		return -1;
 
 	if ( sample->length )
-		dumbfile_getnc( sample->left, sample->length, f );
+		dumbfile_getnc( sample->data, sample->length, f );
 
 	dumbfile_skip( f, truncated_size );
 
@@ -235,7 +235,7 @@ static DUMB_IT_SIGDATA *it_asy_load_sigdata(DUMBFILE *f)
 	sigdata->n_instruments = 0;
 
 	for ( i = 0; i < sigdata->n_samples; ++i )
-		sigdata->sample[i].right = sigdata->sample[i].left = NULL;
+		sigdata->sample[i].data = NULL;
 
 	for ( i = 0; i < sigdata->n_samples; ++i ) {
 		if ( it_asy_read_sample_header( &sigdata->sample[i], f ) ) {
@@ -309,10 +309,9 @@ static DUMB_IT_SIGDATA *it_asy_load_sigdata(DUMBFILE *f)
 
 
 
-DUH *dumb_read_asy(DUMBFILE *f)
+DUH *dumb_read_asy_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
@@ -321,14 +320,12 @@ DUH *dumb_read_asy(DUMBFILE *f)
 	if (!sigdata)
 		return NULL;
 
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
-
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "ASYLUM Music Format";
-		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

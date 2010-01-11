@@ -17,9 +17,10 @@
  *                                                       \__/
  * ...
  *
- * I mean it, people. You don't need access to anything in this file. If you
- * disagree, contact the authors. In the unlikely event that you make a good
- * case, we'll add what you need to dumb.h. Thanking you kindly.
+ * Seriously. You don't need access to anything in this file. All right, you
+ * probably do actually. But if you use it, you will be relying on a specific
+ * version of DUMB, so please check DUMB_VERSION defined in dumb.h. Please
+ * contact the authors so that we can provide a public API for what you need.
  */
 
 #ifndef INTERNAL_DUMB_H

@@ -40,12 +40,10 @@ void _dumb_it_unload_sigdata(sigdata_t *vsigdata)
 			free(sigdata->instrument);
 
 		if (sigdata->sample) {
-			for (n = 0; n < sigdata->n_samples; n++) {
-				if (sigdata->sample[n].left)
-					free(sigdata->sample[n].left);
-				if (sigdata->sample[n].right)
-					free(sigdata->sample[n].right);
-			}
+			for (n = 0; n < sigdata->n_samples; n++)
+				if (sigdata->sample[n].data)
+					free(sigdata->sample[n].data);
+
 			free(sigdata->sample);
 		}
 

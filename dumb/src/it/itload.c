@@ -22,11 +22,11 @@
 
 
 
-/* dumb_load_it(): loads an IT file into a DUH struct, returning a pointer to
- * the DUH struct. When you have finished with it, you must pass the pointer
- * to unload_duh() so that the memory can be freed.
+/* dumb_load_it_quick(): loads an IT file into a DUH struct, returning a
+ * pointer to the DUH struct. When you have finished with it, you must pass
+ * the pointer to unload_duh() so that the memory can be freed.
  */
-DUH *dumb_load_it(const char *filename)
+DUH *dumb_load_it_quick(const char *filename)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -34,7 +34,7 @@ DUH *dumb_load_it(const char *filename)
 	if (!f)
 		return NULL;
 
-	duh = dumb_read_it(f);
+	duh = dumb_read_it_quick(f);
 
 	dumbfile_close(f);
 

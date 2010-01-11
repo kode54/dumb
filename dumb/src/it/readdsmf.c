@@ -75,16 +75,16 @@ static int it_riff_dsmf_process_sample( IT_SAMPLE * sample, const unsigned char 
 		}
 	}
 
-	sample->left = malloc( sample->length );
-	if ( ! sample->left )
+	sample->data = malloc( sample->length );
+	if ( ! sample->data )
 		return -1;
 
-	memcpy( sample->left, data + 64, sample->length );
+	memcpy( sample->data, data + 64, sample->length );
 
 	if ( ! ( flags & 2 ) )
 	{
 		for ( flags = 0; flags < sample->length; ++flags )
-			( ( signed char * ) sample->left ) [ flags ] ^= 0x80;
+			( ( signed char * ) sample->data ) [ flags ] ^= 0x80;
 	}
 
 	return 0;
@@ -314,7 +314,7 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( struct riff * stream )
 	for ( n = 0; n < sigdata->n_samples; ++n )
 	{
 		IT_SAMPLE * sample = sigdata->sample + n;
-		sample->right = sample->left = NULL;
+		sample->data = NULL;
 	}
 
 	sigdata->n_samples = 0;
@@ -353,7 +353,6 @@ error:
 DUH *dumb_read_riff_dsmf( struct riff * stream )
 {
 	sigdata_t *sigdata;
-	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
@@ -362,14 +361,12 @@ DUH *dumb_read_riff_dsmf( struct riff * stream )
 	if (!sigdata)
 		return NULL;
 
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
-
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "RIFF DSMF";
-		return make_duh( length, 2, ( const char * const (*) [ 2 ] ) tag, 1, & descptr, & sigdata );
+		return make_duh( -1, 2, ( const char * const (*) [ 2 ] ) tag, 1, & descptr, & sigdata );
 	}
 }

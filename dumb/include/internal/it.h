@@ -11,10 +11,17 @@
  * internal/it.h - Internal stuff for IT playback     / / \  \
  *                 and MOD/XM/S3M conversion.        | <  /   \_
  *                                                   |  \/ /\   /
- *                                                    \_  /  > /
- *                                                      | \ / /
- *                                                      |  ' /
- *                                                       \__/
+ * This header file provides access to the            \_  /  > /
+ * internal structure of DUMB, and is liable            | \ / /
+ * to change, mutate or cease to exist at any           |  ' /
+ * moment. Include it at your own peril.                 \__/
+ *
+ * ...
+ *
+ * Seriously. You don't need access to anything in this file. All right, you
+ * probably do actually. But if you use it, you will be relying on a specific
+ * version of DUMB, so please check DUMB_VERSION defined in dumb.h. Please
+ * contact the authors so that we can provide a public API for what you need.
  */
 
 #ifndef INTERNAL_IT_H
@@ -110,7 +117,7 @@ struct IT_MIDI
 
 struct IT_FILTER_STATE
 {
-	float currsample, prevsample;
+	sample_t currsample, prevsample;
 };
 
 
@@ -221,8 +228,7 @@ struct IT_SAMPLE
 	unsigned char vibrato_rate;
 	unsigned char vibrato_waveform;
 
-	void *left;
-	void *right;
+	void *data;
 
 	int max_resampling_quality;
 };
@@ -274,20 +280,21 @@ struct IT_SAMPLE
 #define IT_MIDI_MACRO            26 //see MIDI.TXT
 
 /* Some effects needed for XM compatibility */
-#define IT_XM_PORTAMENTO_DOWN    27
-#define IT_XM_PORTAMENTO_UP      28
-#define IT_XM_FINE_VOLSLIDE_DOWN 29
-#define IT_XM_FINE_VOLSLIDE_UP   30
-#define IT_XM_RETRIGGER_NOTE     31
-#define IT_XM_KEY_OFF            32
+#define IT_XM_PORTAMENTO_DOWN       27
+#define IT_XM_PORTAMENTO_UP         28
+#define IT_XM_FINE_VOLSLIDE_DOWN    29
+#define IT_XM_FINE_VOLSLIDE_UP      30
+#define IT_XM_RETRIGGER_NOTE        31
+#define IT_XM_KEY_OFF               32
+#define IT_XM_SET_ENVELOPE_POSITION 33
 
 /* More effects needed for PTM compatibility */
-#define IT_PTM_NOTE_SLIDE_DOWN   33
-#define IT_PTM_NOTE_SLIDE_UP     34
-#define IT_PTM_NOTE_SLIDE_DOWN_RETRIG 35
-#define IT_PTM_NOTE_SLIDE_UP_RETRIG 36
+#define IT_PTM_NOTE_SLIDE_DOWN        34
+#define IT_PTM_NOTE_SLIDE_UP          35
+#define IT_PTM_NOTE_SLIDE_DOWN_RETRIG 36
+#define IT_PTM_NOTE_SLIDE_UP_RETRIG   37
 
-#define IT_N_EFFECTS             37
+#define IT_N_EFFECTS                  38
 
 /* These represent the top nibble of the command value. */
 #define IT_S_SET_FILTER              0 /* Greyed out in IT... */
@@ -511,7 +518,7 @@ struct IT_PLAYING
 
 	IT_FILTER_STATE filter_state[2]; /* Left and right */
 
-	DUMB_RESAMPLER resampler[2];
+	DUMB_RESAMPLER resampler;
 
 	/* time_lost is used to emulate Impulse Tracker's sample looping
 	 * characteristics. When time_lost is added to pos, the result represents
@@ -616,6 +623,7 @@ struct IT_CHANNEL
 	unsigned char lastS;
 	unsigned char pat_loop_row;
 	unsigned char pat_loop_count;
+	//unsigned char pat_loop_end_row; /* Used to catch infinite pattern loops */
 	unsigned char lastW;
 
 	unsigned char xm_lastE1;
@@ -734,10 +742,6 @@ void _dumb_it_end_sigrenderer(sigrenderer_t *sigrenderer);
 void _dumb_it_unload_sigdata(sigdata_t *vsigdata);
 
 extern DUH_SIGTYPE_DESC _dumb_sigtype_it;
-
-
-
-long _dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder);
 
 
 

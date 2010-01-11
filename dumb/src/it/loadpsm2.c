@@ -8,9 +8,9 @@
  * /_______/ynamic    \____/niversal  /__\  /____\usic   /|  .  . ibliotheque
  *                                                      /  \
  *                                                     / .  \
- * loadriff.c - Code to read a RIFF module file       / / \  \
- *              opening and closing it for you.      | <  /   \_
- *                                                   |  \/ /\   /
+ * loadpsm2.c - Code to read a ProTracker Studio      / / \  \
+ *              file, opening and closing it for     | <  /   \_
+ *              you, and do an initial run-through.  |  \/ /\   /
  *                                                    \_  /  > /
  * By Chris Moeller.                                    | \ / /
  *                                                      |  ' /
@@ -22,21 +22,13 @@
 
 
 
-/* dumb_load_riff_quick(): loads a RIFF file into a DUH struct, returning
- * a pointer to the DUH struct. When you have finished with it, you must
- * pass the pointer to unload_duh() so that the memory can be freed.
+/* dumb_load_psm(): loads a PSM file into a DUH struct, returning a pointer
+ * to the DUH struct. When you have finished with it, you must pass the
+ * pointer to unload_duh() so that the memory can be freed.
  */
-DUH * dumb_load_riff_quick( const char *filename )
+DUH *dumb_load_psm(const char *filename, int subsong)
 {
-	DUH * duh;
-	DUMBFILE * f = dumbfile_open( filename );
-
-	if ( ! f )
-		return NULL;
-
-	duh = dumb_read_riff_quick( f );
-
-	dumbfile_close( f );
-
+	DUH *duh = dumb_load_psm_quick(filename, subsong);
+	dumb_it_do_initial_runthrough(duh);
 	return duh;
 }

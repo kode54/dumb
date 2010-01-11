@@ -8,9 +8,9 @@
  * /_______/ynamic    \____/niversal  /__\  /____\usic   /|  .  . ibliotheque
  *                                                      /  \
  *                                                     / .  \
- * loadriff.c - Code to read a RIFF module file       / / \  \
- *              opening and closing it for you.      | <  /   \_
- *                                                   |  \/ /\   /
+ * loadptm.c - Code to read a Poly Tracker v2.03      / / \  \
+ *             file, opening and closing it for      | <  /   \_
+ *             you.                                  |  \/ /\   /
  *                                                    \_  /  > /
  * By Chris Moeller.                                    | \ / /
  *                                                      |  ' /
@@ -22,21 +22,21 @@
 
 
 
-/* dumb_load_riff_quick(): loads a RIFF file into a DUH struct, returning
- * a pointer to the DUH struct. When you have finished with it, you must
+/* dumb_load_ptm_quick(): loads a PTM file into a DUH struct, returning a
+ * pointer to the DUH struct. When you have finished with it, you must
  * pass the pointer to unload_duh() so that the memory can be freed.
  */
-DUH * dumb_load_riff_quick( const char *filename )
+DUH *dumb_load_ptm_quick(const char *filename)
 {
-	DUH * duh;
-	DUMBFILE * f = dumbfile_open( filename );
+	DUH *duh;
+	DUMBFILE *f = dumbfile_open(filename);
 
-	if ( ! f )
+	if (!f)
 		return NULL;
 
-	duh = dumb_read_riff_quick( f );
+	duh = dumb_read_ptm_quick(f);
 
-	dumbfile_close( f );
+	dumbfile_close(f);
 
 	return duh;
 }

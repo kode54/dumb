@@ -159,15 +159,12 @@ static int it_s3m_read_sample_data(IT_SAMPLE *sample, int ffi, unsigned char pac
 {
 	long n;
 
-	sample->left = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
-	if (!sample->left)
-		return -1;
+	long datasize = sample->length;
+	if (sample->flags & IT_SAMPLE_STEREO) datasize <<= 1;
 
-	if (sample->flags & IT_SAMPLE_STEREO) {
-		sample->right = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
-		if (!sample->right)
-			return -1;
-	}
+	sample->data = malloc(datasize * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
+	if (!sample->data)
+		return -1;
 
 	if (pack == 4) {
 		if (_dumb_it_read_sample_data_adpcm4(sample, f) < 0)
@@ -175,22 +172,22 @@ static int it_s3m_read_sample_data(IT_SAMPLE *sample, int ffi, unsigned char pac
 	}
 	else if (sample->flags & IT_SAMPLE_STEREO) {
 		if (sample->flags & IT_SAMPLE_16BIT) {
-			for (n = 0; n < sample->length; n++)
-				((short *)sample->left)[n] = dumbfile_igetw(f);
-			for (n = 0; n < sample->length; n++)
-				((short *)sample->right)[n] = dumbfile_igetw(f);
+			for (n = 0; n < datasize; n += 2)
+				((short *)sample->data)[n] = dumbfile_igetw(f);
+			for (n = 1; n < datasize; n += 2)
+				((short *)sample->data)[n] = dumbfile_igetw(f);
 		} else {
-			for (n = 0; n < sample->length; n++)
-				((signed char *)sample->left)[n] = dumbfile_getc(f);
-			for (n = 0; n < sample->length; n++)
-				((signed char *)sample->right)[n] = dumbfile_getc(f);
+			for (n = 0; n < datasize; n += 2)
+				((signed char *)sample->data)[n] = dumbfile_getc(f);
+			for (n = 1; n < datasize; n += 2)
+				((signed char *)sample->data)[n] = dumbfile_getc(f);
 		}
 	} else if (sample->flags & IT_SAMPLE_16BIT)
 		for (n = 0; n < sample->length; n++)
-			((short *)sample->left)[n] = dumbfile_igetw(f);
+			((short *)sample->data)[n] = dumbfile_igetw(f);
 	else
 		for (n = 0; n < sample->length; n++)
-			((signed char *)sample->left)[n] = dumbfile_getc(f);
+			((signed char *)sample->data)[n] = dumbfile_getc(f);
 
 	if (dumbfile_error(f))
 		return -1;
@@ -198,20 +195,11 @@ static int it_s3m_read_sample_data(IT_SAMPLE *sample, int ffi, unsigned char pac
 	if (ffi != 1) {
 		/* Convert to signed. */
 		if (sample->flags & IT_SAMPLE_16BIT)
-			for (n = 0; n < sample->length; n++)
-				((short *)sample->left)[n] ^= 0x8000;
+			for (n = 0; n < datasize; n++)
+				((short *)sample->data)[n] ^= 0x8000;
 		else
-			for (n = 0; n < sample->length; n++)
-				((signed char *)sample->left)[n] ^= 0x80;
-
-		if (sample->right) {
-			if (sample->flags & IT_SAMPLE_16BIT)
-				for (n = 0; n < sample->length; n++)
-					((short *)sample->right)[n] ^= 0x8000;
-			else
-				for (n = 0; n < sample->length; n++)
-					((signed char *)sample->right)[n] ^= 0x80;
-		}
+			for (n = 0; n < datasize; n++)
+				((signed char *)sample->data)[n] ^= 0x80;
 	}
 
 	return 0;
@@ -483,7 +471,6 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 	sigdata = malloc(sizeof(*sigdata));
 	if (!sigdata) return NULL;
 
-	/* Skip song name. */
 	dumbfile_getnc(sigdata->name, 28, f);
 	sigdata->name[28] = 0;
 
@@ -532,7 +519,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 			return NULL;
 		}
 		for (n = 0; n < sigdata->n_samples; n++)
-			sigdata->sample[n].right = sigdata->sample[n].left = NULL;
+			sigdata->sample[n].data = NULL;
 	}
 
 	if (sigdata->n_patterns) {
@@ -836,10 +823,9 @@ static char hexdigit(int in)
 	else return in + 'A' - 10;
 }
 
-DUH *dumb_read_s3m(DUMBFILE *f)
+DUH *dumb_read_s3m_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 	int cwtv;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
@@ -848,8 +834,6 @@ DUH *dumb_read_s3m(DUMBFILE *f)
 
 	if (!sigdata)
 		return NULL;
-
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
 
 	{
 		char version[8];
@@ -865,6 +849,6 @@ DUH *dumb_read_s3m(DUMBFILE *f)
 		version[3] = hexdigit(cwtv & 15);
 		version[4] = 0;
 		tag[2][1] = (const char *) &version;
-		return make_duh(length, 3, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 3, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

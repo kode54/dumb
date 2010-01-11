@@ -122,7 +122,7 @@ static int readbits(int bitwidth, readblock_crap * crap)
 /** WARNING - do we even need to pass `right`? */
 /** WARNING - why bother memsetting at all? The whole array is written... */
 // if we do memset, dumb_silence() would be neater...
-static int decompress8(DUMBFILE *f, signed char *left, signed char *right, int len, int cmwt)
+static int decompress8(DUMBFILE *f, signed char *data, int len, int cmwt)
 {
 	int blocklen, blockpos;
 	byte bitwidth;
@@ -132,11 +132,7 @@ static int decompress8(DUMBFILE *f, signed char *left, signed char *right, int l
 
 	memset(&crap, 0, sizeof(crap));
 
-	memset(left, 0, len * sizeof(*left));
-	if (right) {
-		memset(right, 0, len * sizeof(*right));
-		len <<= 1;
-	}
+	memset(data, 0, len * sizeof(*data));
 
 	while (len > 0) {
 		//Read a block of compressed data:
@@ -201,10 +197,7 @@ static int decompress8(DUMBFILE *f, signed char *left, signed char *right, int l
 			/* Version 2.15 was an unofficial version with hacked compression
 			 * code. Yay, better compression :D
 			 */
-			if (right && (len & 1))
-				*right++ = cmwt == 0x215 ? d2 : d1;
-			else
-				*left++ = cmwt == 0x215 ? d2 : d1;
+			*data++ = cmwt == 0x215 ? d2 : d1;
 			len--;
 			blockpos++;
 		}
@@ -215,7 +208,7 @@ static int decompress8(DUMBFILE *f, signed char *left, signed char *right, int l
 
 
 
-static int decompress16(DUMBFILE *f, short *left, short *right, int len, int cmwt)
+static int decompress16(DUMBFILE *f, short *data, int len, int cmwt)
 {
 	int blocklen, blockpos;
 	byte bitwidth;
@@ -225,11 +218,7 @@ static int decompress16(DUMBFILE *f, short *left, short *right, int len, int cmw
 
 	memset(&crap, 0, sizeof(crap));
 
-	memset(left, 0, len * sizeof(*left));
-	if (right) {
-		memset(right, 0, len * sizeof(*right));
-		len <<= 1;
-	}
+	memset(data, 0, len * sizeof(*data));
 
 	while (len > 0) {
 		//Read a block of compressed data:
@@ -293,10 +282,7 @@ static int decompress16(DUMBFILE *f, short *left, short *right, int len, int cmw
 			/* Version 2.15 was an unofficial version with hacked compression
 			 * code. Yay, better compression :D
 			 */
-			if (right && (len & 1))
-				*right++ = cmwt == 0x215 ? d2 : d1;
-			else
-				*left++ = cmwt == 0x215 ? d2 : d1;
+			*data++ = cmwt == 0x215 ? d2 : d1;
 			len--;
 			blockpos++;
 		}
@@ -613,7 +599,7 @@ long _dumb_it_read_sample_data_adpcm4(IT_SAMPLE *sample, DUMBFILE *f)
 	signed char compression_table[16];
 	if (dumbfile_getnc(compression_table, 16, f) != 16)
 		return -1;
-	ptr = (signed char *) sample->left;
+	ptr = (signed char *) sample->data;
 	delta = 0;
 
 	end = ptr + sample->length;
@@ -636,15 +622,12 @@ static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char conve
 {
 	long n;
 
-	sample->left = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
-	if (!sample->left)
-		return -1;
+	long datasize = sample->length;
+	if (sample->flags & IT_SAMPLE_STEREO) datasize <<= 1;
 
-	if (sample->flags & IT_SAMPLE_STEREO) {
-		sample->right = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
-		if (!sample->right)
-			return -1;
-	}
+	sample->data = malloc(datasize * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
+	if (!sample->data)
+		return -1;
 
 	if (!(sample->flags & IT_SAMPLE_16BIT) && (convert == 0xFF)) {
 		if (_dumb_it_read_sample_data_adpcm4(sample, f) < 0)
@@ -655,7 +638,7 @@ static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char conve
 		/** WARNING - unresolved business here... test with ModPlug? */
 
 		if (sample->flags & IT_SAMPLE_STEREO)
-			//exit(37);
+			//exit(37); // TODO: if this ever happens, maybe sample->length should be doubled below?
 			return -1;
 
 /*
@@ -664,38 +647,19 @@ static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char conve
 //#endif
 */
 		if (sample->flags & IT_SAMPLE_16BIT)
-			decompress16(f, sample->left, sample->right, sample->length, cmwt);
+			decompress16(f, sample->data, datasize, cmwt);
 		else
-			decompress8(f, sample->left, sample->right, sample->length, cmwt);
-	} else if (sample->flags & IT_SAMPLE_STEREO) {
-		if (sample->flags & IT_SAMPLE_16BIT) {
-			if (convert & 2) {
-				for (n = 0; n < sample->length; n++) {
-					((short *)sample->left)[n] = dumbfile_mgetw(f);
-					((short *)sample->right)[n] = dumbfile_mgetw(f);
-				}
-			} else {
-				for (n = 0; n < sample->length; n++) {
-					((short *)sample->left)[n] = dumbfile_igetw(f);
-					((short *)sample->right)[n] = dumbfile_igetw(f);
-				}
-			}
-		} else {
-			for (n = 0; n < sample->length; n++) {
-				((signed char *)sample->left)[n] = dumbfile_getc(f);
-				((signed char *)sample->right)[n] = dumbfile_getc(f);
-			}
-		}
-	} else if (sample->flags & IT_SAMPLE_16BIT) {
-		if (convert & 2)
-			for (n = 0; n < sample->length; n++)
-				((short *)sample->left)[n] = dumbfile_mgetw(f);
-		else
-			for (n = 0; n < sample->length; n++)
-				((short *)sample->left)[n] = dumbfile_igetw(f);
-	} else
-		for (n = 0; n < sample->length; n++)
-			((signed char *)sample->left)[n] = dumbfile_getc(f);
+			decompress8(f, sample->data, datasize, cmwt);
+ 	} else if (sample->flags & IT_SAMPLE_16BIT) {
+ 		if (convert & 2)
+			for (n = 0; n < datasize; n++)
+				((short *)sample->data)[n] = dumbfile_mgetw(f);
+ 		else
+			for (n = 0; n < datasize; n++)
+				((short *)sample->data)[n] = dumbfile_igetw(f);
+ 	} else
+		for (n = 0; n < datasize; n++)
+			((signed char *)sample->data)[n] = dumbfile_getc(f);
 
 	if (dumbfile_error(f))
 		return -1;
@@ -703,20 +667,11 @@ static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char conve
 	if (!(convert & 1)) {
 		/* Convert to signed. */
 		if (sample->flags & IT_SAMPLE_16BIT)
-			for (n = 0; n < sample->length; n++)
-				((short *)sample->left)[n] ^= 0x8000;
+			for (n = 0; n < datasize; n++)
+				((short *)sample->data)[n] ^= 0x8000;
 		else
-			for (n = 0; n < sample->length; n++)
-				((signed char *)sample->left)[n] ^= 0x80;
-
-		if (sample->right) {
-			if (sample->flags & IT_SAMPLE_16BIT)
-				for (n = 0; n < sample->length; n++)
-					((short *)sample->right)[n] ^= 0x8000;
-			else
-				for (n = 0; n < sample->length; n++)
-					((signed char *)sample->right)[n] ^= 0x80;
-		}
+			for (n = 0; n < datasize; n++)
+				((signed char *)sample->data)[n] ^= 0x80;
 	}
 
 	/* NOT SUPPORTED:
@@ -1027,7 +982,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 			return NULL;
 		}
 		for (n = 0; n < sigdata->n_samples; n++)
-			sigdata->sample[n].right = sigdata->sample[n].left = NULL;
+			sigdata->sample[n].data = NULL;
 	}
 
 	if (sigdata->n_patterns) {
@@ -1326,10 +1281,9 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 
 
 
-DUH *dumb_read_it(DUMBFILE *f)
+DUH *dumb_read_it_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
@@ -1338,12 +1292,10 @@ DUH *dumb_read_it(DUMBFILE *f)
 	if (!sigdata)
 		return NULL;
 
-	length = 0; /*_dumb_it_build_checkpoints(sigdata, 0);*/
-
 	{
 		const char *tag[1][2];
-                tag[0][0] = "TITLE";
-                tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
-		return make_duh(length, 1, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		tag[0][0] = "TITLE";
+		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+		return make_duh(-1, 1, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

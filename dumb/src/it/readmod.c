@@ -11,7 +11,7 @@
  * readmod.c - Code to read a good old-fashioned      / / \  \
  *             Amiga module from an open file.       | <  /   \_
  *                                                   |  \/ /\   /
- * By Ben Davis.                                      \_  /  > /
+ * By entheh.                                         \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/
@@ -193,25 +193,24 @@ static int it_mod_read_sample_data(IT_SAMPLE *sample, DUMBFILE *f, unsigned long
 		truncated_size = 0;
 	}
 
-	sample->left = malloc(sample->length);
+	if (sample->length) {
+		sample->data = malloc(sample->length);
 
-	if (!sample->left)
-		return -1;
+		if (!sample->data)
+			return -1;
 
-	/* Sample data are stored in "8-bit two's compliment format" (sic). */
-	/*
-	for (i = 0; i < sample->length; i++)
-		((signed char *)sample->left)[i] = dumbfile_getc(f);
-	*/
-	if (sample->length)
-	{
+		/* Sample data are stored in "8-bit two's compliment format" (sic). */
+		/*
+		for (i = 0; i < sample->length; i++)
+			((signed char *)sample->left)[i] = dumbfile_getc(f);
+		*/
 		/* F U Olivier Lapicque */
 		if (sample->length >= 5)
 		{
-			i = dumbfile_getnc(sample->left, 5, f);
+			i = dumbfile_getnc(sample->data, 5, f);
 			if (i == 5)
 			{
-				if (!memcmp(sample->left, "ADPCM", 5))
+				if (!memcmp(sample->data, "ADPCM", 5))
 				{
 					if (_dumb_it_read_sample_data_adpcm4(sample, f) < 0)
 						return -1;
@@ -220,13 +219,13 @@ static int it_mod_read_sample_data(IT_SAMPLE *sample, DUMBFILE *f, unsigned long
 				}
 				else
 				{
-					i += dumbfile_getnc(((char *)sample->left) + 5, sample->length - 5, f);
+					i += dumbfile_getnc(((char *)sample->data) + 5, sample->length - 5, f);
 				}
 			}
 		}
 		else
 		{
-			i = dumbfile_getnc(sample->left, sample->length, f);
+			i = dumbfile_getnc(sample->data, sample->length, f);
 		}
 		if (i < sample->length)
 		{
@@ -255,8 +254,8 @@ static int it_mod_read_sample_data(IT_SAMPLE *sample, DUMBFILE *f, unsigned long
 		if (fft == DUMB_ID('M',0,0,0) || fft == DUMB_ID('8',0,0,0)) {
 			int delta = 0;
 			for (i = 0; i < sample->length; i++) {
-				delta += ((signed char *)sample->left)[i];
-				((signed char *)sample->left)[i] = delta;
+				delta += ((signed char *)sample->data)[i];
+				((signed char *)sample->data)[i] = delta;
 			}
 		}
 	}
@@ -572,7 +571,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	sigdata->n_instruments = 0;
 
 	for (i = 0; i < sigdata->n_samples; i++)
-		sigdata->sample[i].right = sigdata->sample[i].left = NULL;
+		sigdata->sample[i].data = NULL;
 
 	for (i = 0; i < sigdata->n_samples; i++) {
 		if (it_mod_read_sample_header(&sigdata->sample[i], f)) {
@@ -733,10 +732,9 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 
 
 
-DUH *dumb_read_mod(DUMBFILE *f, int restrict)
+DUH *dumb_read_mod_quick(DUMBFILE *f, int restrict)
 {
 	sigdata_t *sigdata;
-	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
@@ -745,14 +743,12 @@ DUH *dumb_read_mod(DUMBFILE *f, int restrict)
 	if (!sigdata)
 		return NULL;
 
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
-
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "MOD";
-		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

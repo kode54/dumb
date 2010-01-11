@@ -137,8 +137,8 @@ static int it_ptm_read_sample_data(IT_SAMPLE *sample, int last, DUMBFILE *f)
 	long n;
 	int s;
 
-	sample->left = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
-	if (!sample->left)
+	sample->data = malloc(sample->length * (sample->flags & IT_SAMPLE_16BIT ? 2 : 1));
+	if (!sample->data)
 		return -1;
 
 	s = 0;
@@ -148,12 +148,12 @@ static int it_ptm_read_sample_data(IT_SAMPLE *sample, int last, DUMBFILE *f)
 		for (n = 0; n < sample->length; n++) {
 			a = s += (signed char) it_ptm_read_byte(f);
 			b = s += (signed char) it_ptm_read_byte(f);
-			((short *)sample->left)[n] = a | (b << 8);
+			((short *)sample->data)[n] = a | (b << 8);
 		}
 	} else {
 		for (n = 0; n < sample->length; n++) {
 			s += (signed char) it_ptm_read_byte(f);
-			((signed char *)sample->left)[n] = s;
+			((signed char *)sample->data)[n] = s;
 		}
 	}
 
@@ -407,7 +407,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 			return NULL;
 		}
 		for (n = 0; n < sigdata->n_samples; n++)
-			sigdata->sample[n].right = sigdata->sample[n].left = NULL;
+			sigdata->sample[n].data = NULL;
 	}
 
 	if (sigdata->n_patterns) {
@@ -551,10 +551,9 @@ static char hexdigit(int in)
 	else return in + 'A' - 10;
 }
 
-DUH *dumb_read_ptm(DUMBFILE *f)
+DUH *dumb_read_ptm_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
@@ -563,14 +562,12 @@ DUH *dumb_read_ptm(DUMBFILE *f)
 	if (!sigdata)
 		return NULL;
 
-	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
-
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "PTM";
-		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

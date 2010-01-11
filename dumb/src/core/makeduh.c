@@ -30,7 +30,7 @@ static DUH_SIGNAL *make_signal(DUH_SIGTYPE_DESC *desc, sigdata_t *sigdata)
 	DUH_SIGNAL *signal;
 
 	ASSERT((desc->start_sigrenderer && desc->end_sigrenderer) || (!desc->start_sigrenderer && !desc->end_sigrenderer));
-	ASSERT(desc->sigrenderer_get_samples && desc->sigrenderer_get_current_sample);
+	ASSERT(desc->sigrenderer_generate_samples && desc->sigrenderer_get_current_sample);
 
 	signal = malloc(sizeof(*signal));
 

@@ -8,35 +8,22 @@
  * /_______/ynamic    \____/niversal  /__\  /____\usic   /|  .  . ibliotheque
  *                                                      /  \
  *                                                     / .  \
- * loadriff.c - Code to read a RIFF module file       / / \  \
- *              opening and closing it for you.      | <  /   \_
- *                                                   |  \/ /\   /
+ * itread2.c - Function to read an Impulse Tracker    / / \  \
+ *             module from an open file and do an    | <  /   \_
+ *             initial run-through.                  |  \/ /\   /
  *                                                    \_  /  > /
- * By Chris Moeller.                                    | \ / /
+ * Split off from itread.c by entheh.                   | \ / /
  *                                                      |  ' /
  *                                                       \__/
  */
 
 #include "dumb.h"
-#include "internal/it.h"
 
 
 
-/* dumb_load_riff_quick(): loads a RIFF file into a DUH struct, returning
- * a pointer to the DUH struct. When you have finished with it, you must
- * pass the pointer to unload_duh() so that the memory can be freed.
- */
-DUH * dumb_load_riff_quick( const char *filename )
+DUH *dumb_read_it(DUMBFILE *f)
 {
-	DUH * duh;
-	DUMBFILE * f = dumbfile_open( filename );
-
-	if ( ! f )
-		return NULL;
-
-	duh = dumb_read_riff_quick( f );
-
-	dumbfile_close( f );
-
+	DUH *duh = dumb_read_it_quick(f);
+	dumb_it_do_initial_runthrough(duh);
 	return duh;
 }

@@ -59,7 +59,7 @@ static int it_old_psm_read_samples(IT_SAMPLE ** sample, DUMBFILE * f, int * num,
 		IT_SAMPLE * meh = realloc(*sample, true_num * sizeof(*meh));
 		if (!meh) goto error_fb;
 		for (n = count; n < true_num; n++) {
-			meh[n].right = meh[n].left = NULL;
+			meh[n].data = NULL;
 		}
 		*sample = meh;
 		*num = true_num;
@@ -125,8 +125,8 @@ static int it_old_psm_read_samples(IT_SAMPLE ** sample, DUMBFILE * f, int * num,
 		s->vibrato_waveform = IT_VIBRATO_SINE;
 		s->max_resampling_quality = -1;
 
-		s->left = malloc(s->length * ((flags & 4) ? 2 : 1));
-		if (!s->left) goto error_fb;
+		s->data = malloc(s->length * ((flags & 4) ? 2 : 1));
+		if (!s->data) goto error_fb;
 
 		if ((offset >= data_pos) &&
 			((offset + s->length * ((flags & 4) ? 2 : 1)) <= (data_pos + data_size))) {
@@ -146,17 +146,17 @@ static int it_old_psm_read_samples(IT_SAMPLE ** sample, DUMBFILE * f, int * num,
 			if (flags & 8) {
 				if (flags & 4) {
 					for (o = 0; o < s->length; o++)
-						((short *)s->left)[o] = (sdata[o * 2] | (sdata[(o * 2) + 1] << 8)) ^ 0x8000;
+						((short *)s->data)[o] = (sdata[o * 2] | (sdata[(o * 2) + 1] << 8)) ^ 0x8000;
 				} else {
 					for (o = 0; o < s->length; o++)
-						((signed char *)s->left)[o] = sdata[o] ^ 0x80;
+						((signed char *)s->data)[o] = sdata[o] ^ 0x80;
 				}
 			} else {
 				if (flags & 4) {
 					for (o = 0; o < s->length; o++)
-						((short *)s->left)[o] = sdata[o * 2] | (sdata[(o * 2) + 1] << 8);
+						((short *)s->data)[o] = sdata[o * 2] | (sdata[(o * 2) + 1] << 8);
 				} else {
-					memcpy(s->left, sdata, s->length);
+					memcpy(s->data, sdata, s->length);
 				}
 			}
 		} else {
@@ -166,24 +166,24 @@ static int it_old_psm_read_samples(IT_SAMPLE ** sample, DUMBFILE * f, int * num,
 				if (flags & 4) {
 					for (o = 0; o < s->length; o++) {
 						delta += (short)(sdata[o * 2] | (sdata[(o * 2) + 1] << 8));
-						((short *)s->left)[o] = delta ^ 0x8000;
+						((short *)s->data)[o] = delta ^ 0x8000;
 					}
 				} else {
 					for (o = 0; o < s->length; o++) {
 						delta += (signed char)sdata[o];
-						((signed char *)s->left)[o] = delta ^ 0x80;
+						((signed char *)s->data)[o] = delta ^ 0x80;
 					}
 				}
 			} else {
 				if (flags & 4) {
 					for (o = 0; o < s->length; o++) {
 						delta += (short)(sdata[o * 2] | (sdata[(o * 2) + 1] << 8));
-						((short *)s->left)[o] = delta;
+						((short *)s->data)[o] = delta;
 					}
 				} else {
 					for (o = 0; o < s->length; o++) {
 						delta += (signed char)sdata[o];
-						((signed char *)s->left)[o] = delta;
+						((signed char *)s->data)[o] = delta;
 					}
 				}
 			}
@@ -584,7 +584,7 @@ static DUMB_IT_SIGDATA *it_old_psm_load_sigdata(DUMBFILE *f)
 		sigdata->sample = malloc(sigdata->n_samples * sizeof(*sigdata->sample));
 		if (!sigdata->sample) goto error_usd;
 		for (n = 0; n < sigdata->n_samples; n++)
-			sigdata->sample[n].right = sigdata->sample[n].left = NULL;
+			sigdata->sample[n].data = NULL;
 	}
 
 	if (sigdata->n_patterns) {
@@ -703,10 +703,9 @@ error:
 	return NULL;
 }
 
-DUH *dumb_read_old_psm(DUMBFILE *f)
+DUH *dumb_read_old_psm_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
@@ -715,14 +714,12 @@ DUH *dumb_read_old_psm(DUMBFILE *f)
 	if (!sigdata)
 		return NULL;
 
-	length = 0; /*_dumb_it_build_checkpoints(sigdata, 0);*/
-
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "PSM (old)";
-		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

@@ -22,11 +22,11 @@
 
 
 
-/* dumb_load_s3m(): loads an S3M file into a DUH struct, returning a pointer
- * to the DUH struct. When you have finished with it, you must pass the
- * pointer to unload_duh() so that the memory can be freed.
+/* dumb_load_s3m_quick(): loads an S3M file into a DUH struct, returning
+ * a pointer to the DUH struct. When you have finished with it, you must
+ * pass the pointer to unload_duh() so that the memory can be freed.
  */
-DUH *dumb_load_s3m(const char *filename)
+DUH *dumb_load_s3m_quick(const char *filename)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -34,7 +34,7 @@ DUH *dumb_load_s3m(const char *filename)
 	if (!f)
 		return NULL;
 
-	duh = dumb_read_s3m(f);
+	duh = dumb_read_s3m_quick(f);
 
 	dumbfile_close(f);
 

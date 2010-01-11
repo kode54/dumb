@@ -22,11 +22,11 @@
 
 
 
-/* dumb_load_psm(): loads a PSM file into a DUH struct, returning a pointer
- * to the DUH struct. When you have finished with it, you must pass the
- * pointer to unload_duh() so that the memory can be freed.
+/* dumb_load_psm_quick(): loads a PSM file into a DUH struct, returning a
+ * pointer to the DUH struct. When you have finished with it, you must
+ * pass the pointer to unload_duh() so that the memory can be freed.
  */
-DUH *dumb_load_psm(const char *filename, int subsong)
+DUH *dumb_load_psm_quick(const char *filename, int subsong)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -34,7 +34,7 @@ DUH *dumb_load_psm(const char *filename, int subsong)
 	if (!f)
 		return NULL;
 
-	duh = dumb_read_psm(f, subsong);
+	duh = dumb_read_psm_quick(f, subsong);
 
 	dumbfile_close(f);
 
