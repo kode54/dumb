@@ -71,9 +71,10 @@
  *
  *  0 - DUMB_RQ_ALIASING - fastest
  *  1 - DUMB_RQ_LINEAR
- *  2 - DUMB_RQ_CUBIC    - nicest
+ *  2 - DUMB_RQ_CUBIC
+ *  3 - DUMB_RQ_SINC     - nicest
  *
- * Values outside the range 0-2 will behave the same as the nearest
+ * Values outside the range 0-3 will behave the same as the nearest
  * value within the range.
  */
 int dumb_resampling_quality = DUMB_RQ_CUBIC;
@@ -161,7 +162,143 @@ static short cubicA0[1025], cubicA1[1025];
 	}
 }
 
+static short sinc[8192];
 
+#define WFIR_QUANTBITS		14
+#define WFIR_QUANTSCALE		(1L<<WFIR_QUANTBITS)
+#define WFIR_8SHIFT			(WFIR_QUANTBITS-8)
+#define WFIR_16BITSHIFT		(WFIR_QUANTBITS)
+// log2(number)-1 of precalculated taps range is [4..12]
+#define WFIR_FRACBITS		9
+#define WFIR_LUTLEN			((1L<<(WFIR_FRACBITS+1))/*+1*/)
+// number of samples in window
+#define WFIR_LOG2WIDTH		3
+#define WFIR_WIDTH			(1L<<WFIR_LOG2WIDTH)
+#define WFIR_SMPSPERWING	((WFIR_WIDTH-1)>>1)
+// cutoff (1.0 == pi/2)
+#define WFIR_CUTOFF			0.95f
+// wfir type
+#define WFIR_HANN			0
+#define WFIR_HAMMING		1
+#define WFIR_BLACKMANEXACT	2
+#define WFIR_BLACKMAN3T61	3
+#define WFIR_BLACKMAN3T67	4
+#define WFIR_BLACKMAN4T92	5
+#define WFIR_BLACKMAN4T74	6
+#define WFIR_KAISER4T		7
+#define WFIR_TYPE			WFIR_HANN
+// wfir help
+#ifndef M_zPI
+#define M_zPI			3.1415926535897932384626433832795
+#endif
+#define M_zEPS			1e-8
+#define M_zBESSELEPS	1e-21
+
+static float sinc_coef( int _PCnr, float _POfs, float _PCut, int _PWidth, int _PType ) //float _PPos, float _PFc, int _PLen )
+{
+	double	_LWidthM1		= _PWidth-1;
+	double	_LWidthM1Half	= 0.5*_LWidthM1;
+	double	_LPosU			= ((double)_PCnr - _POfs);
+	double	_LPos			= _LPosU-_LWidthM1Half;
+	double	_LPIdl			= 2.0*M_zPI/_LWidthM1;
+	double	_LWc,_LSi;
+	if( fabs(_LPos)<M_zEPS )
+	{
+		_LWc	= 1.0;
+		_LSi	= _PCut;
+	}
+	else
+	{
+		switch( _PType )
+		{
+		case WFIR_HANN:
+			_LWc = 0.50 - 0.50 * cos(_LPIdl*_LPosU);
+			break;
+		case WFIR_HAMMING:
+			_LWc = 0.54 - 0.46 * cos(_LPIdl*_LPosU);
+			break;
+		case WFIR_BLACKMANEXACT:
+			_LWc = 0.42 - 0.50 * cos(_LPIdl*_LPosU) + 0.08 * cos(2.0*_LPIdl*_LPosU);
+			break;
+		case WFIR_BLACKMAN3T61:
+			_LWc = 0.44959 - 0.49364 * cos(_LPIdl*_LPosU) + 0.05677 * cos(2.0*_LPIdl*_LPosU);
+			break;
+		case WFIR_BLACKMAN3T67:
+			_LWc = 0.42323 - 0.49755 * cos(_LPIdl*_LPosU) + 0.07922 * cos(2.0*_LPIdl*_LPosU);
+			break;
+		case WFIR_BLACKMAN4T92:
+			_LWc = 0.35875 - 0.48829 * cos(_LPIdl*_LPosU) + 0.14128 * cos(2.0*_LPIdl*_LPosU) - 0.01168 * cos(3.0*_LPIdl*_LPosU);
+			break;
+		case WFIR_BLACKMAN4T74:
+			_LWc = 0.40217 - 0.49703 * cos(_LPIdl*_LPosU) + 0.09392 * cos(2.0*_LPIdl*_LPosU) - 0.00183 * cos(3.0*_LPIdl*_LPosU);
+			break;
+		case WFIR_KAISER4T:
+			_LWc = 0.40243 - 0.49804 * cos(_LPIdl*_LPosU) + 0.09831 * cos(2.0*_LPIdl*_LPosU) - 0.00122 * cos(3.0*_LPIdl*_LPosU);
+			break;
+		default:
+			_LWc = 1.0;
+			break;
+		}
+		_LPos	 *= M_zPI;
+		_LSi	 = sin(_PCut*_LPos)/_LPos;
+	}
+	return (float)(_LWc*_LSi);
+}
+
+/*static*/ void init_sinc(void)
+{
+	int _LPcl;
+	float _LPcllen;
+	float _LNorm;
+	float _LCut;
+	float _LScale;
+	float _LGain,_LCoefs[WFIR_WIDTH];
+	static int done = 0;
+	if (done) return;
+	done = 1;
+	_LPcllen  = (float)(1L<<WFIR_FRACBITS);	// number of precalculated lines for 0..1 (-1..0)
+	_LNorm    = 1.0f / (float)(2.0f * _LPcllen);
+	_LCut     = WFIR_CUTOFF;
+	_LScale   = (float)WFIR_QUANTSCALE;
+	for( _LPcl=0;_LPcl<WFIR_LUTLEN;_LPcl++ )
+	{
+		float _LOfs		= ((float)_LPcl-_LPcllen)*_LNorm;
+		int _LCc,_LIdx	= _LPcl<<WFIR_LOG2WIDTH;
+		for( _LCc=0,_LGain=0.0f;_LCc<WFIR_WIDTH;_LCc++ )
+		{
+			_LGain	+= (_LCoefs[_LCc] = sinc_coef( _LCc, _LOfs, _LCut, WFIR_WIDTH, WFIR_TYPE ));
+		}
+		_LGain = 1.0f/_LGain;
+		for( _LCc=0;_LCc<WFIR_WIDTH;_LCc++ )
+		{
+			float _LCoef = (float)floor( 0.5 + _LScale*_LCoefs[_LCc]*_LGain );
+			sinc[_LIdx+_LCc] = (signed short)( (_LCoef<-_LScale)?-_LScale:((_LCoef>_LScale)?_LScale:_LCoef) );
+		}
+	}
+}
+
+#undef WFIR_QUANTBITS
+#undef WFIR_QUANTSCALE
+#undef WFIR_8SHIFT
+#undef WFIR_16BITSHIFT
+#undef WFIR_FRACBITS
+#undef WFIR_LUTLEN
+#undef WFIR_LOG2WIDTH
+#undef WFIR_WIDTH
+#undef WFIR_SMPSPERWING
+#undef WFIR_CUTOFF
+#undef WFIR_HANN
+#undef WFIR_HAMMING
+#undef WFIR_BLACKMANEXACT
+#undef WFIR_BLACKMAN3T61
+#undef WFIR_BLACKMAN3T67
+#undef WFIR_BLACKMAN4T92
+#undef WFIR_BLACKMAN4T74
+#undef WFIR_KAISER4T
+#undef WFIR_TYPE
+#undef M_zPI
+#undef M_zEPS
+#undef M_zBESSELEPS
 
 /* Create resamplers for 24-in-32-bit source samples. */
 
@@ -192,6 +329,16 @@ static short cubicA0[1025], cubicA1[1025];
 	MULSC(x2, cubicA1[1 + (subpos >> 6 ^ 1023)] << 2) + \
 	MULSC(x3, cubicA0[1 + (subpos >> 6 ^ 1023)] << 2))
 #define CUBICVOL(x, vol) MULSC(x, vol)
+#define SINC(x0, x1, x2, x3, x4, x5, x6, x7) ( \
+	MULSC(x0, sinc[(subpos >> 3) & 0x1FF8] << 2) + \
+	MULSC(x1, sinc[((subpos >> 3) & 0x1FF8) + 1] << 2) + \
+	MULSC(x2, sinc[((subpos >> 3) & 0x1FF8) + 2] << 2) + \
+	MULSC(x3, sinc[((subpos >> 3) & 0x1FF8) + 3] << 2) + \
+	MULSC(x4, sinc[((subpos >> 3) & 0x1FF8) + 4] << 2) + \
+	MULSC(x5, sinc[((subpos >> 3) & 0x1FF8) + 5] << 2) + \
+	MULSC(x6, sinc[((subpos >> 3) & 0x1FF8) + 6] << 2) + \
+	MULSC(x7, sinc[((subpos >> 3) & 0x1FF8) + 7] << 2))
+#define SINCVOL(x, vol) MULSC(x, vol)
 #include "resample.inc"
 
 /* Undefine the simplified macros. */
@@ -228,6 +375,16 @@ static short cubicA0[1025], cubicA1[1025];
 	x2 * cubicA1[1 + (subpos >> 6 ^ 1023)] + \
 	x3 * cubicA0[1 + (subpos >> 6 ^ 1023)])
 #define CUBICVOL(x, vol) (int)((LONG_LONG)(x) * (vol << 10) >> 32)
+#define SINC(x0, x1, x2, x3, x4, x5, x6, x7) ( \
+	x0 * sinc[(subpos >> 3) & 0x1FF8] + \
+	x1 * sinc[((subpos >> 3) & 0x1FF8) + 1] + \
+	x2 * sinc[((subpos >> 3) & 0x1FF8) + 2] + \
+	x3 * sinc[((subpos >> 3) & 0x1FF8) + 3] + \
+	x4 * sinc[((subpos >> 3) & 0x1FF8) + 4] + \
+	x5 * sinc[((subpos >> 3) & 0x1FF8) + 5] + \
+	x6 * sinc[((subpos >> 3) & 0x1FF8) + 6] + \
+	x7 * sinc[((subpos >> 3) & 0x1FF8) + 7])
+#define SINCVOL(x, vol) (int)((LONG_LONG)(x) * (vol << 10) >> 32)
 #include "resample.inc"
 
 /* Create resamplers for 8-bit source samples. */
@@ -250,6 +407,16 @@ static short cubicA0[1025], cubicA1[1025];
 	x2 * cubicA1[1 + (subpos >> 6 ^ 1023)] + \
 	x3 * cubicA0[1 + (subpos >> 6 ^ 1023)]) << 6)
 #define CUBICVOL(x, vol) (int)((LONG_LONG)(x) * (vol << 12) >> 32)
+#define SINC(x0, x1, x2, x3, x4, x5, x6, x7) (( \
+	x0 * sinc[(subpos >> 3) & 0x1FF8] + \
+	x1 * sinc[((subpos >> 3) & 0x1FF8) + 1] + \
+	x2 * sinc[((subpos >> 3) & 0x1FF8) + 2] + \
+	x3 * sinc[((subpos >> 3) & 0x1FF8) + 3] + \
+	x4 * sinc[((subpos >> 3) & 0x1FF8) + 4] + \
+	x5 * sinc[((subpos >> 3) & 0x1FF8) + 5] + \
+	x6 * sinc[((subpos >> 3) & 0x1FF8) + 6] + \
+	x7 * sinc[((subpos >> 3) & 0x1FF8) + 7]) << 6)
+#define SINCVOL(x, vol) (int)((LONG_LONG)(x) * (vol << 12) >> 32)
 #include "resample.inc"
 
 

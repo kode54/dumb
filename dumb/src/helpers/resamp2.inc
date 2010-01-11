@@ -52,21 +52,29 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 	if (resampler->overshot < 0) {
 		resampler->overshot = 0;
 		dumb_resample(resampler, NULL, 2, MONO_DEST_VOLUME_ZEROS, 1.0f); /* Doesn't matter which SUFFIX3. */
-		COPYSRC(resampler->X, 0, resampler->X, 1);
+		//COPYSRC(resampler->X, 0, resampler->X, 1);
 	}
 
 	for (;;) {
 		SRCTYPE *src = resampler->src;
 
 		if (resampler->dir < 0) {
-			if (resampler->overshot >= 3 && resampler->pos+3 >= resampler->start) COPYSRC(resampler->X, 0, src, resampler->pos+3);
-			if (resampler->overshot >= 2 && resampler->pos+2 >= resampler->start) COPYSRC(resampler->X, 1, src, resampler->pos+2);
-			if (resampler->overshot >= 1 && resampler->pos+1 >= resampler->start) COPYSRC(resampler->X, 2, src, resampler->pos+1);
+			if (resampler->overshot >= 7 && resampler->pos+7 >= resampler->start) COPYSRC(resampler->X, 0, src, resampler->pos+7);
+			if (resampler->overshot >= 6 && resampler->pos+6 >= resampler->start) COPYSRC(resampler->X, 1, src, resampler->pos+6);
+			if (resampler->overshot >= 5 && resampler->pos+5 >= resampler->start) COPYSRC(resampler->X, 2, src, resampler->pos+5);
+			if (resampler->overshot >= 4 && resampler->pos+4 >= resampler->start) COPYSRC(resampler->X, 3, src, resampler->pos+4);
+			if (resampler->overshot >= 3 && resampler->pos+3 >= resampler->start) COPYSRC(resampler->X, 4, src, resampler->pos+3);
+			if (resampler->overshot >= 2 && resampler->pos+2 >= resampler->start) COPYSRC(resampler->X, 5, src, resampler->pos+2);
+			if (resampler->overshot >= 1 && resampler->pos+1 >= resampler->start) COPYSRC(resampler->X, 6, src, resampler->pos+1);
 			resampler->overshot = resampler->start - resampler->pos - 1;
 		} else {
-			if (resampler->overshot >= 3 && resampler->pos-3 < resampler->end) COPYSRC(resampler->X, 0, src, resampler->pos-3);
-			if (resampler->overshot >= 2 && resampler->pos-2 < resampler->end) COPYSRC(resampler->X, 1, src, resampler->pos-2);
-			if (resampler->overshot >= 1 && resampler->pos-1 < resampler->end) COPYSRC(resampler->X, 2, src, resampler->pos-1);
+			if (resampler->overshot >= 7 && resampler->pos-7 < resampler->end) COPYSRC(resampler->X, 0, src, resampler->pos-7);
+			if (resampler->overshot >= 6 && resampler->pos-6 < resampler->end) COPYSRC(resampler->X, 1, src, resampler->pos-6);
+			if (resampler->overshot >= 5 && resampler->pos-5 < resampler->end) COPYSRC(resampler->X, 2, src, resampler->pos-5);
+			if (resampler->overshot >= 4 && resampler->pos-4 < resampler->end) COPYSRC(resampler->X, 3, src, resampler->pos-4);
+			if (resampler->overshot >= 3 && resampler->pos-3 < resampler->end) COPYSRC(resampler->X, 4, src, resampler->pos-3);
+			if (resampler->overshot >= 2 && resampler->pos-2 < resampler->end) COPYSRC(resampler->X, 5, src, resampler->pos-2);
+			if (resampler->overshot >= 1 && resampler->pos-1 < resampler->end) COPYSRC(resampler->X, 6, src, resampler->pos-1);
 			resampler->overshot = resampler->pos - resampler->end;
 		}
 
@@ -97,6 +105,7 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 #define MIX_ALIAS(op, upd, offset) MONO_DEST_MIX_ALIAS(op, upd, offset)
 #define MIX_LINEAR(op, upd, o0, o1) MONO_DEST_MIX_LINEAR(op, upd, o0, o1)
 #define MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3) MONO_DEST_MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3)
+#define MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7) MONO_DEST_MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7)
 #define MIX_ZEROS(op) *dst++ op 0
 #include "resamp3.inc"
 
@@ -136,11 +145,14 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 #define MIX_ALIAS(op, upd, offset) STEREO_DEST_MIX_ALIAS(op, upd, offset)
 #define MIX_LINEAR(op, upd, o0, o1) STEREO_DEST_MIX_LINEAR(op, upd, o0, o1)
 #define MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3) STEREO_DEST_MIX_CUBIC(op, upd, x0, x3, o0, o1, o2, o3)
+#define MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7) STEREO_DEST_MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7)
 #define MIX_ZEROS(op) { *dst++ op 0; *dst++ op 0; }
 #include "resamp3.inc"
 
 
 
+#undef STEREO_DEST_MIX_SINC
+#undef MONO_DEST_MIX_SINC
 #undef STEREO_DEST_MIX_CUBIC
 #undef MONO_DEST_MIX_CUBIC
 #undef STEREO_DEST_MIX_LINEAR

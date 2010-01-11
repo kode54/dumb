@@ -641,7 +641,8 @@ void dumb_destroy_click_remover_array(int n, DUMB_CLICK_REMOVER **cr);
 #define DUMB_RQ_ALIASING 0
 #define DUMB_RQ_LINEAR   1
 #define DUMB_RQ_CUBIC    2
-#define DUMB_RQ_N_LEVELS 3
+#define DUMB_RQ_SINC     3
+#define DUMB_RQ_N_LEVELS 4
 extern int dumb_resampling_quality;
 
 typedef struct DUMB_RESAMPLER DUMB_RESAMPLER;
@@ -662,9 +663,9 @@ struct DUMB_RESAMPLER
 	int quality;
 	/* Everything below this point is internal: do not use. */
 	union {
-		sample_t x24[3*2];
-		short x16[3*2];
-		signed char x8[3*2];
+		sample_t x24[7*2];
+		short x16[7*2];
+		signed char x8[7*2];
 	} x;
 	int overshot;
 };
