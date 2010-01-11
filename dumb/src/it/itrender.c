@@ -3550,7 +3550,14 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 					* playing->sample->C5_speed * (1.f / 65536.f);
 			}
 
-			playing->delta *= (float)pow(DUMB_SEMITONE_BASE, channel->arpeggio >> 8);
+			if ( channel->arpeggio ) { // another FT2 bug...
+				if ((sigdata->flags & (IT_LINEAR_SLIDES|IT_WAS_AN_XM|IT_WAS_A_MOD)) == (IT_WAS_AN_XM|IT_LINEAR_SLIDES))
+				{
+					if ( channel->arpeggio > 0xFF )
+						playing->delta = playing->sample->C5_speed * (1.f / 65536.f);
+				}
+				else playing->delta *= (float)pow(DUMB_SEMITONE_BASE, channel->arpeggio >> 8);
+			}
 
 			if (playing->finetune)
 				playing->delta *= (float)pow(DUMB_PITCH_BASE, playing->finetune);
