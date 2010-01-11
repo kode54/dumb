@@ -841,6 +841,10 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\..\src\helpers\riff.c"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\helpers\sampbuf.c"
 					>
 					<FileConfiguration
@@ -1335,6 +1339,10 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\..\src\it\loadriff.c"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\it\loads3m.c"
 					>
 					<FileConfiguration
@@ -1473,6 +1481,10 @@
 							PreprocessorDefinitions=""
 						/>
 					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\..\src\it\readam.c"
+					>
 				</File>
 				<File
 					RelativePath="..\..\src\it\readmod.c"
@@ -1650,6 +1662,10 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\..\src\it\readriff.c"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\it\reads3m.c"
 					>
 					<FileConfiguration
@@ -1767,11 +1783,19 @@
 				Name="internal"
 				>
 				<File
+					RelativePath="..\..\include\internal\barray.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\include\internal\dumb.h"
 					>
 				</File>
 				<File
 					RelativePath="..\..\include\internal\it.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\include\internal\riff.h"
 					>
 				</File>
 			</Filter>

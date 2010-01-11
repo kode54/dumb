@@ -389,7 +389,7 @@ struct IT_PATTERN
 
 struct DUMB_IT_SIGDATA
 {
-	unsigned char name[60];
+	unsigned char name[65];
 
 	unsigned char *song_message;
 
