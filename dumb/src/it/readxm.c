@@ -687,7 +687,8 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	}
 
 	/* version number */
-	if (dumbfile_igetw(f) != 0x0104) {
+	i = dumbfile_igetw(f);
+	if (i != 0x0104 && i != 0x0102) {
 		TRACE("XM error: wrong format version\n");
 		free(sigdata);
 		return NULL;
