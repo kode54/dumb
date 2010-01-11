@@ -61,7 +61,7 @@ static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f )
 
 	dumbfile_skip( f, 6 );
 
-	if ( sample->length < 2 /*|| ! sample->default_volume*/ ) {
+	if ( sample->length < 4 || !sample->default_volume ) {
 		/* Looks like no-existy. */
 		sample->flags &= ~IT_SAMPLE_EXISTS;
 		sample->length = 0;
@@ -220,7 +220,8 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f /*, int * version*/)
 	sigdata->name[20] = 0;
 
 	dumbfile_getnc(tracker_name, 8, f);
-	if ( dumbfile_getc(f) != 0x1A )
+	n = dumbfile_getc(f);
+	if ( n != 0x02 && n != 0x1A && n != 0x1B )
 	{
 		free( sigdata );
 		return NULL;
@@ -321,7 +322,7 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f /*, int * version*/)
 		_dumb_it_unload_sigdata( sigdata );
 		return NULL;
 	}
-	sigdata->n_orders = n;
+	sigdata->n_orders = n + 1;
 
 	for ( n = 0; n < 128; ++n ) {
 		if ( sigdata->order[ n ] >= 99 ) sigdata->order[ n ] = 0xFF;
