@@ -173,7 +173,7 @@ static void it_xm_convert_volume(int volume, IT_ENTRY *entry)
 
 
 
-static int it_xm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int n_channels, unsigned char *buffer)
+static int it_xm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int n_channels, unsigned char *buffer, int version)
 {
 	int size;
 	int pos;
@@ -183,7 +183,7 @@ static int it_xm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int n_channels, 
 	IT_ENTRY *entry;
 
 	/* pattern header size */
-	if (dumbfile_igetl(f) != 0x09) {
+	if (dumbfile_igetl(f) != ( version == 0x0102 ? 0x08 : 0x09 ) ) {
 		TRACE("XM error: unexpected pattern header size\n");
 		return -1;
 	}
@@ -194,7 +194,10 @@ static int it_xm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int n_channels, 
 		return -1;
 	}
 
-	pattern->n_rows = dumbfile_igetw(f);  /* 1..256 */
+	if ( version == 0x0102 )
+		pattern->n_rows = dumbfile_getc(f) + 1;
+	else
+		pattern->n_rows = dumbfile_igetw(f);  /* 1..256 */
 	size = dumbfile_igetw(f);
 	pattern->n_entries = 0;
 
@@ -653,6 +656,7 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	int n_channels;
 	int total_samples;
 	int i, j;
+	int version;
 
 	/* check ID text */
 	if (dumbfile_getnc(id_text, 17, f) < 17)
@@ -687,8 +691,8 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	}
 
 	/* version number */
-	i = dumbfile_igetw(f);
-	if (i != 0x0104 && i != 0x0102) {
+	version = dumbfile_igetw(f);
+	if (version != 0x0104 && version != 0x0102) {
 		TRACE("XM error: wrong format version\n");
 		free(sigdata);
 		return NULL;
