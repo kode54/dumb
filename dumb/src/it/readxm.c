@@ -321,10 +321,16 @@ static int it_xm_make_envelope(IT_ENVELOPE *envelope, const unsigned short *data
 	int i, pos;
 
 	if (envelope->n_nodes > 12) {
+		/* XXX
 		TRACE("XM error: wrong number of envelope nodes (%d)\n", envelope->n_nodes);
 		envelope->n_nodes = 0;
-		return -1;
+		return -1; */
+		envelope->n_nodes = 12;
 	}
+
+	if (envelope->sus_loop_start >= 12) envelope->flags &= ~IT_ENVELOPE_SUSTAIN_LOOP;
+	if (envelope->loop_end >= 12) envelope->loop_end = 0;
+	if (envelope->loop_start >= envelope->loop_end) envelope->flags &= ~IT_ENVELOPE_LOOP_ON;
 
 	pos = 0;
 	for (i = 0; i < envelope->n_nodes; i++) {
