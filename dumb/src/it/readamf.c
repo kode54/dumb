@@ -457,7 +457,7 @@ static DUMB_IT_SIGDATA *it_amf_load_sigdata(DUMBFILE *f, int * version)
 	}
 
 	/* Now let's initialise the remaining variables, and we're done! */
-	sigdata->flags = IT_WAS_AN_XM | IT_WAS_A_MOD | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_STEREO;
+	sigdata->flags = IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_STEREO;
 
 	sigdata->global_volume = 128;
 	sigdata->mixing_volume = 48;
