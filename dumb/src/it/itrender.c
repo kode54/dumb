@@ -1142,9 +1142,15 @@ static int update_pattern_variables(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *
 	if (entry->mask & IT_ENTRY_EFFECT) {
 		switch (entry->effect) {
 			case IT_JUMP_TO_ORDER:
-				sigrenderer->breakrow = 0;
+				/* XXX jump and break in same row */
+				if ( ( sigrenderer->processrow | 0xC00 == 0xFFFE ) &&
+					! ( sigrenderer->processrow & 0x800 ) ) {
+					sigrenderer->processrow = 0xFFFE & ~0xC00;
+				} else {
+					sigrenderer->breakrow = 0;
+					sigrenderer->processrow = 0xFFFE & ~0x400;
+				}
 				sigrenderer->processorder = entry->effectvalue - 1;
-				sigrenderer->processrow = 0xFFFE;
 				break;
 
 			case IT_S:
@@ -1237,7 +1243,7 @@ static int update_pattern_variables(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *
 #endif
 										channel->pat_loop_count = v;
 										sigrenderer->breakrow = channel->pat_loop_row;
-										if (!(sigrenderer->sigdata->flags & IT_WAS_AN_XM) || sigrenderer->processrow != 0xFFFE) {
+										if (!(sigrenderer->sigdata->flags & IT_WAS_AN_XM) || ( sigrenderer->processrow | 0xC00 == 0xFFFE ) ) {
 											sigrenderer->processorder = 0xFFFF; /* special case: don't trigger loop callback */
 											sigrenderer->processrow = 0xFFFE;
 										}
@@ -1251,7 +1257,7 @@ static int update_pattern_variables(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *
 										}
 #endif
 										sigrenderer->breakrow = channel->pat_loop_row;
-										if (!(sigrenderer->sigdata->flags & IT_WAS_AN_XM) || sigrenderer->processrow != 0xFFFE) {
+										if (!(sigrenderer->sigdata->flags & IT_WAS_AN_XM) || ( sigrenderer->processrow | 0xC00 == 0xFFFE ) ) {
 											sigrenderer->processorder = 0xFFFF; /* special case: don't trigger loop callback */
 											sigrenderer->processrow = 0xFFFE;
 										}
@@ -1866,8 +1872,14 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 			case IT_BREAK_TO_ROW:
 				if (ignore_cxx) break;
 				sigrenderer->breakrow = entry->effectvalue;
-				sigrenderer->processorder = sigrenderer->order;
-				sigrenderer->processrow = 0xFFFE;
+				/* XXX jump and break on the same row */
+				if ( ( sigrenderer->processrow | 0xC00 == 0xFFFE ) &&
+					! ( sigrenderer->processrow & 0x400 ) ) {
+					sigrenderer->processrow = 0xFFFE & ~0xC00;
+				} else {
+					sigrenderer->processorder = sigrenderer->order;
+					sigrenderer->processrow = 0xFFFE & ~0x800;
+				}
 				break;
 
 			case IT_VOLSLIDE_VIBRATO:
@@ -4951,7 +4963,17 @@ long _dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder)
 static int is_pattern_silent(IT_PATTERN * pattern, int order) {
 	int ret = 1;
 	IT_ENTRY * entry, * end;
-	if (!pattern || !pattern->n_rows || !pattern->n_entries || !pattern->entry) return 1;
+	if (!pattern || !pattern->n_rows || !pattern->n_entries || !pattern->entry) return 2;
+
+	if ( pattern->n_entries == pattern->n_rows ) {
+		int n;
+		entry = pattern->entry;
+		for ( n = 0; n < pattern->n_entries; ++n, ++entry ) {
+			if ( !IT_IS_END_ROW(entry) ) break;
+		}
+		if ( n == pattern->n_entries ) return 2;
+		// broken?
+	}
 
 	entry = pattern->entry;
 	end = entry + pattern->n_entries;
