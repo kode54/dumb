@@ -692,7 +692,7 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 
 	/* version number */
 	version = dumbfile_igetw(f);
-	if (version != 0x0104 && version != 0x0102) {
+	if (version > 0x0104 || version < 0x0102) {
 		TRACE("XM error: wrong format version\n");
 		free(sigdata);
 		return NULL;
@@ -754,116 +754,237 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 		return NULL;
 	}
 
-	/*
-		--------------------
-		---   Patterns   ---
-		--------------------
-	*/
+	if ( version > 0x103 ) {
+		/*
+			--------------------
+			---   Patterns   ---
+			--------------------
+		*/
 
-	sigdata->pattern = malloc(sigdata->n_patterns * sizeof(*sigdata->pattern));
-	if (!sigdata->pattern) {
-		_dumb_it_unload_sigdata(sigdata);
-		return NULL;
-	}
-	for (i = 0; i < sigdata->n_patterns; i++)
-		sigdata->pattern[i].entry = NULL;
-
-	{
-		unsigned char *buffer = malloc(1280 * n_channels); /* 256 rows * 5 bytes */
-		if (!buffer) {
+		sigdata->pattern = malloc(sigdata->n_patterns * sizeof(*sigdata->pattern));
+		if (!sigdata->pattern) {
 			_dumb_it_unload_sigdata(sigdata);
 			return NULL;
 		}
-		for (i = 0; i < sigdata->n_patterns; i++) {
-			if (it_xm_read_pattern(&sigdata->pattern[i], f, n_channels, buffer) != 0) {
-				free(buffer);
+		for (i = 0; i < sigdata->n_patterns; i++)
+			sigdata->pattern[i].entry = NULL;
+
+		{
+			unsigned char *buffer = malloc(1280 * n_channels); /* 256 rows * 5 bytes */
+			if (!buffer) {
 				_dumb_it_unload_sigdata(sigdata);
 				return NULL;
 			}
+			for (i = 0; i < sigdata->n_patterns; i++) {
+				if (it_xm_read_pattern(&sigdata->pattern[i], f, n_channels, buffer, version) != 0) {
+					free(buffer);
+					_dumb_it_unload_sigdata(sigdata);
+					return NULL;
+				}
+			}
+			free(buffer);
 		}
-		free(buffer);
-	}
 
-	/*
+		/*
 		-----------------------------------
 		---   Instruments and Samples   ---
 		-----------------------------------
-	*/
+		*/
 
-	sigdata->instrument = malloc(sigdata->n_instruments * sizeof(*sigdata->instrument));
-	if (!sigdata->instrument) {
-		_dumb_it_unload_sigdata(sigdata);
-		return NULL;
-	}
-
-	/* With XM, samples are not global, they're part of an instrument. In a
-	 * file, each instrument is stored with its samples. Because of this, I
-	 * don't know how to find how many samples are present in the file. Thus
-	 * I have to do n_instruments reallocation on sigdata->sample.
-	 * Looking at FT2, it doesn't seem possible to have more than 16 samples
-	 * per instrument (even though n_samples is stored as 2 bytes). So maybe
-	 * we could allocate a 128*16 array of samples, and shrink it back to the
-	 * correct size when we know it?
-	 * Alternatively, I could allocate samples by blocks of N (still O(n)),
-	 * or double the number of allocated samples when I need more (O(log n)).
-	 */
-	total_samples = 0;
-	sigdata->sample = NULL;
-
-	for (i = 0; i < sigdata->n_instruments; i++) {
-		XM_INSTRUMENT_EXTRA extra;
-
-		if (it_xm_read_instrument(&sigdata->instrument[i], &extra, f) < 0) {
-			TRACE("XM error: instrument %d\n", i+1);
+		sigdata->instrument = malloc(sigdata->n_instruments * sizeof(*sigdata->instrument));
+		if (!sigdata->instrument) {
 			_dumb_it_unload_sigdata(sigdata);
 			return NULL;
 		}
 
-		if (extra.n_samples) {
-			unsigned char roguebytes[XM_MAX_SAMPLES_PER_INSTRUMENT];
+		/* With XM, samples are not global, they're part of an instrument. In a
+		* file, each instrument is stored with its samples. Because of this, I
+		* don't know how to find how many samples are present in the file. Thus
+		* I have to do n_instruments reallocation on sigdata->sample.
+		* Looking at FT2, it doesn't seem possible to have more than 16 samples
+		* per instrument (even though n_samples is stored as 2 bytes). So maybe
+		* we could allocate a 128*16 array of samples, and shrink it back to the
+		* correct size when we know it?
+		* Alternatively, I could allocate samples by blocks of N (still O(n)),
+		* or double the number of allocated samples when I need more (O(log n)).
+		*/
+		total_samples = 0;
+		sigdata->sample = NULL;
 
-			/* adjust instrument sample map (make indices absolute) */
-			for (j = 0; j < 96; j++)
-				sigdata->instrument[i].map_sample[j] += total_samples;
+		for (i = 0; i < sigdata->n_instruments; i++) {
+			XM_INSTRUMENT_EXTRA extra;
 
-			sigdata->sample = safe_realloc(sigdata->sample, sizeof(*sigdata->sample)*(total_samples+extra.n_samples));
-			if (!sigdata->sample) {
+			if (it_xm_read_instrument(&sigdata->instrument[i], &extra, f) < 0) {
+				TRACE("XM error: instrument %d\n", i+1);
 				_dumb_it_unload_sigdata(sigdata);
 				return NULL;
 			}
-			for (j = total_samples; j < total_samples+extra.n_samples; j++)
-				sigdata->sample[j].right = sigdata->sample[j].left = NULL;
 
-			/* read instrument's samples */
-			for (j = 0; j < extra.n_samples; j++) {
-				IT_SAMPLE *sample = &sigdata->sample[total_samples+j];
-				int b = it_xm_read_sample_header(sample, f);
-				if (b < 0) {
+			if (extra.n_samples) {
+				unsigned char roguebytes[XM_MAX_SAMPLES_PER_INSTRUMENT];
+
+				/* adjust instrument sample map (make indices absolute) */
+				for (j = 0; j < 96; j++)
+					sigdata->instrument[i].map_sample[j] += total_samples;
+
+				sigdata->sample = safe_realloc(sigdata->sample, sizeof(*sigdata->sample)*(total_samples+extra.n_samples));
+				if (!sigdata->sample) {
 					_dumb_it_unload_sigdata(sigdata);
 					return NULL;
 				}
-				roguebytes[j] = b;
-				// Any reason why these can't be set inside it_xm_read_sample_header()?
-				sample->vibrato_speed = extra.vibrato_speed;
-				sample->vibrato_depth = extra.vibrato_depth;
-				sample->vibrato_rate = extra.vibrato_sweep;
-				/* Rate and sweep don't match, but the difference is
-				 * accounted for in itrender.c.
+				for (j = total_samples; j < total_samples+extra.n_samples; j++)
+					sigdata->sample[j].right = sigdata->sample[j].left = NULL;
+
+				/* read instrument's samples */
+				for (j = 0; j < extra.n_samples; j++) {
+					IT_SAMPLE *sample = &sigdata->sample[total_samples+j];
+					int b = it_xm_read_sample_header(sample, f);
+					if (b < 0) {
+						_dumb_it_unload_sigdata(sigdata);
+						return NULL;
+					}
+					roguebytes[j] = b;
+					// Any reason why these can't be set inside it_xm_read_sample_header()?
+					sample->vibrato_speed = extra.vibrato_speed;
+					sample->vibrato_depth = extra.vibrato_depth;
+					sample->vibrato_rate = extra.vibrato_sweep;
+					/* Rate and sweep don't match, but the difference is
+					* accounted for in itrender.c.
 				 */
-				sample->vibrato_waveform = xm_convert_vibrato[extra.vibrato_type];
-				sample->max_resampling_quality = -1;
+					sample->vibrato_waveform = xm_convert_vibrato[extra.vibrato_type];
+					sample->max_resampling_quality = -1;
+				}
+				for (j = 0; j < extra.n_samples; j++) {
+					if (it_xm_read_sample_data(&sigdata->sample[total_samples+j], roguebytes[j], f) != 0) {
+						_dumb_it_unload_sigdata(sigdata);
+						return NULL;
+					}
+				}
+				total_samples += extra.n_samples;
 			}
-			for (j = 0; j < extra.n_samples; j++) {
-				if (it_xm_read_sample_data(&sigdata->sample[total_samples+j], roguebytes[j], f) != 0) {
+		}
+
+		sigdata->n_samples = total_samples;
+	} else {
+		// ahboy! old layout!
+		// first instruments and sample headers, then patterns, then sample data!
+
+		/*
+		-----------------------------------
+		---   Instruments and Samples   ---
+		-----------------------------------
+		*/
+
+		unsigned char * roguebytes = malloc( sigdata->n_instruments * XM_MAX_SAMPLES_PER_INSTRUMENT );
+		if (!roguebytes) {
+			_dumb_it_unload_sigdata(sigdata);
+			return NULL;
+		}
+
+		sigdata->instrument = malloc(sigdata->n_instruments * sizeof(*sigdata->instrument));
+		if (!sigdata->instrument) {
+			_dumb_it_unload_sigdata(sigdata);
+			return NULL;
+		}
+
+		total_samples = 0;
+		sigdata->sample = NULL;
+
+		for (i = 0; i < sigdata->n_instruments; i++) {
+			XM_INSTRUMENT_EXTRA extra;
+
+			if (it_xm_read_instrument(&sigdata->instrument[i], &extra, f) < 0) {
+				TRACE("XM error: instrument %d\n", i+1);
+				free(roguebytes);
+				_dumb_it_unload_sigdata(sigdata);
+				return NULL;
+			}
+
+			if (extra.n_samples) {
+				/* adjust instrument sample map (make indices absolute) */
+				for (j = 0; j < 96; j++)
+					sigdata->instrument[i].map_sample[j] += total_samples;
+
+				sigdata->sample = safe_realloc(sigdata->sample, sizeof(*sigdata->sample)*(total_samples+extra.n_samples));
+				if (!sigdata->sample) {
+					free(roguebytes);
+					_dumb_it_unload_sigdata(sigdata);
+					return NULL;
+				}
+				for (j = total_samples; j < total_samples+extra.n_samples; j++)
+					sigdata->sample[j].right = sigdata->sample[j].left = NULL;
+
+				/* read instrument's samples */
+				for (j = 0; j < extra.n_samples; j++) {
+					IT_SAMPLE *sample = &sigdata->sample[total_samples+j];
+					int b = it_xm_read_sample_header(sample, f);
+					if (b < 0) {
+						free(roguebytes);
+						_dumb_it_unload_sigdata(sigdata);
+						return NULL;
+					}
+					roguebytes[total_samples+j] = b;
+					// Any reason why these can't be set inside it_xm_read_sample_header()?
+					sample->vibrato_speed = extra.vibrato_speed;
+					sample->vibrato_depth = extra.vibrato_depth;
+					sample->vibrato_rate = extra.vibrato_sweep;
+					/* Rate and sweep don't match, but the difference is
+					* accounted for in itrender.c.
+				 */
+					sample->vibrato_waveform = xm_convert_vibrato[extra.vibrato_type];
+					sample->max_resampling_quality = -1;
+				}
+				total_samples += extra.n_samples;
+			}
+		}
+
+		sigdata->n_samples = total_samples;
+
+		/*
+			--------------------
+			---   Patterns   ---
+			--------------------
+		*/
+
+		sigdata->pattern = malloc(sigdata->n_patterns * sizeof(*sigdata->pattern));
+		if (!sigdata->pattern) {
+			free(roguebytes);
+			_dumb_it_unload_sigdata(sigdata);
+			return NULL;
+		}
+		for (i = 0; i < sigdata->n_patterns; i++)
+			sigdata->pattern[i].entry = NULL;
+
+		{
+			unsigned char *buffer = malloc(1280 * n_channels); /* 256 rows * 5 bytes */
+			if (!buffer) {
+				free(roguebytes);
+				_dumb_it_unload_sigdata(sigdata);
+				return NULL;
+			}
+			for (i = 0; i < sigdata->n_patterns; i++) {
+				if (it_xm_read_pattern(&sigdata->pattern[i], f, n_channels, buffer, version) != 0) {
+					free(buffer);
+					free(roguebytes);
 					_dumb_it_unload_sigdata(sigdata);
 					return NULL;
 				}
 			}
-			total_samples += extra.n_samples;
+			free(buffer);
 		}
+
+		// and now we load the sample data
+		for (j = 0; j < total_samples; j++) {
+			if (it_xm_read_sample_data(&sigdata->sample[j], roguebytes[j], f) != 0) {
+				free(roguebytes);
+				_dumb_it_unload_sigdata(sigdata);
+				return NULL;
+			}
+		}
+
+		free(roguebytes);
 	}
 
-	sigdata->n_samples = total_samples;
 
 	sigdata->flags = IT_WAS_AN_XM | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_STEREO | IT_USE_INSTRUMENTS;
 	// Are we OK with IT_COMPATIBLE_GXX off?
