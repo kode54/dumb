@@ -58,6 +58,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 
 	done = 0;
 	dt = (int)(delta * 65536.0 + 0.5);
+	if (dt == 0) return 0;
 	SET_VOLUME_VARIABLES;
 
 	if (VOLUMES_ARE_ZERO) dst = NULL;
