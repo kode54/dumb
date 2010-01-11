@@ -647,7 +647,7 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
  * (Never trust the documentation provided with a tracker.
  *  Real files are the only truth...)
  */
-/*static*/ DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f)
+/*static*/ DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 {
 	DUMB_IT_SIGDATA *sigdata;
 	char id_text[18];
@@ -656,7 +656,6 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	int n_channels;
 	int total_samples;
 	int i, j;
-	int version;
 
 	/* check ID text */
 	if (dumbfile_getnc(id_text, 17, f) < 17)
@@ -691,8 +690,8 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	}
 
 	/* version number */
-	version = dumbfile_igetw(f);
-	if (version > 0x0104 || version < 0x0102) {
+	* version = dumbfile_igetw(f);
+	if (* version > 0x0104 || * version < 0x0102) {
 		TRACE("XM error: wrong format version\n");
 		free(sigdata);
 		return NULL;
@@ -754,7 +753,7 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 		return NULL;
 	}
 
-	if ( version > 0x103 ) {
+	if ( * version > 0x103 ) {
 		/*
 			--------------------
 			---   Patterns   ---
@@ -776,7 +775,7 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 				return NULL;
 			}
 			for (i = 0; i < sigdata->n_patterns; i++) {
-				if (it_xm_read_pattern(&sigdata->pattern[i], f, n_channels, buffer, version) != 0) {
+				if (it_xm_read_pattern(&sigdata->pattern[i], f, n_channels, buffer, * version) != 0) {
 					free(buffer);
 					_dumb_it_unload_sigdata(sigdata);
 					return NULL;
@@ -963,7 +962,7 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 				return NULL;
 			}
 			for (i = 0; i < sigdata->n_patterns; i++) {
-				if (it_xm_read_pattern(&sigdata->pattern[i], f, n_channels, buffer, version) != 0) {
+				if (it_xm_read_pattern(&sigdata->pattern[i], f, n_channels, buffer, * version) != 0) {
 					free(buffer);
 					free(roguebytes);
 					_dumb_it_unload_sigdata(sigdata);
@@ -1151,15 +1150,21 @@ long it_compute_length(const DUMB_IT_SIGDATA *sigdata)
 #endif /* 0 */
 
 
+static char hexdigit(int in)
+{
+	if (in < 10) return in + '0';
+	else return in + 'A' - 10;
+}
 
 DUH *dumb_read_xm(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
 	long length;
+	int ver;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
-	sigdata = it_xm_load_sigdata(f);
+	sigdata = it_xm_load_sigdata(f, &ver);
 
 	if (!sigdata)
 		return NULL;
@@ -1167,11 +1172,21 @@ DUH *dumb_read_xm(DUMBFILE *f)
 	length = 0;/*_dumb_it_build_checkpoints(sigdata, 0);*/
 
 	{
+		char version[16];
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
-		tag[1][1] = "XM";
+		version[0] = 'X';
+		version[1] = 'M';
+		version[2] = ' ';
+		version[3] = 'v';
+		version[4] = hexdigit( ( ver >> 8 ) & 15 );
+		version[5] = '.';
+		version[6] = hexdigit( ( ver >> 4 ) & 15 );
+		version[7] = hexdigit( ver & 15 );
+		version[8] = 0;
+		tag[1][1] = ( const char * ) & version;
 		return make_duh(length, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }
