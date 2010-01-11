@@ -64,7 +64,6 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 	if (VOLUMES_ARE_ZERO) dst = NULL;
 
 	init_cubic();
-	init_sinc();
 
 	quality = resampler->quality;
 
@@ -108,8 +107,8 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					SRCTYPE xbuf[2*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[0];
 					SRCTYPE *xstart;
-					COPYSRC(xbuf, 0, resampler->X, 5);
-					COPYSRC(xbuf, 1, resampler->X, 6);
+					COPYSRC(xbuf, 0, resampler->X, 1);
+					COPYSRC(xbuf, 1, resampler->X, 2);
 					while (todo && x < &xbuf[2*SRC_CHANNELS]) {
 						// TODO: check what happens when multiple tempo slides occur per row
 						HEAVYASSERT(pos >= resampler->start);
@@ -132,8 +131,8 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					/* Linear interpolation, backwards */
 					SRCTYPE xbuf[3*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[1*SRC_CHANNELS];
-					COPYSRC(xbuf, 0, resampler->X, 5);
-					COPYSRC(xbuf, 1, resampler->X, 6);
+					COPYSRC(xbuf, 0, resampler->X, 1);
+					COPYSRC(xbuf, 1, resampler->X, 2);
 					COPYSRC(xbuf, 2, src, pos);
 					while (todo && x < &xbuf[3*SRC_CHANNELS]) {
 						HEAVYASSERT(pos >= resampler->start);
@@ -154,13 +153,13 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 						x += (subpos >> 16) * SRC_CHANNELS;
 						subpos &= 65535;
 					);
-				} else if (quality <= DUMB_RQ_CUBIC) {
+				} else {
 					/* Cubic interpolation, backwards */
 					SRCTYPE xbuf[6*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[3*SRC_CHANNELS];
-					COPYSRC(xbuf, 0, resampler->X, 4);
-					COPYSRC(xbuf, 1, resampler->X, 5);
-					COPYSRC(xbuf, 2, resampler->X, 6);
+					COPYSRC(xbuf, 0, resampler->X, 0);
+					COPYSRC(xbuf, 1, resampler->X, 1);
+					COPYSRC(xbuf, 2, resampler->X, 2);
 					COPYSRC(xbuf, 3, src, pos);
 					if (pos-1 >= resampler->start) COPYSRC(xbuf, 4, src, pos-1);
 					if (pos-2 >= resampler->start) COPYSRC(xbuf, 5, src, pos-2);
@@ -182,101 +181,21 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 						x += (subpos >> 16) * SRC_CHANNELS;
 						subpos &= 65535;
 					);
-				} else {
-					/* Sinc interpolation, backwards */
-					SRCTYPE xbuf[14*SRC_CHANNELS];
-					SRCTYPE *x = &xbuf[7*SRC_CHANNELS];
-					COPYSRC(xbuf, 0, resampler->X, 0);
-					COPYSRC(xbuf, 1, resampler->X, 1);
-					COPYSRC(xbuf, 2, resampler->X, 2);
-					COPYSRC(xbuf, 3, resampler->X, 3);
-					COPYSRC(xbuf, 4, resampler->X, 4);
-					COPYSRC(xbuf, 5, resampler->X, 5);
-					COPYSRC(xbuf, 6, resampler->X, 6);
-					COPYSRC(xbuf, 7, src, pos);
-					if (pos-1 >= resampler->start) COPYSRC(xbuf, 8, src, pos-1);
-					if (pos-2 >= resampler->start) COPYSRC(xbuf, 9, src, pos-2);
-					if (pos-3 >= resampler->start) COPYSRC(xbuf, 10, src, pos-3);
-					if (pos-4 >= resampler->start) COPYSRC(xbuf, 11, src, pos-4);
-					if (pos-5 >= resampler->start) COPYSRC(xbuf, 12, src, pos-5);
-					if (pos-6 >= resampler->start) COPYSRC(xbuf, 13, src, pos-6);
-					while (todo && x < &xbuf[14*SRC_CHANNELS]) {
-						HEAVYASSERT(pos >= resampler->start);
-						MIX_SINC(+=, 1, x, x, 0, -1, -2, -3, -4, -5, -6, -7);
-						subpos += dt;
-						pos += subpos >> 16;
-						x -= (subpos >> 16) * SRC_CHANNELS;
-						subpos &= 65535;
-						todo--;
-					}
-					x = &src[pos*SRC_CHANNELS];
-					LOOP4(todo,
-						HEAVYASSERT(pos >= resampler->start);
-						MIX_SINC(+=, 1, x, x, 0, 1, 2, 3, 4, 5, 6, 7);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += (subpos >> 16) * SRC_CHANNELS;
-						subpos &= 65535;
-					);
 				}
 				diff = diff - pos;
 				overshot = resampler->start - pos - 1;
-				if (diff >= 7) {
-					COPYSRC2(resampler->X, 0, overshot < 7, src, pos+7);
-					COPYSRC2(resampler->X, 1, overshot < 6, src, pos+6);
-					COPYSRC2(resampler->X, 2, overshot < 5, src, pos+5);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos+4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos+3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos+2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos+1);
-				} else if (diff >= 6) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC2(resampler->X, 1, overshot < 6, src, pos+6);
-					COPYSRC2(resampler->X, 2, overshot < 5, src, pos+5);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos+4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos+3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos+2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos+1);
-				} else if (diff >= 5) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC2(resampler->X, 2, overshot < 5, src, pos+5);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos+4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos+3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos+2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos+1);
-				} else if (diff >= 4) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos+4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos+3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos+2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos+1);
-				} else if (diff >= 3) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC(resampler->X, 3, resampler->X, 4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos+3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos+2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos+1);
+				if (diff >= 3) {
+					COPYSRC2(resampler->X, 0, overshot < 3, src, pos+3);
+					COPYSRC2(resampler->X, 1, overshot < 2, src, pos+2);
+					COPYSRC2(resampler->X, 2, overshot < 1, src, pos+1);
 				} else if (diff >= 2) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC(resampler->X, 3, resampler->X, 4);
-					COPYSRC(resampler->X, 4, resampler->X, 5);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos+2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos+1);
+					COPYSRC(resampler->X, 0, resampler->X, 2);
+					COPYSRC2(resampler->X, 1, overshot < 2, src, pos+2);
+					COPYSRC2(resampler->X, 2, overshot < 1, src, pos+1);
 				} else if (diff >= 1) {
 					COPYSRC(resampler->X, 0, resampler->X, 1);
 					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC(resampler->X, 3, resampler->X, 4);
-					COPYSRC(resampler->X, 4, resampler->X, 5);
-					COPYSRC(resampler->X, 5, resampler->X, 6);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos+1);
+					COPYSRC2(resampler->X, 2, overshot < 1, src, pos+1);
 				}
 			} else {
 				if (!dst) {
@@ -289,8 +208,8 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					SRCTYPE xbuf[2*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[0];
 					SRCTYPE *xstart;
-					COPYSRC(xbuf, 0, resampler->X, 5);
-					COPYSRC(xbuf, 1, resampler->X, 6);
+					COPYSRC(xbuf, 0, resampler->X, 1);
+					COPYSRC(xbuf, 1, resampler->X, 2);
 					while (todo && x < &xbuf[2*SRC_CHANNELS]) {
 						HEAVYASSERT(pos < resampler->end);
 						MIX_ALIAS(+=, 1, 0);
@@ -312,8 +231,8 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					/* Linear interpolation, forwards */
 					SRCTYPE xbuf[3*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[1*SRC_CHANNELS];
-					COPYSRC(xbuf, 0, resampler->X, 5);
-					COPYSRC(xbuf, 1, resampler->X, 6);
+					COPYSRC(xbuf, 0, resampler->X, 1);
+					COPYSRC(xbuf, 1, resampler->X, 2);
 					COPYSRC(xbuf, 2, src, pos);
 					while (todo && x < &xbuf[3*SRC_CHANNELS]) {
 						HEAVYASSERT(pos < resampler->end);
@@ -333,13 +252,13 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 						x += (subpos >> 16) * SRC_CHANNELS;
 						subpos &= 65535;
 					);
-				} else if (quality <= DUMB_RQ_CUBIC) {
+				} else {
 					/* Cubic interpolation, forwards */
 					SRCTYPE xbuf[6*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[3*SRC_CHANNELS];
-					COPYSRC(xbuf, 0, resampler->X, 4);
-					COPYSRC(xbuf, 1, resampler->X, 5);
-					COPYSRC(xbuf, 2, resampler->X, 6);
+					COPYSRC(xbuf, 0, resampler->X, 0);
+					COPYSRC(xbuf, 1, resampler->X, 1);
+					COPYSRC(xbuf, 2, resampler->X, 2);
 					COPYSRC(xbuf, 3, src, pos);
 					if (pos+1 < resampler->end) COPYSRC(xbuf, 4, src, pos+1);
 					if (pos+2 < resampler->end) COPYSRC(xbuf, 5, src, pos+2);
@@ -361,101 +280,21 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 						x += (subpos >> 16) * SRC_CHANNELS;
 						subpos &= 65535;
 					);
-				} else {
-					/* Sinc interpolation, forwards */
-					SRCTYPE xbuf[14*SRC_CHANNELS];
-					SRCTYPE *x = &xbuf[7*SRC_CHANNELS];
-					COPYSRC(xbuf, 0, resampler->X, 0);
-					COPYSRC(xbuf, 1, resampler->X, 1);
-					COPYSRC(xbuf, 2, resampler->X, 2);
-					COPYSRC(xbuf, 3, resampler->X, 3);
-					COPYSRC(xbuf, 4, resampler->X, 4);
-					COPYSRC(xbuf, 5, resampler->X, 5);
-					COPYSRC(xbuf, 6, resampler->X, 6);
-					COPYSRC(xbuf, 7, src, pos);
-					if (pos+1 < resampler->end) COPYSRC(xbuf, 8, src, pos+1);
-					if (pos+2 < resampler->end) COPYSRC(xbuf, 9, src, pos+2);
-					if (pos+3 < resampler->end) COPYSRC(xbuf, 10, src, pos+3);
-					if (pos+4 < resampler->end) COPYSRC(xbuf, 11, src, pos+4);
-					if (pos+5 < resampler->end) COPYSRC(xbuf, 12, src, pos+5);
-					if (pos+6 < resampler->end) COPYSRC(xbuf, 13, src, pos+6);
-					while (todo && x < &xbuf[14*SRC_CHANNELS]) {
-						HEAVYASSERT(pos < resampler->end);
-						MIX_SINC(+=, 1, x, x, -7, -6, -5, -4, -3, -2, -1, 0);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += (subpos >> 16) * SRC_CHANNELS;
-						subpos &= 65535;
-						todo--;
-					}
-					x = &src[pos*SRC_CHANNELS];
-					LOOP4(todo,
-						HEAVYASSERT(pos < resampler->end);
-						MIX_SINC(+=, 1, x, x, -7, -6, -5, -4, -3, -2, -1, 0);
-						subpos += dt;
-						pos += subpos >> 16;
-						x += (subpos >> 16) * SRC_CHANNELS;
-						subpos &= 65535;
-					);
 				}
 				diff = pos - diff;
 				overshot = pos - resampler->end;
-				if (diff >= 7) {
-					COPYSRC2(resampler->X, 0, overshot < 7, src, pos-7);
-					COPYSRC2(resampler->X, 1, overshot < 6, src, pos-6);
-					COPYSRC2(resampler->X, 2, overshot < 5, src, pos-5);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos-4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos-3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos-2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos-1);
-				} else if (diff >= 6) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC2(resampler->X, 1, overshot < 6, src, pos-6);
-					COPYSRC2(resampler->X, 2, overshot < 5, src, pos-5);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos-4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos-3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos-2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos-1);
-				} else if (diff >= 5) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC2(resampler->X, 2, overshot < 5, src, pos-5);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos-4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos-3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos-2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos-1);
-				} else if (diff >= 4) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC2(resampler->X, 3, overshot < 4, src, pos-4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos-3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos-2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos-1);
-				} else if (diff >= 3) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC(resampler->X, 3, resampler->X, 4);
-					COPYSRC2(resampler->X, 4, overshot < 3, src, pos-3);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos-2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos-1);
+				if (diff >= 3) {
+					COPYSRC2(resampler->X, 0, overshot < 3, src, pos-3);
+					COPYSRC2(resampler->X, 1, overshot < 2, src, pos-2);
+					COPYSRC2(resampler->X, 2, overshot < 1, src, pos-1);
 				} else if (diff >= 2) {
-					COPYSRC(resampler->X, 0, resampler->X, 1);
-					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC(resampler->X, 3, resampler->X, 4);
-					COPYSRC(resampler->X, 4, resampler->X, 5);
-					COPYSRC2(resampler->X, 5, overshot < 2, src, pos-2);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos-1);
+					COPYSRC(resampler->X, 0, resampler->X, 2);
+					COPYSRC2(resampler->X, 1, overshot < 2, src, pos-2);
+					COPYSRC2(resampler->X, 2, overshot < 1, src, pos-1);
 				} else if (diff >= 1) {
 					COPYSRC(resampler->X, 0, resampler->X, 1);
 					COPYSRC(resampler->X, 1, resampler->X, 2);
-					COPYSRC(resampler->X, 2, resampler->X, 3);
-					COPYSRC(resampler->X, 3, resampler->X, 4);
-					COPYSRC(resampler->X, 4, resampler->X, 5);
-					COPYSRC(resampler->X, 5, resampler->X, 6);
-					COPYSRC2(resampler->X, 6, overshot < 1, src, pos-1);
+					COPYSRC2(resampler->X, 2, overshot < 1, src, pos-1);
 				}
 			}
 			resampler->pos = pos;
@@ -488,7 +327,6 @@ void dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, VOLUME_PARAMETE
 	if (VOLUMES_ARE_ZERO) { MIX_ZEROS(=); return; }
 
 	init_cubic();
-	init_sinc();
 
 	quality = resampler->quality;
 
@@ -505,12 +343,9 @@ void dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, VOLUME_PARAMETE
 		} else if (quality <= DUMB_RQ_LINEAR) {
 			/* Linear interpolation, backwards */
 			MIX_LINEAR(=, 0, 2, 1);
-		} else if (quality <= DUMB_RQ_CUBIC) {
+		} else {
 			/* Cubic interpolation, backwards */
 			MIX_CUBIC(=, 0, src, x, pos, 2, 1, 0);
-		} else {
-			/* Sinc interpolation, backwards */
-			MIX_SINC(=, 0, src, x, pos, 6, 5, 4, 3, 2, 1, 0);
 		}
 	} else {
 		HEAVYASSERT(pos < resampler->end);
@@ -520,12 +355,9 @@ void dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, VOLUME_PARAMETE
 		} else if (quality <= DUMB_RQ_LINEAR) {
 			/* Linear interpolation, forwards */
 			MIX_LINEAR(=, 0, 1, 2);
-		} else if (quality <= DUMB_RQ_CUBIC) {
+		} else {
 			/* Cubic interpolation, forwards */
 			MIX_CUBIC(=, 0, x, src, 0, 1, 2, pos);
-		} else {
-			/* Sinc interpolation, forwards */
-			MIX_SINC(=, 0, x, src, 0, 1, 2, 3, 4, 5, 6, pos);
 		}
 	}
 }
@@ -533,7 +365,6 @@ void dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, VOLUME_PARAMETE
 
 
 #undef MIX_ZEROS
-#undef MIX_SINC
 #undef MIX_CUBIC
 #undef MIX_LINEAR
 #undef MIX_ALIAS

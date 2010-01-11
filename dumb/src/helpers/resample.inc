@@ -67,7 +67,7 @@ void dumb_reset_resampler(DUMB_RESAMPLER *resampler, SRCTYPE *src, int src_chann
 	{
 		resampler->quality = quality;
 	}
-	for (i = 0; i < src_channels*7; i++) resampler->X[i] = 0;
+	for (i = 0; i < src_channels*3; i++) resampler->X[i] = 0;
 	resampler->overshot = -1;
 }
 
@@ -153,17 +153,6 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 	int xm = CUBIC(x0[o0], x[o1], x[o2], x3[o3]); \
 	*dst++ op CUBICVOL(xm, lvol); \
 	*dst++ op CUBICVOL(xm, rvol); \
-	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
-	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
-}
-#define MONO_DEST_MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7) { \
-	*dst++ op SINCVOL(SINC(x0[o0], x[o1], x[o2], x[o3], x[o4], x[o5], x[o6], x7[o7]), vol); \
-	if ( upd ) UPDATE_VOLUME( volume, vol ); \
-}
-#define STEREO_DEST_MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7) { \
-	int xm = SINC(x0[o0], x[o1], x[o2], x[o3], x[o4], x[o5], x[o6], x7[o7]); \
-	*dst++ op SINCVOL(xm, lvol); \
-	*dst++ op SINCVOL(xm, rvol); \
 	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
 	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
 }
@@ -254,19 +243,6 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
 	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
 }
-#define MONO_DEST_MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7) { \
-	*dst++ op \
-		SINCVOL(SINC(x0[(o0)*2], x[(o1)*2], x[(o2)*2], x[(o3)*2], x[(o4)*2], x[(o5)*2], x[(o6)*2], x7[(o7)*2]), lvol) + \
-		SINCVOL(SINC(x0[(o0)*2+1], x[(o1)*2+1], x[(o2)*2+1], x[(o3)*2+1], x[(o4)*2+1], x[(o5)*2+1], x[(o6)*2+1], x7[(o7)*2+1]), rvol); \
-	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
-	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
-}
-#define STEREO_DEST_MIX_SINC(op, upd, x0, x7, o0, o1, o2, o3, o4, o5, o6, o7) { \
-	*dst++ op SINCVOL(SINC(x0[(o0)*2], x[(o1)*2], x[(o2)*2], x[(o3)*2], x[(o4)*2], x[(o5)*2], x[(o6)*2], x7[(o7)*2]), lvol); \
-	*dst++ op SINCVOL(SINC(x0[(o0)*2+1], x[(o1)*2+1], x[(o2)*2+1], x[(o3)*2+1], x[(o4)*2+1], x[(o5)*2+1], x[(o6)*2+1], x7[(o7)*2+1]), rvol); \
-	if ( upd ) UPDATE_VOLUME( volume_left, lvol ); \
-	if ( upd ) UPDATE_VOLUME( volume_right, rvol ); \
-}
 #include "resamp2.inc"
 
 
@@ -279,8 +255,6 @@ void dumb_end_resampler(DUMB_RESAMPLER *resampler)
 
 
 
-#undef SINCVOL
-#undef SINC
 #undef CUBICVOL
 #undef CUBIC
 #undef LINEAR
