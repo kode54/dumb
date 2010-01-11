@@ -1225,7 +1225,7 @@ static int update_pattern_variables(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *
 									if (!channel->played_patjump)
 										channel->played_patjump = bit_array_create(256);
 									else {
-										if (channel->played_patjump_order != sigrenderer->order)
+										//if (channel->played_patjump_order != sigrenderer->order)
 											bit_array_reset(channel->played_patjump);
 									}
 									channel->played_patjump_order = sigrenderer->order;
@@ -1318,7 +1318,7 @@ static void instrument_to_sample(DUMB_IT_SIGDATA *sigdata, IT_CHANNEL *channel)
 		channel->sample = channel->instrument;
 		channel->truenote = channel->note;
 	}
-	if (!(channel->sample >= 1 && channel->sample <= sigdata->n_samples && (sigdata->sample[channel->sample-1].flags & IT_SAMPLE_EXISTS) /* && sigdata->sample[channel->sample-1].C5_speed*/))
+	if (!(channel->sample >= 1 && channel->sample <= sigdata->n_samples && (sigdata->sample[channel->sample-1].flags & IT_SAMPLE_EXISTS) && sigdata->sample[channel->sample-1].C5_speed))
 		channel->sample = 0;
 }
 
@@ -2673,7 +2673,7 @@ static int process_it_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *entr
 		instrument_to_sample(sigdata, channel);
 		if (channel->note < 120) {
 			if ((sigdata->flags & IT_USE_INSTRUMENTS) && channel->sample == 0)
-				return 1;
+				it_retrigger_note(sigrenderer, channel); /* Stop the note */ /*return 1;*/
 			if (entry->mask & IT_ENTRY_INSTRUMENT)
 				get_default_volpan(sigdata, channel);
 		} else
