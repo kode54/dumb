@@ -120,7 +120,7 @@ static int it_mod_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int n_channels,
 
 static int it_mod_read_sample_header(IT_SAMPLE *sample, DUMBFILE *f)
 {
-	int finetune;
+	int finetune, loop_start, loop_length;
 
 /**
      21       22   Chars     Sample 1 name.  If the name is not a full
@@ -141,8 +141,12 @@ assumed not to be an instrument name, and is probably a message.
 /** Each  finetune step changes  the note 1/8th  of  a  semitone. */
 	sample->global_volume = 64;
 	sample->default_volume = dumbfile_getc(f); // Should we be setting global_volume to this instead?
-	sample->loop_start = dumbfile_mgetw(f) << 1;
-	sample->loop_end = sample->loop_start + (dumbfile_mgetw(f) << 1);
+	loop_start = dumbfile_mgetw(f) << 1;
+	loop_length = dumbfile_mgetw(f) << 1;
+	if ( loop_length > 2 && loop_start + loop_length > sample->length && loop_start / 2 + loop_length <= sample->length )
+		loop_start /= 2;
+	sample->loop_start = loop_start;
+	sample->loop_end = loop_start + loop_length;
 /**
 Once this sample has been played completely from beginning
 to end, if the  repeat length (next field)  is greater than two  bytes it
@@ -160,7 +164,8 @@ told to stop.
 	sample->flags = IT_SAMPLE_EXISTS;
 
 	sample->default_pan = 0;
-	sample->C5_speed = (long)(16726.0*pow(DUMB_PITCH_BASE, finetune*32));
+	sample->C5_speed = (int)( AMIGA_CLOCK / 214.0 ); //(long)(16726.0*pow(DUMB_PITCH_BASE, finetune*32));
+	sample->finetune = finetune * 32;
 	// the above line might be wrong
 
 	if (sample->loop_end > sample->length)
@@ -485,8 +490,8 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 			 * combined into one eight-channel pattern. Pattern indexes must
 			 * be halved. Why oh why do they obfuscate so?
 			 */
-			for (i = 0; i < 128; i++)
-				sigdata->order[i] >>= 1;
+			/*for (i = 0; i < 128; i++)
+				sigdata->order[i] >>= 1;*/
 			break;
 		case DUMB_ID('C','D','8','1'):
 		case DUMB_ID('O','C','T','A'):
@@ -611,6 +616,10 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 		//while (sigdata->n_orders > 1 && !sigdata->order[sigdata->n_orders - 1]) sigdata->n_orders--;
 	}
 
+	if ( ! n_channels )
+		for (i = 0; i < 128; i++)
+			sigdata->order[i] >>= 1;
+
 	/* "The old NST format contains only 15 samples (instead of 31). Further
 	 * it doesn't contain a file format tag (id). So Pattern data offset is
 	 * at 20+15*30+1+1+128."
@@ -688,7 +697,6 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 			}
 		}
 	}
-	
 
 	/* And finally, the sample data */
 	for (i = 0; i < sigdata->n_samples; i++) {
@@ -699,6 +707,24 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 			return NULL;
 		}
 	}
+
+	/* w00t! */
+	/*if ( n_channels == 4 &&
+		( sigdata->n_samples == 15 ||
+		( ( fft & 240 ) != DUMB_ID( 0, 0, 'C', 0 ) &&
+		( fft & 240 ) != DUMB_ID( 0, 0, 'H', 0 ) &&
+		( fft & 240 ) != 0 ) ) ) {
+		for ( i = 0; i < sigdata->n_samples; ++i ) {
+			IT_SAMPLE * sample = &sigdata->sample [i];
+			if ( sample && ( sample->flags & IT_SAMPLE_EXISTS ) ) {
+				int n, o;
+				o = sample->length;
+				if ( o > 4 ) o = 4;
+				for ( n = 0; n < o; ++n )
+					( ( char * ) sample->data ) [n] = 0;
+			}
+		}
+	}*/
 
 	dumbfile_close(f); /* Destroy the BUFFERED_MOD DUMBFILE we were using. */
 	/* The DUMBFILE originally passed to our function is intact. */

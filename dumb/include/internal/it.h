@@ -229,7 +229,7 @@ struct IT_SAMPLE
 	unsigned char vibrato_rate;
 	unsigned char vibrato_waveform;
 
-	signed char   finetune;
+	signed short   finetune;
 
 	void *data;
 

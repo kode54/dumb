@@ -587,6 +587,7 @@ static int it_read_sample_header(IT_SAMPLE *sample, unsigned char *convert, long
 		sample->vibrato_rate = 0;
 		sample->vibrato_waveform = 0;
 	}
+	sample->finetune = 0;
 	sample->max_resampling_quality = -1;
 
 	return dumbfile_error(f);
@@ -686,7 +687,7 @@ static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char conve
 
 
 
-#define DETECT_DUPLICATE_CHANNELS
+//#define DETECT_DUPLICATE_CHANNELS
 #ifdef DETECT_DUPLICATE_CHANNELS
 #include <stdio.h>
 #endif

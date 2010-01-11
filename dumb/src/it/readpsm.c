@@ -108,6 +108,7 @@ static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data,
 	sample->vibrato_depth = 0;
 	sample->vibrato_rate = 0;
 	sample->vibrato_waveform = IT_VIBRATO_SINE;
+	sample->finetune = 0;
 	sample->max_resampling_quality = -1;
 
 	if (flags & 0x80) {
@@ -443,6 +444,8 @@ static void free_chunks(PSMCHUNK * chunk, int count) {
 
 static void dumb_it_optimize_orders(DUMB_IT_SIGDATA * sigdata);
 
+static int pattcmp( const unsigned char *, const unsigned char *, size_t );
+
 static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 {
 	DUMB_IT_SIGDATA *sigdata;
@@ -593,14 +596,14 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 
 	if (!n_song_chunks) goto error_sc;
 
+	found = 0;
+
 	for (n = 0; n < n_song_chunks; n++) {
 		PSMCHUNK * c = &songchunk[n];
 
 		if (c->id == DUMB_ID('D','A','T','E')) {
 			/* date of the library build / format spec */
-			found = 0;
 			if (c->len == 6) {
-				found = 0;
 				length = c->len;
 				ptr = c->data;
 				while (length > 0) {
@@ -790,7 +793,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 					length = c->len;
 					if (found == PSMV_OLD) {
 						if (length < 8) goto error_ev;
-						if (!memcmp(ptr + 4, e->data, 4)) {
+						if (!pattcmp(ptr + 4, e->data, 4)) {
 							if (it_psm_process_pattern(&sigdata->pattern[n_patterns], ptr, length, speed, bpm, pan, vol, found)) goto error_ev;
 							if (first_pattern_line < 0) {
 								first_pattern_line = n;
@@ -803,7 +806,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 						}
 					} else if (found == PSMV_NEW) {
 						if (length < 12) goto error_ev;
-						if (!memcmp(ptr + 4, e->data, 8)) {
+						if (!pattcmp(ptr + 4, e->data, 8)) {
 							if (it_psm_process_pattern(&sigdata->pattern[n_patterns], ptr, length, speed, bpm, pan, vol, found)) goto error_ev;
 							if (first_pattern_line < 0) {
 								first_pattern_line = n;
@@ -1192,6 +1195,52 @@ int dumb_get_psm_subsong_count(DUMBFILE *f) {
 	return subsongs;
 }
 
+
+
+/* Eww */
+int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
+{
+	int i, j, na, nb;
+	char * p;
+
+	i = memcmp( a, b, l );
+	if ( !i ) return i;
+
+	/* damnit */
+
+	for ( i = 0; i < l; ++i )
+	{
+		if ( a [i] >= '0' && a [i] <= '9' ) break;
+	}
+
+	if ( i < l )
+	{
+		na = strtoul( a + i, &p, 10 );
+		if ( p == a + i ) return 1;
+	}
+
+	for ( j = 0; j < l; ++j )
+	{
+		if ( b [j] >= '0' && b [j] <= '9' ) break;
+	}
+
+	if ( j < l )
+	{
+		nb = strtoul( b + j, &p, 10 );
+		if ( p == b + j ) return -1;
+	}
+
+	if ( i < j ) return -1;
+	else if ( j > i ) return 1;
+
+	i = memcmp( a, b, j );
+	if ( i ) return i;
+
+	return na - nb;
+}
+
+
+
 DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong)
 {
 	sigdata_t *sigdata;
@@ -1205,15 +1254,20 @@ DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong)
 		return NULL;
 
 	{
+		int n_tags = 2;
 		char version[16];
 		const char *tag[3][2];
 		tag[0][0] = "TITLE";
 		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "PSM";
-		tag[2][0] = "FORMATVERSION";
-		itoa(ver, version, 10);
-		tag[2][1] = (const char *) &version;
-		return make_duh(-1, 3, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
+		if ( ver )
+		{
+			tag[2][0] = "FORMATVERSION";
+			itoa(ver, version, 10);
+			tag[2][1] = (const char *) &version;
+			++n_tags;
+		}
+		return make_duh(-1, n_tags, (const char *const (*)[2])tag, 1, &descptr, &sigdata);
 	}
 }

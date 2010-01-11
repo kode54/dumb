@@ -106,22 +106,22 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 #define VOLUME_VARIABLES lvol, lvolr, lvold, lvolt, lvolm, rvol, rvolr, rvold, rvolt, rvolm
 #define SET_VOLUME_VARIABLES { \
 	if ( volume_left ) { \
-		lvolr = (int)(volume_left->volume * 65536.0); \
-		lvold = (int)(volume_left->delta * 65536.0); \
-		lvolt = (int)(volume_left->target * 65536.0); \
+		lvolr = (int)(volume_left->volume * 16777216.0); \
+		lvold = (int)(volume_left->delta * 16777216.0); \
+		lvolt = (int)(volume_left->target * 16777216.0); \
 		lvolm = (int)(volume_left->mix * 65536.0); \
-		lvol = MULSC( lvolr, lvolm ); \
+		lvol = MULSC( lvolr >> 8, lvolm ); \
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
 		lvol = 0; \
 		lvolt = 0; \
 	} \
 	if ( volume_right ) { \
-		rvolr = (int)(volume_right->volume * 65536.0); \
-		rvold = (int)(volume_right->delta * 65536.0); \
-		rvolt = (int)(volume_right->target * 65536.0); \
+		rvolr = (int)(volume_right->volume * 16777216.0); \
+		rvold = (int)(volume_right->delta * 16777216.0); \
+		rvolt = (int)(volume_right->target * 16777216.0); \
 		rvolm = (int)(volume_right->mix * 65536.0); \
-		rvol = MULSC( rvolr, rvolm ); \
+		rvol = MULSC( rvolr >> 8, rvolm ); \
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
 		rvol = 0; \
@@ -129,8 +129,8 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 	} \
 }
 #define RETURN_VOLUME_VARIABLES { \
-	if ( volume_left ) volume_left->volume = (float)lvolr / 65536.0f; \
-	if ( volume_right ) volume_right->volume = (float)rvolr / 65536.0f; \
+	if ( volume_left ) volume_left->volume = (float)lvolr / 16777216.0f; \
+	if ( volume_right ) volume_right->volume = (float)rvolr / 16777216.0f; \
 }
 #define VOLUMES_ARE_ZERO (lvol == 0 && lvolt == 0 && rvol == 0 && rvolt == 0)
 #define MIX_ALIAS(op, upd, offset) STEREO_DEST_MIX_ALIAS(op, upd, offset)

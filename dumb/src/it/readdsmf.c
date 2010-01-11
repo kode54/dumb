@@ -48,8 +48,8 @@ static int it_riff_dsmf_process_sample( IT_SAMPLE * sample, const unsigned char 
 		return 0;
 	}
 
-	if ( flags & ~( 2 | 1 ) )
-		return -1;
+	/*if ( flags & ~( 2 | 1 ) )
+		return -1;*/
 
 	if ( sample->length + 64 > len )
 		return -1;
@@ -62,6 +62,7 @@ static int it_riff_dsmf_process_sample( IT_SAMPLE * sample, const unsigned char 
 	sample->vibrato_depth = 0;
 	sample->vibrato_rate = 0;
 	sample->vibrato_waveform = IT_VIBRATO_SINE;
+	sample->finetune = 0;
 	sample->max_resampling_quality = -1;
 
 	if ( flags & 1 )

@@ -96,8 +96,10 @@ static int it_old_psm_read_samples(IT_SAMPLE ** sample, DUMBFILE * f, int * num,
 		s->C5_speed = buffer[(n * 64) + 62] | (buffer[(n * 64) + 63] << 8);
 		if (finetune < 16) {
 			if (finetune >= 8) finetune -= 16;
-			s->C5_speed = (long)((double)s->C5_speed * pow(DUMB_PITCH_BASE, finetune*32));
+			//s->C5_speed = (long)((double)s->C5_speed * pow(DUMB_PITCH_BASE, finetune*32));
+			s->finetune = finetune * 32;
 		}
+		else s->finetune = 0;
 
 		s->flags |= IT_SAMPLE_EXISTS;
 		if (flags & 0x41) {

@@ -525,7 +525,8 @@ static int it_xm_read_sample_header(IT_SAMPLE *sample, DUMBFILE *f)
 	if (dumbfile_error(f))
 		return -1;
 
-	sample->C5_speed = (long)(16726.0*pow(DUMB_SEMITONE_BASE, relative_note_number)*pow(DUMB_PITCH_BASE, finetune*2));
+	sample->C5_speed = (long)(16726.0*pow(DUMB_SEMITONE_BASE, relative_note_number) /**pow(DUMB_PITCH_BASE, )*/ );
+	sample->finetune = finetune*2;
 
 	sample->flags = IT_SAMPLE_EXISTS;
 

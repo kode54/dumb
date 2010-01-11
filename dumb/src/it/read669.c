@@ -199,6 +199,7 @@ static int it_669_read_sample_header(IT_SAMPLE *sample, DUMBFILE *f)
 	sample->vibrato_depth = 0;
 	sample->vibrato_rate = 0;
 	sample->vibrato_waveform = 0; // do we have to set _all_ these?
+	sample->finetune = 0;
 	sample->max_resampling_quality = -1;
 
 	return 0;

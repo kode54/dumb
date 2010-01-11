@@ -124,7 +124,8 @@ assumed not to be an instrument name, and is probably a message.
 	sample->flags = IT_SAMPLE_EXISTS;
 
 	sample->default_pan = 0;
-	sample->C5_speed = ( long )( 16726.0 * pow( DUMB_PITCH_BASE, finetune * 32 ) );
+	sample->C5_speed = (int)( AMIGA_CLOCK / 214.0 );//( long )( 16726.0 * pow( DUMB_PITCH_BASE, finetune * 32 ) );
+	sample->finetune = finetune * 32;
 	// the above line might be wrong
 
 	if ( ( sample->loop_end - sample->loop_start > 2 ) && ( sample->loop_end <= sample->length ) )

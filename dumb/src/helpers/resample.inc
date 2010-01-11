@@ -85,24 +85,14 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 
 #define UPDATE_VOLUME( pvol, vol ) {                               \
 	if (pvol) {                                                    \
-		if (vol##d < 0) {                                          \
-			if (vol##t - vol##r > vol##d) {                        \
-				pvol->volume = pvol->target;                       \
-				pvol = NULL;                                       \
-				vol = MULSC( vol##t, vol##m );                     \
-			} else {                                               \
-				vol##r += vol##d;                                  \
-				vol = MULSC( vol##r, vol##m );                     \
-			}                                                      \
+		vol##r += vol##d;                                          \
+		if ((vol##d < 0 && vol##r <= vol##t) ||                    \
+			(vol##d > 0 && vol##r >= vol##t)) {                    \
+			pvol->volume = pvol->target;                           \
+			pvol = NULL;                                           \
+			vol = MULSC( vol##t >> 8, vol##m );                    \
 		} else {                                                   \
-			if (vol##t - vol##r < vol##d) {                        \
-				pvol->volume = pvol->target;                       \
-				pvol = NULL;                                       \
-				vol = MULSC( vol##t, vol##m );                     \
-			} else {                                               \
-				vol##r += vol##d;                                  \
-				vol = MULSC( vol##r, vol##m );                     \
-			}                                                      \
+			vol = MULSC( vol##r >> 8, vol##m );                    \
 		}                                                          \
 	}                                                              \
 }
@@ -120,18 +110,18 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 #define MONO_DEST_VOLUME_ZEROS 0
 #define SET_MONO_DEST_VOLUME_VARIABLES { \
 	if ( volume ) { \
-		volr = (int)(volume->volume * 65536.0); \
-		vold = (int)(volume->delta * 65536.0); \
-		volt = (int)(volume->target * 65536.0); \
+		volr = (int)(volume->volume * 16777216.0); \
+		vold = (int)(volume->delta * 16777216.0); \
+		volt = (int)(volume->target * 16777216.0); \
 		volm = (int)(volume->mix * 65536.0); \
-		vol = MULSC( volr, volm ); \
+		vol = MULSC( volr >> 8, volm ); \
 		if ( volr == volt ) volume = NULL; \
 	} else { \
 		vol = 0; \
 		volt = 0; \
 	} \
 }
-#define RETURN_MONO_DEST_VOLUME_VARIABLES if ( volume ) volume->volume = (float)volr / 65536.0f
+#define RETURN_MONO_DEST_VOLUME_VARIABLES if ( volume ) volume->volume = (float)volr / 16777216.0f
 #define MONO_DEST_VOLUMES_ARE_ZERO (vol == 0 && volt == 0)
 #define MONO_DEST_MIX_ALIAS(op, upd, offset) { \
 	*dst++ op ALIAS(x[offset], vol); \
@@ -191,22 +181,22 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 #define MONO_DEST_VOLUME_ZEROS 0, 0
 #define SET_MONO_DEST_VOLUME_VARIABLES { \
 	if ( volume_left ) { \
-		lvolr = (int)(volume_left->volume * 65536.0); \
-		lvold = (int)(volume_left->delta * 65536.0); \
-		lvolt = (int)(volume_left->target * 65536.0); \
+		lvolr = (int)(volume_left->volume * 16777216.0); \
+		lvold = (int)(volume_left->delta * 16777216.0); \
+		lvolt = (int)(volume_left->target * 16777216.0); \
 		lvolm = (int)(volume_left->mix * 65536.0); \
-		lvol = MULSC( lvolr, lvolm ); \
+		lvol = MULSC( lvolr >> 8, lvolm ); \
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
 		lvol = 0; \
 		lvolt = 0; \
 	} \
 	if ( volume_right ) { \
-		rvolr = (int)(volume_right->volume * 65536.0); \
-		rvold = (int)(volume_right->delta * 65536.0); \
-		rvolt = (int)(volume_right->target * 65536.0); \
+		rvolr = (int)(volume_right->volume * 16777216.0); \
+		rvold = (int)(volume_right->delta * 16777216.0); \
+		rvolt = (int)(volume_right->target * 16777216.0); \
 		rvolm = (int)(volume_right->mix * 65536.0); \
-		rvol = MULSC( rvolr, rvolm ); \
+		rvol = MULSC( rvolr >> 8, rvolm ); \
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
 		rvol = 0; \
@@ -214,8 +204,8 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 	} \
 }
 #define RETURN_MONO_DEST_VOLUME_VARIABLES { \
-	if ( volume_left ) volume_left->volume = (float)lvolr / 65536.0f; \
-	if ( volume_right ) volume_right->volume = (float)rvolr / 65536.0f; \
+	if ( volume_left ) volume_left->volume = (float)lvolr / 16777216.0f; \
+	if ( volume_right ) volume_right->volume = (float)rvolr / 16777216.0f; \
 }
 #define MONO_DEST_VOLUMES_ARE_ZERO (lvol == 0 && lvolt == 0 && rvol == 0 && rvolt == 0)
 #define MONO_DEST_MIX_ALIAS(op, upd, offset) { \

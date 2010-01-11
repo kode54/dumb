@@ -50,6 +50,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 	int VOLUME_VARIABLES;
 	long done;
 	long todo;
+	LONG_LONG todo64;
 	int quality;
 
 	if (!resampler || resampler->dir == 0) return 0;
@@ -75,14 +76,16 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 			dt = -dt;
 
 		if (resampler->dir < 0)
-			todo = (long)((((LONG_LONG)(resampler->pos - resampler->start) << 16) + resampler->subpos - dt) / -dt);
+			todo64 = ((((LONG_LONG)(resampler->pos - resampler->start) << 16) + resampler->subpos - dt) / -dt);
 		else
-			todo = (long)((((LONG_LONG)(resampler->end - resampler->pos) << 16) - resampler->subpos - 1 + dt) / dt);
+			todo64 = ((((LONG_LONG)(resampler->end - resampler->pos) << 16) - resampler->subpos - 1 + dt) / dt);
 
-		if (todo < 0)
+		if (todo64 < 0)
 			todo = 0;
-		else if (todo > dst_size - done)
+		else if (todo64 > dst_size - done)
 			todo = dst_size - done;
+		else
+			todo = (long) todo64;
 
 		done += todo;
 

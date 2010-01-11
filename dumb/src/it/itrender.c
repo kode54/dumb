@@ -1639,7 +1639,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	channel->playing->sample_vibrato_waveform = channel->playing->sample->vibrato_waveform;
 	channel->playing->sample_vibrato_depth = 0;
 	channel->playing->slide = 0;
-	channel->playing->finetune = 0;
+	channel->playing->finetune = channel->playing->sample->finetune;
 
 	if (flags & 1) {
 		channel->playing->volume_envelope = volume_envelope;
@@ -3023,7 +3023,7 @@ static void process_xm_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *ent
 			channel->playing->sample_vibrato_waveform = channel->playing->sample->vibrato_waveform;
 			channel->playing->sample_vibrato_depth = 0;
 			channel->playing->slide = 0;
-			channel->playing->finetune = 0;
+			channel->playing->finetune = channel->playing->sample->finetune;
 			it_reset_filter_state(&channel->playing->filter_state[0]); // Are these
 			it_reset_filter_state(&channel->playing->filter_state[1]); // necessary?
 			it_playing_reset_resamplers(channel->playing, 0);
@@ -3492,6 +3492,38 @@ static int delta_to_note(float delta, int base)
 	return (int)note;
 }
 
+// Period table for Protracker octaves 0-5:
+static const unsigned short ProTrackerPeriodTable[6*12] =
+{
+	1712,1616,1524,1440,1356,1280,1208,1140,1076,1016,960,907,
+	856,808,762,720,678,640,604,570,538,508,480,453,
+	428,404,381,360,339,320,302,285,269,254,240,226,
+	214,202,190,180,170,160,151,143,135,127,120,113,
+	107,101,95,90,85,80,75,71,67,63,60,56,
+	53,50,47,45,42,40,37,35,33,31,30,28
+};
+
+
+static const unsigned short ProTrackerTunedPeriods[16*12] = 
+{
+	1712,1616,1524,1440,1356,1280,1208,1140,1076,1016,960,907,
+	1700,1604,1514,1430,1348,1274,1202,1134,1070,1010,954,900,
+	1688,1592,1504,1418,1340,1264,1194,1126,1064,1004,948,894,
+	1676,1582,1492,1408,1330,1256,1184,1118,1056,996,940,888,
+	1664,1570,1482,1398,1320,1246,1176,1110,1048,990,934,882,
+	1652,1558,1472,1388,1310,1238,1168,1102,1040,982,926,874,
+	1640,1548,1460,1378,1302,1228,1160,1094,1032,974,920,868,
+	1628,1536,1450,1368,1292,1220,1150,1086,1026,968,914,862,
+	1814,1712,1616,1524,1440,1356,1280,1208,1140,1076,1016,960,
+	1800,1700,1604,1514,1430,1350,1272,1202,1134,1070,1010,954,
+	1788,1688,1592,1504,1418,1340,1264,1194,1126,1064,1004,948,
+	1774,1676,1582,1492,1408,1330,1256,1184,1118,1056,996,940,
+	1762,1664,1570,1482,1398,1320,1246,1176,1110,1048,988,934,
+	1750,1652,1558,1472,1388,1310,1238,1168,1102,1040,982,926,
+	1736,1640,1548,1460,1378,1302,1228,1160,1094,1032,974,920,
+	1724,1628,1536,1450,1368,1292,1220,1150,1086,1026,968,914 
+};
+
 static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 {
 	DUMB_IT_SIGDATA *sigdata = sigrenderer->sigdata;
@@ -3557,7 +3589,8 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 
 			if (sigdata->flags & IT_LINEAR_SLIDES) {
 				int currpitch = ((playing->note - 60) << 8) + playing->slide
-				                                            + vibrato_shift;
+				                                            + vibrato_shift
+															+ playing->finetune;
 
 				/* We add a feature here, which is that of keeping the pitch
 				 * within range. Otherwise it crashes. Trust me. It happened.
@@ -3573,7 +3606,7 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 			} else {
 				int slide = playing->slide + vibrato_shift;
 
-				playing->delta = (float)pow(DUMB_SEMITONE_BASE, 60 - playing->note);
+				playing->delta = (float)pow(DUMB_PITCH_BASE, ((60 - playing->note) << 8) - playing->finetune );
 				/* playing->delta is 1.0 for C-5, 0.5 for C-6, etc. */
 
 				playing->delta *= 1.0f / playing->sample->C5_speed;
@@ -3605,9 +3638,6 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 				}
 				else*/ playing->delta *= (float)pow(DUMB_SEMITONE_BASE, channel->arpeggio >> 8);/*
 			}*/
-
-			if (playing->finetune)
-				playing->delta *= (float)pow(DUMB_PITCH_BASE, playing->finetune);
 
 			playing->filter_cutoff = channel->filter_cutoff;
 			playing->filter_resonance = channel->filter_resonance;

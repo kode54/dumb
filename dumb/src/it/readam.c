@@ -118,6 +118,7 @@ static int it_riff_am_process_sample( IT_SAMPLE * sample, const unsigned char * 
 	sample->vibrato_depth = 0;
 	sample->vibrato_rate = 0;
 	sample->vibrato_waveform = IT_VIBRATO_SINE;
+	sample->finetune = 0;
 	sample->max_resampling_quality = -1;
 
 	if ( flags & 0x08 )

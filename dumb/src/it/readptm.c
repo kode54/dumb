@@ -119,6 +119,7 @@ static int it_ptm_read_sample_header(IT_SAMPLE *sample, long *offset, DUMBFILE *
 	sample->vibrato_depth = 0;
 	sample->vibrato_rate = 0;
 	sample->vibrato_waveform = IT_VIBRATO_SINE;
+	sample->finetune = 0;
 	sample->max_resampling_quality = -1;
 
 	return dumbfile_error(f);
