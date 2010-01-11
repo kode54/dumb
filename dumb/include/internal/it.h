@@ -85,7 +85,8 @@ sigdata->flags & IT_COMPATIBLE_GXX
 /* #define AMIGA_DIVISOR ((float)(4.0 * 14317056.0)) */
 /* I believe the following one to be more accurate. */
 //#define AMIGA_DIVISOR ((float)(8.0 * 7159090.5))
-#define AMIGA_DIVISOR ((float)(16.0 * 3579546.471))
+#define AMIGA_CLOCK 3546895
+#define AMIGA_DIVISOR ((float)(16.0 * AMIGA_CLOCK))
 
 
 
@@ -227,6 +228,8 @@ struct IT_SAMPLE
 	unsigned char vibrato_depth;
 	unsigned char vibrato_rate;
 	unsigned char vibrato_waveform;
+
+	signed char   finetune;
 
 	void *data;
 
