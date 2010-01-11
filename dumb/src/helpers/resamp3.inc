@@ -199,7 +199,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					LONG_LONG new_subpos = subpos + (LONG_LONG)dt * todo;
 					pos += (long)(new_subpos >> 16);
 					subpos = (long)new_subpos & 65535;
-				} else if (dumb_resampling_quality <= DUMB_RQ_ALIASING) {
+				} else if (quality <= DUMB_RQ_ALIASING) {
 					/* Aliasing, forwards */
 					SRCTYPE xbuf[2*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[0];
@@ -223,7 +223,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 						subpos &= 65535;
 					);
 					pos += DIVIDE_BY_SRC_CHANNELS(x - xstart);
-				} else if (dumb_resampling_quality <= DUMB_RQ_LINEAR) {
+				} else if (quality <= DUMB_RQ_LINEAR) {
 					/* Linear interpolation, forwards */
 					SRCTYPE xbuf[3*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[1*SRC_CHANNELS];

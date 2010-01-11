@@ -120,10 +120,10 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 #define MONO_DEST_VOLUME_ZEROS 0
 #define SET_MONO_DEST_VOLUME_VARIABLES { \
 	if ( volume ) { \
-		volr = (int)floor(volume->volume * 65536.0 + 0.5); \
-		vold = (int)floor(volume->delta * 65536.0 + 0.5); \
-		volt = (int)floor(volume->target * 65536.0 + 0.5); \
-		volm = (int)floor(volume->mix * 65536.0 + 0.5); \
+		volr = (int)(volume->volume * 65536.0); \
+		vold = (int)(volume->delta * 65536.0); \
+		volt = (int)(volume->target * 65536.0); \
+		volm = (int)(volume->mix * 65536.0); \
 		vol = MULSC( volr, volm ); \
 		if ( volr == volt ) volume = NULL; \
 	} else { \
@@ -191,10 +191,10 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 #define MONO_DEST_VOLUME_ZEROS 0, 0
 #define SET_MONO_DEST_VOLUME_VARIABLES { \
 	if ( volume_left ) { \
-		lvolr = (int)floor(volume_left->volume * 65536.0 + 0.5); \
-		lvold = (int)floor(volume_left->delta * 65536.0 + 0.5); \
-		lvolt = (int)floor(volume_left->target * 65536.0 + 0.5); \
-		lvolm = (int)floor(volume_left->mix * 65536.0 + 0.5); \
+		lvolr = (int)(volume_left->volume * 65536.0); \
+		lvold = (int)(volume_left->delta * 65536.0); \
+		lvolt = (int)(volume_left->target * 65536.0); \
+		lvolm = (int)(volume_left->mix * 65536.0); \
 		lvol = MULSC( lvolr, lvolm ); \
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
@@ -202,10 +202,10 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		lvolt = 0; \
 	} \
 	if ( volume_right ) { \
-		rvolr = (int)floor(volume_right->volume * 65536.0 + 0.5); \
-		rvold = (int)floor(volume_right->delta * 65536.0 + 0.5); \
-		rvolt = (int)floor(volume_right->target * 65536.0 + 0.5); \
-		rvolm = (int)floor(volume_right->mix * 65536.0 + 0.5); \
+		rvolr = (int)(volume_right->volume * 65536.0); \
+		rvold = (int)(volume_right->delta * 65536.0); \
+		rvolt = (int)(volume_right->target * 65536.0); \
+		rvolm = (int)(volume_right->mix * 65536.0); \
 		rvol = MULSC( rvolr, rvolm ); \
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
