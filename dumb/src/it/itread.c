@@ -122,7 +122,7 @@ static int readbits(int bitwidth, readblock_crap * crap)
 /** WARNING - do we even need to pass `right`? */
 /** WARNING - why bother memsetting at all? The whole array is written... */
 // if we do memset, dumb_silence() would be neater...
-static int decompress8(DUMBFILE *f, signed char *data, int len, int cmwt)
+static int decompress8(DUMBFILE *f, signed char *data, int len, int it215)
 {
 	int blocklen, blockpos;
 	byte bitwidth;
@@ -197,7 +197,7 @@ static int decompress8(DUMBFILE *f, signed char *data, int len, int cmwt)
 			/* Version 2.15 was an unofficial version with hacked compression
 			 * code. Yay, better compression :D
 			 */
-			*data++ = cmwt == 0x215 ? d2 : d1;
+			*data++ = it215 ? d2 : d1;
 			len--;
 			blockpos++;
 		}
@@ -208,7 +208,7 @@ static int decompress8(DUMBFILE *f, signed char *data, int len, int cmwt)
 
 
 
-static int decompress16(DUMBFILE *f, short *data, int len, int cmwt)
+static int decompress16(DUMBFILE *f, short *data, int len, int it215)
 {
 	int blocklen, blockpos;
 	byte bitwidth;
@@ -282,7 +282,7 @@ static int decompress16(DUMBFILE *f, short *data, int len, int cmwt)
 			/* Version 2.15 was an unofficial version with hacked compression
 			 * code. Yay, better compression :D
 			 */
-			*data++ = cmwt == 0x215 ? d2 : d1;
+			*data++ = it215 ? d2 : d1;
 			len--;
 			blockpos++;
 		}
@@ -648,9 +648,9 @@ static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char conve
 //#endif
 */
 		if (sample->flags & IT_SAMPLE_16BIT)
-			decompress16(f, sample->data, datasize, cmwt);
+			decompress16(f, sample->data, datasize, ((cmwt >= 0x215) && (convert & 4)));
 		else
-			decompress8(f, sample->data, datasize, cmwt);
+			decompress8(f, sample->data, datasize, ((cmwt >= 0x215) && (convert & 4)));
  	} else if (sample->flags & IT_SAMPLE_16BIT) {
  		if (convert & 2)
 			for (n = 0; n < datasize; n++)
