@@ -520,8 +520,20 @@ static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f, int maxlen
 
 static int it_read_sample_header(IT_SAMPLE *sample, unsigned char *convert, long *offset, DUMBFILE *f)
 {
+	/* XXX
 	if (dumbfile_mgetl(f) != IT_SAMPLE_SIGNATURE)
-		return -1;
+		return -1;*/
+	int hax = 0;
+	long s = dumbfile_mgetl(f);
+	if (s != IT_SAMPLE_SIGNATURE) {
+		if ( s == ( IT_SAMPLE_SIGNATURE >> 16 ) ) {
+			s <<= 16;
+			s |= dumbfile_mgetw(f);
+			if ( s != IT_SAMPLE_SIGNATURE )
+				return -1;
+			hax = 1;
+		}
+	}
 
 	dumbfile_getnc(sample->filename, 13, f);
 	sample->filename[13] = 0;
@@ -582,8 +594,13 @@ static int it_read_sample_header(IT_SAMPLE *sample, unsigned char *convert, long
 
 	sample->vibrato_speed = dumbfile_getc(f);
 	sample->vibrato_depth = dumbfile_getc(f);
-	sample->vibrato_rate = dumbfile_getc(f);
-	sample->vibrato_waveform = dumbfile_getc(f);
+	if ( ! hax ) {
+		sample->vibrato_rate = dumbfile_getc(f);
+		sample->vibrato_waveform = dumbfile_getc(f);
+	} else {
+		sample->vibrato_rate = 0;
+		sample->vibrato_waveform = 0;
+	}
 	sample->max_resampling_quality = -1;
 
 	return dumbfile_error(f);
@@ -1183,6 +1200,27 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	for (n = 0; n < n_components; n++) {
 		long offset;
 		int m;
+
+		/* XXX */
+		if ( component[n].offset == 0 ) {
+			switch (component[n].type) {
+				case IT_COMPONENT_INSTRUMENT:
+					memset( &sigdata->instrument[component[n].n], 0, sizeof(IT_INSTRUMENT) );
+					break;
+				case IT_COMPONENT_SAMPLE:
+					memset( &sigdata->sample[component[n].n], 0, sizeof(IT_SAMPLE) );
+					break;
+				case IT_COMPONENT_PATTERN:
+					{
+						IT_PATTERN * p = &sigdata->pattern[component[n].n];
+						p->entry = 0;
+						p->n_rows = 64;
+						p->n_entries = 0;
+					}
+					break;
+			}
+			continue;
+		}
 
 		if (it_seek(f, component[n].offset)) {
 			free(buffer);
