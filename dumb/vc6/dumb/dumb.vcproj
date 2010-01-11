@@ -1302,6 +1302,14 @@
 						>
 					</File>
 					<File
+						RelativePath="..\..\src\it\loadamf.c"
+						>
+					</File>
+					<File
+						RelativePath="..\..\src\it\loadamf2.c"
+						>
+					</File>
+					<File
 						RelativePath="..\..\src\it\loadasy.c"
 						>
 					</File>
@@ -1651,6 +1659,14 @@
 					</File>
 					<File
 						RelativePath="..\..\src\it\readam.c"
+						>
+					</File>
+					<File
+						RelativePath="..\..\src\it\readamf.c"
+						>
+					</File>
+					<File
+						RelativePath="..\..\src\it\readamf2.c"
 						>
 					</File>
 					<File
