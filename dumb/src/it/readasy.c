@@ -172,7 +172,6 @@ static int it_asy_read_sample_data( IT_SAMPLE *sample, DUMBFILE *f )
 static DUMB_IT_SIGDATA *it_asy_load_sigdata(DUMBFILE *f)
 {
 	DUMB_IT_SIGDATA *sigdata;
-	int n_channels;
 	int i;
 
 	static const char sig_part[] = "ASYLUM Music Format";

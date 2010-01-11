@@ -365,11 +365,11 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f /*, int * version*/)
 DUH *dumb_read_stm_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
-	int ver;
+	/*int ver;*/
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
-	sigdata = it_stm_load_sigdata(f, &ver);
+	sigdata = it_stm_load_sigdata(f /*, &ver*/);
 
 	if (!sigdata)
 		return NULL;

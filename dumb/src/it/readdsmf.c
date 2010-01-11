@@ -208,7 +208,7 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( struct riff * stream )
 {
 	DUMB_IT_SIGDATA *sigdata;
 
-	int n, o, p, found;
+	int n, o, found;
 
 	unsigned char * ptr;
 
