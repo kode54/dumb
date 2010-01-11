@@ -59,7 +59,7 @@ static int it_669_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int tempo, int 
 
 	entry = pattern->entry;
 
-	entry->channel = 0;
+	entry->channel = 8;
 	entry->mask = IT_ENTRY_EFFECT;
 	entry->effect = IT_SET_SPEED;
 	entry->effectvalue = tempo;
@@ -69,7 +69,7 @@ static int it_669_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int tempo, int 
 	for (row = 0; row < 64; row++) {
 
 		if (row == breakpoint) {
-			entry->channel = 0;
+			entry->channel = 8;
 			entry->mask = IT_ENTRY_EFFECT;
 			entry->effect = IT_BREAK_TO_ROW;
 			entry->effectvalue = 0;
@@ -103,28 +103,24 @@ static int it_669_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int tempo, int 
 							break;
 						case 2:
 							entry->effect = IT_TONE_PORTAMENTO;
-							entry->effectvalue *= tempo; /* is this right? */
 							break;
 						case 3:
-							/*
 							entry->effect = IT_S;
-							entry->effectvalue |= IT_S_FINETUNE << 4;
-							*/
-							entry->effect = IT_PORTAMENTO_UP;
-							entry->effectvalue |= 0xE0;
+							entry->effectvalue += IT_S_FINETUNE * 16 + 8;
 							break;
 						case 4:
 							entry->effect = IT_VIBRATO;
-							entry->effectvalue |= tempo << 4; /* is this right? */
+							// XXX speed unknown
+							entry->effectvalue |= 0x10;
 							break;
 						case 5:
 							if (entry->effectvalue) {
 								entry->effect = IT_SET_SPEED;
-								//entry->effectvalue += 2;
 							} else {
 								entry->mask &= ~IT_ENTRY_EFFECT;
 							}
 							break;
+#if 0
 						/* dunno about this, really... */
 						case 6:
 							if (entry->effectvalue == 0) {
@@ -137,7 +133,7 @@ static int it_669_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int tempo, int 
 								entry->mask &= ~IT_ENTRY_EFFECT;
 							}
 							break;
-
+#endif
 						default:
 							entry->mask &= ~IT_ENTRY_EFFECT;
 							break;
@@ -406,7 +402,7 @@ static DUMB_IT_SIGDATA *it_669_load_sigdata(DUMBFILE *f, int * ext)
 	}
 
 	/* Now let's initialise the remaining variables, and we're done! */
-	sigdata->flags = IT_OLD_EFFECTS | IT_LINEAR_SLIDES | IT_STEREO;
+	sigdata->flags = IT_OLD_EFFECTS | IT_LINEAR_SLIDES | IT_STEREO | IT_WAS_A_669;
 
 	sigdata->global_volume = 128;
 	sigdata->mixing_volume = 48;
@@ -417,8 +413,8 @@ static DUMB_IT_SIGDATA *it_669_load_sigdata(DUMBFILE *f, int * ext)
 	memset(sigdata->channel_volume, 64, DUMB_IT_N_CHANNELS);
 
 	for (i = 0; i < DUMB_IT_N_CHANNELS; i += 2) {
-		sigdata->channel_pan[i+0] = 16;
-		sigdata->channel_pan[i+1] = 48;
+		sigdata->channel_pan[i+0] = 48;
+		sigdata->channel_pan[i+1] = 16;
 	}
 
 	_dumb_it_fix_invalid_orders(sigdata);
