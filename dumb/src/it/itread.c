@@ -1188,6 +1188,9 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		switch (component[n].type) {
 
 			case IT_COMPONENT_SONG_MESSAGE:
+				if ( n < n_components ) {
+					message_length = min( message_length, component[n+1].offset - component[n].offset );
+				}
 				sigdata->song_message = malloc(message_length + 1);
 				if (sigdata->song_message) {
 					if (dumbfile_getnc(sigdata->song_message, message_length, f) < message_length) {

@@ -51,12 +51,18 @@ static int it_s3m_read_sample_header(IT_SAMPLE *sample, long *offset, unsigned c
 
 	type = dumbfile_getc(f);
 
-	if (type > 1) {
-		/** WARNING: no adlib support */
-	}
-
 	dumbfile_getnc(sample->filename, 12, f);
 	sample->filename[12] = 0;
+
+	if (type > 1) {
+		/** WARNING: no adlib support */
+		dumbfile_skip(f, 3 + 12 + 1 + 1 + 2 + 2 + 2 + 12);
+		dumbfile_getnc(sample->name, 28, f);
+		sample->name[28] = 0;
+		dumbfile_skip(f, 4);
+		sample->flags &= ~IT_SAMPLE_EXISTS;
+		return dumbfile_error(f);
+	}
 
 	*offset = dumbfile_getc(f) << 20;
 	*offset += dumbfile_igetw(f) << 4;

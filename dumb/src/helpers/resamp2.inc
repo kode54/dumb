@@ -109,8 +109,8 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 		lvolr = (int)(volume_left->volume * 16777216.0); \
 		lvold = (int)(volume_left->delta * 16777216.0); \
 		lvolt = (int)(volume_left->target * 16777216.0); \
-		lvolm = (int)(volume_left->mix * 65536.0); \
-		lvol = MULSC( lvolr >> 8, lvolm ); \
+		lvolm = (int)(volume_left->mix * 16777216.0); \
+		lvol = MULSCV( lvolr, lvolm ); \
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
 		lvol = 0; \
@@ -120,8 +120,8 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 		rvolr = (int)(volume_right->volume * 16777216.0); \
 		rvold = (int)(volume_right->delta * 16777216.0); \
 		rvolt = (int)(volume_right->target * 16777216.0); \
-		rvolm = (int)(volume_right->mix * 65536.0); \
-		rvol = MULSC( rvolr >> 8, rvolm ); \
+		rvolm = (int)(volume_right->mix * 16777216.0); \
+		rvol = MULSCV( rvolr, rvolm ); \
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
 		rvol = 0; \

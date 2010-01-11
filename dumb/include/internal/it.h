@@ -626,7 +626,7 @@ struct IT_CHANNEL
 	unsigned char lastS;
 	unsigned char pat_loop_row;
 	unsigned char pat_loop_count;
-	//unsigned char pat_loop_end_row; /* Used to catch infinite pattern loops */
+	unsigned char pat_loop_end_row; /* Used to catch infinite pattern loops */
 	unsigned char lastW;
 
 	unsigned char xm_lastE1;

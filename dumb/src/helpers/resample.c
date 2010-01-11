@@ -82,6 +82,7 @@ int dumb_resampling_quality = DUMB_RQ_CUBIC;
 
 //#define MULSC(a, b) ((int)((LONG_LONG)(a) * (b) >> 16))
 //#define MULSC(a, b) ((a) * ((b) >> 2) >> 14)
+#define MULSCV(a, b) ((int)((LONG_LONG)(a) * (b) >> 32))
 #define MULSC(a, b) ((int)((LONG_LONG)((a) << 4) * ((b) << 12) >> 32))
 #define MULSC16(a, b) ((int)((LONG_LONG)((a) << 12) * ((b) << 12) >> 32))
 

@@ -660,6 +660,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 	DUMB_IT_SIGDATA *sigdata;
 	char id_text[18];
 
+	int header_size;
 	int flags;
 	int n_channels;
 	int total_samples;
@@ -712,7 +713,8 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 	*/
 
 	/* header size */
-	if (dumbfile_igetl(f) != 0x0114) {
+	header_size = dumbfile_igetl(f);
+	if (header_size < (4 + 2*8 + 1) || header_size > 0x114) {
 		TRACE("XM error: unexpected header size\n");
 		free(sigdata);
 		return NULL;
@@ -740,7 +742,8 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 
 	/* sanity checks */
 	// XXX
-	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_orders > 256 || sigdata->n_patterns > 256 || sigdata->n_instruments > 256 || n_channels > DUMB_IT_N_CHANNELS) {
+	i = header_size - 4 - 2 * 8; /* Maximum number of orders expected */
+	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_orders > i || sigdata->n_patterns > 256 || sigdata->n_instruments > 256 || n_channels > DUMB_IT_N_CHANNELS) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
 	}
@@ -755,7 +758,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 		return NULL;
 	}
 	dumbfile_getnc(sigdata->order, sigdata->n_orders, f);
-	dumbfile_skip(f, 256 - sigdata->n_orders);
+	dumbfile_skip(f, i - sigdata->n_orders);
 
 	if (dumbfile_error(f)) {
 		_dumb_it_unload_sigdata(sigdata);

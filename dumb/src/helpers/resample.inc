@@ -90,9 +90,9 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 			(vol##d > 0 && vol##r >= vol##t)) {                    \
 			pvol->volume = pvol->target;                           \
 			pvol = NULL;                                           \
-			vol = MULSC( vol##t >> 8, vol##m );                    \
+			vol = MULSCV( vol##t, vol##m );                        \
 		} else {                                                   \
-			vol = MULSC( vol##r >> 8, vol##m );                    \
+			vol = MULSCV( vol##r, vol##m );                        \
 		}                                                          \
 	}                                                              \
 }
@@ -113,8 +113,8 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		volr = (int)(volume->volume * 16777216.0); \
 		vold = (int)(volume->delta * 16777216.0); \
 		volt = (int)(volume->target * 16777216.0); \
-		volm = (int)(volume->mix * 65536.0); \
-		vol = MULSC( volr >> 8, volm ); \
+		volm = (int)(volume->mix * 16777216.0); \
+		vol = MULSCV( volr, volm ); \
 		if ( volr == volt ) volume = NULL; \
 	} else { \
 		vol = 0; \
@@ -184,8 +184,8 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		lvolr = (int)(volume_left->volume * 16777216.0); \
 		lvold = (int)(volume_left->delta * 16777216.0); \
 		lvolt = (int)(volume_left->target * 16777216.0); \
-		lvolm = (int)(volume_left->mix * 65536.0); \
-		lvol = MULSC( lvolr >> 8, lvolm ); \
+		lvolm = (int)(volume_left->mix * 16777216.0); \
+		lvol = MULSCV( lvolr, lvolm ); \
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
 		lvol = 0; \
@@ -195,8 +195,8 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		rvolr = (int)(volume_right->volume * 16777216.0); \
 		rvold = (int)(volume_right->delta * 16777216.0); \
 		rvolt = (int)(volume_right->target * 16777216.0); \
-		rvolm = (int)(volume_right->mix * 65536.0); \
-		rvol = MULSC( rvolr >> 8, rvolm ); \
+		rvolm = (int)(volume_right->mix * 16777216.0); \
+		rvol = MULSCV( rvolr, rvolm ); \
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
 		rvol = 0; \

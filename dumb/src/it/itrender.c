@@ -202,7 +202,7 @@ static void dup_channel(IT_CHANNEL *dst, IT_CHANNEL *src)
 	dst->lastS = src->lastS;
 	dst->pat_loop_row = src->pat_loop_row;
 	dst->pat_loop_count = src->pat_loop_count;
-	//dst->pat_loop_end_row = src->pat_loop_end_row;
+	dst->pat_loop_end_row = src->pat_loop_end_row;
 	dst->lastW = src->lastW;
 
 	dst->xm_lastE1 = src->xm_lastE1;
@@ -486,6 +486,7 @@ static void it_reset_filter_state(IT_FILTER_STATE *state)
 
 
 
+#if 0
 #define LOG10 2.30258509299
 
 /* IMPORTANT: This function expects one extra sample in 'src' so it can apply
@@ -493,6 +494,7 @@ static void it_reset_filter_state(IT_FILTER_STATE *state)
  * output starting at dst[pos]. The pos parameter is required for getting
  * click removal right.
  */
+
 static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
 {
 	sample_t currsample = state->currsample;
@@ -595,8 +597,8 @@ static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *
 	state->currsample = currsample;
 	state->prevsample = prevsample;
 }
-
 #undef LOG10
+#endif
 
 
 
@@ -1171,56 +1173,6 @@ static int update_pattern_variables(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *
 						effectvalue = channel->lastS;
 					channel->lastS = effectvalue;
 					switch (effectvalue >> 4) {
-#if 1
-						case IT_S7:
-							{
-								if (sigrenderer->sigdata->flags & IT_USE_INSTRUMENTS)
-								{
-									int i;
-									switch (effectvalue & 15)
-									{
-									case 0: /* cut background notes */
-										for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++)
-										{
-											IT_PLAYING * playing = sigrenderer->playing[i];
-											if (playing && channel == playing->channel)
-											{
-#ifdef RAMP_DOWN
-												playing->declick_stage = 2;
-#else
-												free(playing);
-												sigrenderer->playing[i] = NULL;
-#endif
-												if (channel->playing == playing) channel->playing = NULL;
-											}
-										}
-										break;
-									case 1: /* release background notes */
-										for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++)
-										{
-											IT_PLAYING * playing = sigrenderer->playing[i];
-											if (playing && channel == playing->channel && !(playing->flags & IT_PLAYING_SUSTAINOFF))
-											{
-												it_note_off(playing);
-											}
-										}
-										break;
-									case 2: /* fade background notes */
-										for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++)
-										{
-											IT_PLAYING * playing = sigrenderer->playing[i];
-											if (playing && channel == playing->channel)
-											{
-												//playing->flags &= IT_PLAYING_SUSTAINOFF;
-												playing->flags |= IT_PLAYING_FADING;
-											}
-										}
-										break;
-									}
-								}
-							}
-							break;
-#endif
 						case IT_S_PATTERN_LOOP:
 							{
 								unsigned char v = effectvalue & 15;
@@ -1254,7 +1206,19 @@ static int update_pattern_variables(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *
 #endif
 										channel->pat_loop_count = v;
 										sigrenderer->breakrow = channel->pat_loop_row;
-										if (!(sigrenderer->sigdata->flags & IT_WAS_AN_XM) || ( ( sigrenderer->processrow | 0xC00 ) == 0xFFFE ) ) {
+										if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD)) == IT_WAS_AN_XM) {
+											/* For XM files, if a loop occurs by itself, keep breakrow set for when the pattern ends - fun bug in FT2! */
+											if ((sigrenderer->processrow|0xC00) < 0xFFFE) {
+												/* Infinite pattern loops are possible, so we check whether the pattern loop we're hitting now is earlier than the last one we hit. */
+												if (sigrenderer->processrow < channel->pat_loop_end_row)
+													sigrenderer->processorder = 0xFFFE; /* suspect infinite loop, so trigger loop callback */
+												else
+													sigrenderer->processorder = 0xFFFF; /* don't trigger loop callback */
+												channel->pat_loop_end_row = sigrenderer->processrow;
+												sigrenderer->processrow = 0xFFFF; /* special case: don't reset breakrow or pat_loop_end_row */
+											}
+										} else {
+											/* IT files do this regardless of other flow control effects seen here. */
 											sigrenderer->processorder = 0xFFFF; /* special case: don't trigger loop callback */
 											sigrenderer->processrow = 0xFFFE;
 										}
@@ -1268,16 +1232,38 @@ static int update_pattern_variables(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *
 										}
 #endif
 										sigrenderer->breakrow = channel->pat_loop_row;
-										if (!(sigrenderer->sigdata->flags & IT_WAS_AN_XM) || ( ( sigrenderer->processrow | 0xC00 ) == 0xFFFE ) ) {
+										if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD)) == IT_WAS_AN_XM) {
+											/* For XM files, if a loop occurs by itself, keep breakrow set for when the pattern ends - fun bug in FT2! */
+											if ((sigrenderer->processrow|0xC00) < 0xFFFE) {
+												/* Infinite pattern loops are possible, so we check whether the pattern loop we're hitting now is earlier than the last one we hit. */
+												if (sigrenderer->processrow < channel->pat_loop_end_row)
+													sigrenderer->processorder = 0xFFFE; /* suspect infinite loop, so trigger loop callback */
+												else
+													sigrenderer->processorder = 0xFFFF; /* don't trigger loop callback */
+												channel->pat_loop_end_row = sigrenderer->processrow;
+												sigrenderer->processrow = 0xFFFF; /* special case: don't reset breakrow or pat_loop_end_row */
+											}
+										} else {
+											/* IT files do this regardless of other flow control effects seen here. */
 											sigrenderer->processorder = 0xFFFF; /* special case: don't trigger loop callback */
 											sigrenderer->processrow = 0xFFFE;
 										}
 										return 1;
 									} else if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD)) == IT_WAS_AN_XM) {
-										sigrenderer->breakrow = channel->pat_loop_row; /* emulate bug in FT2 */
-									} else {
+										channel->pat_loop_end_row = 0;
+										// TODO
+										/* Findings:
+										- If a pattern loop completes successfully, and then the pattern terminates, then the next pattern will start on the row corresponding to the E60.
+										- If a pattern loop doesn't do any loops, and then the pattern terminates, then the next pattern will start on the first row.
+										- If a break appears to the left of the pattern loop, it jumps into the relevant position in the next pattern, and that's it.
+										- If a break appears to the right of the pattern loop, it jumps to the start of the next pattern, and that's it.
+										- If we jump, then effect a loop using an old E60, and then the pattern ends, the next pattern starts on the row corresponding to the E60.
+										- Theory: breakrow is not cleared when it's a pattern loop effect!
+										*/
+										//if (sigrenderer->processrow < 0xFFFE) // I have no idea if this is correct or not - FT2 is so weird :(
+										//	sigrenderer->breakrow = channel->pat_loop_row; /* emulate bug in FT2 */
+									} else
 										channel->pat_loop_row = sigrenderer->processrow + 1;
-									}
 #ifdef BIT_ARRAY_BULLSHIT
 									/*channel->played_patjump_order |= 0x8000;*/
 									if (channel->played_patjump_order == sigrenderer->order) {
@@ -2359,8 +2345,46 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 							{
 								if (sigrenderer->sigdata->flags & IT_USE_INSTRUMENTS)
 								{
+									int i;
 									switch (effectvalue & 15)
 									{
+									case 0: /* cut background notes */
+										for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++)
+										{
+											IT_PLAYING * playing = sigrenderer->playing[i];
+											if (playing && channel == playing->channel)
+											{
+#ifdef RAMP_DOWN
+												playing->declick_stage = 2;
+#else
+												free(playing);
+												sigrenderer->playing[i] = NULL;
+#endif
+												if (channel->playing == playing) channel->playing = NULL;
+											}
+										}
+										break;
+									case 1: /* release background notes */
+										for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++)
+										{
+											IT_PLAYING * playing = sigrenderer->playing[i];
+											if (playing && channel == playing->channel && !(playing->flags & IT_PLAYING_SUSTAINOFF))
+											{
+												it_note_off(playing);
+											}
+										}
+										break;
+									case 2: /* fade background notes */
+										for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++)
+										{
+											IT_PLAYING * playing = sigrenderer->playing[i];
+											if (playing && channel == playing->channel)
+											{
+												//playing->flags &= IT_PLAYING_SUSTAINOFF;
+												playing->flags |= IT_PLAYING_FADING;
+											}
+										}
+										break;
 									case 3:
 										channel->new_note_action = NNA_NOTE_CUT;
 										break;
@@ -3765,8 +3789,12 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 				int n;
 				int processorder = sigrenderer->processorder;
 
-				sigrenderer->processrow = sigrenderer->breakrow;
-				sigrenderer->breakrow = 0;
+				if ((sigrenderer->processrow|0xC00) == 0xFFFE + 1) { /* It was incremented above! */
+					sigrenderer->processrow = sigrenderer->breakrow;
+					sigrenderer->breakrow = 0;
+					for (n = 0; n < DUMB_IT_N_CHANNELS; n++) sigrenderer->channel[n].pat_loop_end_row = 0;
+				} else
+					sigrenderer->processrow = sigrenderer->breakrow;
 
 				if (sigrenderer->processorder == 0xFFFF)
 					sigrenderer->processorder = sigrenderer->order - 1;
@@ -4197,6 +4225,191 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 }
 
 #ifdef END_RAMPING
+#if 1
+static long render_playing_part(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing, DUMB_VOLUME_RAMP_INFO * lvol, DUMB_VOLUME_RAMP_INFO * rvol, int bits, float delta, long pos, long size, sample_t **samples, int store_end_sample, int cr_record_which)
+{
+	long size_rendered = 0;
+
+	if (sigrenderer->n_channels == 2) {
+		if (playing->sample->flags & IT_SAMPLE_STEREO) {
+			if ((cr_record_which & 1) && sigrenderer->click_remover) {
+				sample_t click[2];
+				dumb_resample_get_current_sample_n_2_2(bits, &playing->resampler, lvol, rvol, click);
+				dumb_record_click(sigrenderer->click_remover[0], pos, click[0]);
+				dumb_record_click(sigrenderer->click_remover[1], pos, click[1]);
+			}
+			size_rendered = dumb_resample_n_2_2(bits, &playing->resampler, samples[0] + pos*2, size, lvol, rvol, delta);
+			if (store_end_sample) {
+				sample_t click[2];
+				dumb_resample_get_current_sample_n_2_2(bits, &playing->resampler, lvol, rvol, click);
+				samples[0][(pos + size_rendered) * 2] = click[0];
+				samples[0][(pos + size_rendered) * 2 + 1] = click[1];
+			}
+			if ((cr_record_which & 2) && sigrenderer->click_remover) {
+				sample_t click[2];
+				dumb_resample_get_current_sample_n_2_2(bits, &playing->resampler, lvol, rvol, click);
+				dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click[0]);
+				dumb_record_click(sigrenderer->click_remover[1], pos + size_rendered, -click[1]);
+			}
+		} else {
+			if ((cr_record_which & 1) && sigrenderer->click_remover) {
+				sample_t click[2];
+				dumb_resample_get_current_sample_n_1_2(bits, &playing->resampler, lvol, rvol, click);
+				dumb_record_click(sigrenderer->click_remover[0], pos, click[0]);
+				dumb_record_click(sigrenderer->click_remover[1], pos, click[1]);
+			}
+			size_rendered = dumb_resample_n_1_2(bits, &playing->resampler, samples[0] + pos*2, size, lvol, rvol, delta);
+			if (store_end_sample) {
+				sample_t click[2];
+				dumb_resample_get_current_sample_n_1_2(bits, &playing->resampler, lvol, rvol, click);
+				samples[0][(pos + size_rendered) * 2] = click[0];
+				samples[0][(pos + size_rendered) * 2 + 1] = click[1];
+			}
+			if ((cr_record_which & 2) && sigrenderer->click_remover) {
+				sample_t click[2];
+				dumb_resample_get_current_sample_n_1_2(bits, &playing->resampler, lvol, rvol, click);
+				dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click[0]);
+				dumb_record_click(sigrenderer->click_remover[1], pos + size_rendered, -click[1]);
+			}
+		}
+	} else {
+		if (playing->sample->flags & IT_SAMPLE_STEREO) {
+			if ((cr_record_which & 1) && sigrenderer->click_remover) {
+				sample_t click;
+				dumb_resample_get_current_sample_n_2_1(bits, &playing->resampler, lvol, rvol, &click);
+				dumb_record_click(sigrenderer->click_remover[0], pos, click);
+			}
+			size_rendered = dumb_resample_n_2_1(bits, &playing->resampler, samples[0] + pos, size, lvol, rvol, delta);
+			if (store_end_sample)
+				dumb_resample_get_current_sample_n_2_1(bits, &playing->resampler, lvol, rvol, &samples[0][pos + size_rendered]);
+			if ((cr_record_which & 2) && sigrenderer->click_remover) {
+				sample_t click;
+				dumb_resample_get_current_sample_n_2_1(bits, &playing->resampler, lvol, rvol, &click);
+				dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click);
+			}
+		} else {
+			if ((cr_record_which & 1) && sigrenderer->click_remover) {
+				sample_t click;
+				dumb_resample_get_current_sample_n_1_1(bits, &playing->resampler, lvol, &click);
+				dumb_record_click(sigrenderer->click_remover[0], pos, click);
+			}
+			size_rendered = dumb_resample_n_1_1(bits, &playing->resampler, samples[0] + pos, size, lvol, delta);
+			if (store_end_sample)
+				dumb_resample_get_current_sample_n_1_1(bits, &playing->resampler, lvol, &samples[0][pos + size_rendered]);
+			if ((cr_record_which & 2) && sigrenderer->click_remover) {
+				sample_t click;
+				dumb_resample_get_current_sample_n_1_1(bits, &playing->resampler, lvol, &click);
+				dumb_record_click(sigrenderer->click_remover[0], pos + size_rendered, -click);
+			}
+		}
+	}
+	return size_rendered;
+}
+
+static long render_playing_ramp(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing, float volume, float main_delta, float delta, long pos, long size, sample_t **samples, int store_end_sample, int *left_to_mix, int ramp_style)
+{
+	int bits;
+
+	long size_rendered;
+
+	DUMB_VOLUME_RAMP_INFO lvol, rvol;
+
+	if (!size) return 0;
+
+	if (playing->flags & IT_PLAYING_DEAD)
+		return 0;
+
+	if (*left_to_mix <= 0)
+		volume = 0;
+
+	{
+		int quality = sigrenderer->resampling_quality;
+		if (playing->sample->max_resampling_quality >= 0 && quality > playing->sample->max_resampling_quality)
+			quality = playing->sample->max_resampling_quality;
+		playing->resampler.quality = quality;
+	}
+
+	bits = playing->sample->flags & IT_SAMPLE_16BIT ? 16 : 8;
+	size_rendered = size;
+
+	if (volume == 0) {
+		if (playing->declick_stage < 2) {
+			if (playing->sample->flags & IT_SAMPLE_STEREO)
+				size_rendered = dumb_resample_n_2_1(bits, &playing->resampler, NULL, size, 0, 0, delta);
+			else
+				size_rendered = dumb_resample_n_1_1(bits, &playing->resampler, NULL, size, 0, delta);
+		} else {
+			playing->declick_stage = 3;
+		}
+	} else {
+		lvol.volume = playing->ramp_volume [0];
+		rvol.volume = playing->ramp_volume [1];
+		lvol.delta  = playing->ramp_delta [0] * main_delta;
+		rvol.delta  = playing->ramp_delta [1] * main_delta;
+		lvol.target = playing->float_volume [0];
+		rvol.target = playing->float_volume [1];
+		rvol.mix = lvol.mix = volume;
+		if (ramp_style) {
+			if (playing->declick_stage == 1) {
+				size_rendered = render_playing_part(sigrenderer, playing, &lvol, &rvol, bits, delta, pos, size, samples, store_end_sample, 3);
+			} else if (playing->declick_stage == 0 || playing->declick_stage == 2) {
+				float declick_count = ((ramp_style == 2) ? 327.68 : 49.152) / main_delta; /* 5ms / 0.75ms */
+				float declick_remain = playing->declick_volume * declick_count;
+				float declick_dir = -1;
+				float declick_target;
+				int remain;
+				DUMB_VOLUME_RAMP_INFO declick_lvol, declick_rvol;
+				if (playing->declick_stage == 0) {
+					declick_remain = declick_count - declick_remain;
+					declick_dir = 1;
+				}
+				if (size < declick_remain) declick_remain = size;
+				remain = declick_remain;
+				declick_target = playing->declick_volume + declick_dir / declick_count * declick_remain;
+				declick_lvol.volume = lvol.volume * playing->declick_volume;
+				declick_rvol.volume = rvol.volume * playing->declick_volume;
+				lvol.volume += lvol.delta * declick_remain;
+				rvol.volume += rvol.delta * declick_remain;
+				declick_lvol.target = lvol.volume * declick_target;
+				declick_rvol.target = rvol.volume * declick_target;
+				declick_lvol.delta = (declick_lvol.target - declick_lvol.volume) / declick_remain;
+				declick_rvol.delta = (declick_rvol.target - declick_rvol.volume) / declick_remain;
+				declick_lvol.mix = declick_rvol.mix = volume;
+				if (remain < size) {
+					size_rendered = render_playing_part(sigrenderer, playing, &declick_lvol, &declick_rvol, bits, delta, pos, remain, samples, 0, 1);
+					if (size_rendered == remain) {
+						if (playing->declick_stage == 0) {
+							size_rendered += render_playing_part(sigrenderer, playing, &lvol, &rvol, bits, delta, pos + remain, size - remain, samples, store_end_sample, 2);
+						} else {
+							size_rendered = size;
+						}
+					}
+					playing->declick_stage++;
+					playing->declick_volume = 1;
+				} else {
+					size_rendered = render_playing_part(sigrenderer, playing, &declick_lvol, &declick_rvol, bits, delta, pos, remain, samples, store_end_sample, 3);
+					playing->declick_volume = declick_target;
+				}
+			} else /*if (playing->declick_stage == 3)*/ {
+				(*left_to_mix)++;
+			}
+		} else if (playing->declick_stage < 2) {
+			size_rendered = render_playing_part(sigrenderer, playing, &lvol, &rvol, bits, delta, pos, size, samples, store_end_sample, 3);
+		} else {
+			playing->declick_stage = 3;
+			(*left_to_mix)++;
+		}
+		playing->ramp_volume [0] = lvol.volume;
+		playing->ramp_volume [1] = rvol.volume;
+		(*left_to_mix)--;
+	}
+
+	if (playing->resampler.dir == 0)
+		playing->flags |= IT_PLAYING_DEAD;
+
+	return size_rendered;
+}
+#else
 static long render_playing_ramp(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing, float volume, float main_delta, float delta, long pos, long size, sample_t **samples, int store_end_sample, int *left_to_mix, int ramp_style)
 {
 	long rv, trv;
@@ -4286,6 +4499,7 @@ static long render_playing_ramp(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *pl
 
 	return rv + render_playing(sigrenderer, playing, volume, main_delta, delta, pos, size, samples, store_end_sample, left_to_mix, cr_which);
 }
+#endif
 #else
 #define render_playing_ramp(sigrenderer, playing, volume, main_delta, delta, pos, size, samples, store_end_sample, left_to_mix, ramp_style) render_playing(sigrenderer, playing, volume, main_delta, delta, pos, size, samples, store_end_sample, left_to_mix, 3)
 #endif
@@ -4577,6 +4791,7 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 		channel->lastS = 0;
 		channel->pat_loop_row = 0;
 		channel->pat_loop_count = 0;
+		channel->pat_loop_end_row = 0;
 		channel->lastW = 0;
 		channel->xm_lastE1 = 0;
 		channel->xm_lastE2 = 0;
