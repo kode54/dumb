@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="dumb"
 	ProjectGUID="{612D360C-A51B-4B34-8F49-33F42A2957F5}"
+	RootNamespace="dumb"
 	SccProjectName="&quot;$/foobar2000/plugins.root/plugins&quot;, CEAAAAAA"
 	SccLocalPath="..\..\..\.."
 	SccProvider="MSSCCI:Microsoft Visual SourceSafe"
@@ -1378,6 +1379,10 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\..\src\it\loadstm.c"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\it\loadxm.c"
 					>
 					<FileConfiguration
@@ -1703,6 +1708,10 @@
 							PreprocessorDefinitions=""
 						/>
 					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\..\src\it\readstm.c"
+					>
 				</File>
 				<File
 					RelativePath="..\..\src\it\readxm.c"
