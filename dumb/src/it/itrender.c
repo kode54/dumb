@@ -4031,9 +4031,6 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 {
 	int bits;
 
-	int pan;
-	float span; /* separated pan, range -1 to 1; garbage for surround */
-
 	long size_rendered;
 
 	DUMB_VOLUME_RAMP_INFO lvol, rvol;
