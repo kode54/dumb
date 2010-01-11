@@ -24,6 +24,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+#endif
 
 #ifdef __cplusplus
 	extern "C" {

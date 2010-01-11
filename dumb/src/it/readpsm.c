@@ -477,7 +477,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 
 	if (dumbfile_mgetl(f) != DUMB_ID('F','I','L','E')) goto error;
 
-	chunk = malloc(768 * sizeof(*chunk));
+	chunk = calloc(768, sizeof(*chunk));
 
 	while (length >= 8) {
 		chunk[n_chunks].id = dumbfile_mgetl(f);
@@ -489,7 +489,11 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 		if (n) {
 			ptr = malloc(n);
 			if (!ptr) goto error_fc;
-			if (dumbfile_getnc(ptr, n, f) < n) goto error_fc;
+			if (dumbfile_getnc(ptr, n, f) < n)
+			{
+				free(ptr);
+				goto error_fc;
+			}
 			chunk[n_chunks].data = ptr;
 		}
 		n_chunks++;
@@ -567,6 +571,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 			sigdata->n_pchannels = ptr[10];
 			length = c->len - 11;
 			ptr += 11;
+			songchunk = 0;
 			if (length >= 8) {
 				songchunk = malloc(128 * sizeof(*songchunk));
 				if (!songchunk) goto error_usd;
@@ -586,7 +591,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 		}
 	}
 
-	if (!n_song_chunks) goto error_usd;
+	if (!n_song_chunks) goto error_sc;
 
 	for (n = 0; n < n_song_chunks; n++) {
 		PSMCHUNK * c = &songchunk[n];
@@ -948,7 +953,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 error_ev:
 	free(event);
 error_sc:
-	free(songchunk);
+	if (songchunk) free(songchunk);
 error_usd:
 	_dumb_it_unload_sigdata(sigdata);
 	goto error_fc;
