@@ -1322,6 +1322,8 @@ static void fix_sample_looping(IT_PLAYING *playing)
 		}
 
 		playing->resampler[1].pos = playing->resampler[0].pos += playing->time_lost;
+		// XXX what
+		playing->time_lost = 0;
 	}
 }
 
@@ -4981,6 +4983,10 @@ static int is_pattern_silent(IT_PATTERN * pattern, int order) {
 
 					case IT_S:
 						switch (entry->effectvalue >> 4) {
+							case 0: // meh bastard
+								if ( entry->effectvalue != 0 ) return 0;
+								break;
+
 							case IT_S_FINE_PATTERN_DELAY:
 							case IT_S_PATTERN_LOOP:
 							case IT_S_PATTERN_DELAY:
@@ -4995,6 +5001,18 @@ static int is_pattern_silent(IT_PATTERN * pattern, int order) {
 							default:
 								return 0;
 						}
+						break;
+
+					// clever idiot with his S L O W crap; do nothing
+					case IT_VOLSLIDE_TONEPORTA:
+					case IT_SET_SAMPLE_OFFSET:
+					case IT_GLOBAL_VOLUME_SLIDE:
+						if ( entry->effectvalue != 0 ) return 0;
+						break;
+
+					// genius also uses this instead of jump to order by mistake, meh, and it's bloody BCD
+					case IT_BREAK_TO_ROW:						
+						if ( ( ( entry->effectvalue >> 4 ) * 10 + ( entry->effectvalue & 15 ) ) != order ) return 0;
 						break;
 
 					default:
@@ -5075,7 +5093,7 @@ int dumb_it_scan_for_playable_orders(DUMB_IT_SIGDATA *sigdata, dumb_scan_callbac
 
 	for (n = 0; n < sigdata->n_orders; n++) {
 		if ((sigdata->order[n] >= sigdata->n_patterns) ||
-			(is_pattern_silent(&sigdata->pattern[sigdata->order[n]], n)))
+			(is_pattern_silent(&sigdata->pattern[sigdata->order[n]], n) > 1))
 			bit_array_set(ba_played, n * 256);
 	}
 

@@ -91,7 +91,8 @@ const char xm_convert_vibrato[] = {
 	IT_VIBRATO_SINE,
 	IT_VIBRATO_XM_SQUARE,
 	IT_VIBRATO_RAMP_DOWN,
-	IT_VIBRATO_RAMP_UP
+	IT_VIBRATO_RAMP_UP,
+	IT_VIBRATO_RANDOM
 };
 
 
@@ -367,7 +368,8 @@ static int it_xm_read_instrument(IT_INSTRUMENT *instrument, XM_INSTRUMENT_EXTRA 
 
 	if (extra->n_samples) {
 		/* sample header size */
-		if (dumbfile_igetl(f) != 0x28) {
+		i = dumbfile_igetl(f);
+		if (i && i != 0x28) { // XXX some crap with 0 here
 			TRACE("XM error: unexpected sample header size\n");
 			return -1;
 		}
@@ -443,7 +445,7 @@ static int it_xm_read_instrument(IT_INSTRUMENT *instrument, XM_INSTRUMENT_EXTRA 
 		extra->vibrato_depth = dumbfile_getc(f);
 		extra->vibrato_speed = dumbfile_getc(f);
 
-		if (dumbfile_error(f) || extra->vibrato_type >= 4)
+		if (dumbfile_error(f) || extra->vibrato_type > 4) // XXX
 			return -1;
 
 		/** WARNING: lossy approximation */
@@ -647,7 +649,7 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
  * (Never trust the documentation provided with a tracker.
  *  Real files are the only truth...)
  */
-/*static*/ DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
+static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 {
 	DUMB_IT_SIGDATA *sigdata;
 	char id_text[18];
@@ -724,14 +726,15 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 	n_channels                = dumbfile_igetw(f); /* max 32 but we'll be lenient */
 	sigdata->n_pchannels      = n_channels;
 	sigdata->n_patterns       = dumbfile_igetw(f);
-	sigdata->n_instruments    = dumbfile_igetw(f); /* max 128 */
+	sigdata->n_instruments    = dumbfile_igetw(f); /* max 128 */ /* XXX upped to 256 */
 	flags                     = dumbfile_igetw(f);
 	sigdata->speed            = dumbfile_igetw(f);
 	if (sigdata->speed == 0) sigdata->speed = 6; // Should we? What about tempo?
 	sigdata->tempo            = dumbfile_igetw(f);
 
 	/* sanity checks */
-	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_orders > 256 || sigdata->n_patterns > 256 || sigdata->n_instruments > 128 || n_channels > DUMB_IT_N_CHANNELS) {
+	// XXX
+	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_orders > 256 || sigdata->n_patterns > 256 || sigdata->n_instruments > 256 || n_channels > DUMB_IT_N_CHANNELS) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
 	}
@@ -814,9 +817,18 @@ static int it_xm_read_sample_data(IT_SAMPLE *sample, unsigned char roguebytes, D
 			XM_INSTRUMENT_EXTRA extra;
 
 			if (it_xm_read_instrument(&sigdata->instrument[i], &extra, f) < 0) {
-				TRACE("XM error: instrument %d\n", i+1);
-				_dumb_it_unload_sigdata(sigdata);
-				return NULL;
+				// XXX
+				if ( ! i )
+				{
+					TRACE("XM error: instrument %d\n", i+1);
+					_dumb_it_unload_sigdata(sigdata);
+					return NULL;
+				}
+				else
+				{
+					sigdata->n_instruments = i;
+					break;
+				}
 			}
 
 			if (extra.n_samples) {

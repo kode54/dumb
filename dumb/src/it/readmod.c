@@ -437,7 +437,7 @@ static DUMBFILE *dumbfile_buffer_mod_2(DUMBFILE *f, long *remain)
 }
 
 
-static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f)
+static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 {
 	DUMB_IT_SIGDATA *sigdata;
 	int n_channels;
@@ -543,6 +543,14 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f)
 				n_channels = 4;
 				sigdata->n_samples = 15;
 			}
+	}
+
+	// moo
+	if ( restrict && sigdata->n_samples == 15 )
+	{
+		free(sigdata);
+		dumbfile_close(f);
+		return NULL;
 	}
 
 	sigdata->n_pchannels = n_channels ? n_channels : 8; /* special case for 0, see above */
@@ -725,14 +733,14 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f)
 
 
 
-DUH *dumb_read_mod(DUMBFILE *f)
+DUH *dumb_read_mod(DUMBFILE *f, int restrict)
 {
 	sigdata_t *sigdata;
 	long length;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
-	sigdata = it_mod_load_sigdata(f);
+	sigdata = it_mod_load_sigdata(f, restrict);
 
 	if (!sigdata)
 		return NULL;

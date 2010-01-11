@@ -339,8 +339,10 @@ static int it_read_old_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f)
 {
 	int n;
 
-	if (dumbfile_mgetl(f) != IT_INSTRUMENT_SIGNATURE)
-		return -1;
+	/*if (dumbfile_mgetl(f) != IT_INSTRUMENT_SIGNATURE)
+		return -1;*/
+	// XXX
+	dumbfile_skip(f, 4);
 
 	dumbfile_getnc(instrument->filename, 13, f);
 	instrument->filename[13] = 0;
@@ -445,12 +447,17 @@ static int it_read_old_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f)
 
 
 
-static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f)
+static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f, int maxlen)
 {
-	int n;
+	int n, len;
 
-	if (dumbfile_mgetl(f) != IT_INSTRUMENT_SIGNATURE)
-		return -1;
+	/*if (dumbfile_mgetl(f) != IT_INSTRUMENT_SIGNATURE)
+		return -1;*/
+	// XXX
+
+	if (maxlen) len = dumbfile_pos(f);
+
+	dumbfile_skip(f, 4);
 
 	dumbfile_getnc(instrument->filename, 13, f);
 	instrument->filename[13] = 0;
@@ -491,6 +498,20 @@ static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f)
 	if (it_read_envelope(&instrument->volume_envelope, f)) return -1;
 	if (it_read_envelope(&instrument->pan_envelope, f)) return -1;
 	if (it_read_envelope(&instrument->pitch_envelope, f)) return -1;
+
+	if (maxlen) {
+		len = dumbfile_pos(f) - len;
+		if ( maxlen - len < 124 ) return 0;
+	}
+
+	if ( dumbfile_mgetl(f) == IT_MPTX_SIGNATURE ) {
+		for ( n = 0; n < 120; n++ ) {
+			instrument->map_sample[ n ] += dumbfile_getc( f ) << 8;
+		}
+
+		if (dumbfile_error(f))
+			return -1;
+	}
 
 	return 0;
 }
@@ -876,7 +897,7 @@ static int it_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buff
 typedef struct IT_COMPONENT
 {
 	unsigned char type;
-	unsigned char n;
+	unsigned short n;
 	long offset;
 	short sampfirst; /* component[sampfirst] = first sample data after this */
 	short sampnext; /* sampnext is used to create linked lists of sample data */
@@ -904,7 +925,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	IT_COMPONENT *component;
 	int n_components = 0;
 
-	unsigned char sample_convert[256];
+	unsigned char sample_convert[4096];
 
 	int n;
 
@@ -962,7 +983,8 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	dumbfile_getnc(sigdata->channel_pan, DUMB_IT_N_CHANNELS, f);
 	dumbfile_getnc(sigdata->channel_volume, DUMB_IT_N_CHANNELS, f);
 
-	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_instruments > 256 || sigdata->n_samples > 256 || sigdata->n_patterns > 256) {
+	// XXX sample count
+	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_instruments > 256 || sigdata->n_samples > 4000 || sigdata->n_patterns > 256) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
 	}
@@ -1188,7 +1210,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 				if (cmwt < 0x200)
 					m = it_read_old_instrument(&sigdata->instrument[component[n].n], f);
 				else
-					m = it_read_instrument(&sigdata->instrument[component[n].n], f);
+					m = it_read_instrument(&sigdata->instrument[component[n].n], f, (n + 1 < n_components) ? (component[n+1].offset - component[n].offset) : 0);
 
 				if (m) {
 					free(buffer);

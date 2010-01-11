@@ -24,6 +24,8 @@
 #include "dumb.h"
 #include "internal/it.h"
 
+//#define S3M_BROKEN_OVERLAPPED_SAMPLES
+
 /** WARNING: this is duplicated in itread.c */
 static int it_seek(DUMBFILE *f, long offset)
 {
@@ -53,10 +55,11 @@ static int it_s3m_read_sample_header(IT_SAMPLE *sample, long *offset, unsigned c
 		/** WARNING: no adlib support */
 	}
 
-	dumbfile_getnc(sample->filename, 13, f);
-	sample->filename[13] = 0;
+	dumbfile_getnc(sample->filename, 12, f);
+	sample->filename[12] = 0;
 
-	*offset = dumbfile_igetw(f) << 4;
+	*offset = dumbfile_getc(f) << 20;
+	*offset += dumbfile_igetw(f) << 4;
 
 	sample->length = dumbfile_igetl(f);
 	sample->loop_start = dumbfile_igetl(f);
@@ -66,13 +69,15 @@ static int it_s3m_read_sample_header(IT_SAMPLE *sample, long *offset, unsigned c
 
 	dumbfile_skip(f, 1);
 
-	*pack = dumbfile_getc(f);
+	flags = dumbfile_getc(f);
 
-	if (*pack < 0 || (*pack != 0 && *pack != 4))
+	if (flags < 0 || (flags != 0 && flags != 4))
 		/* Sample is packed apparently (or error reading from file). We don't
 		 * know how to read packed samples.
 		 */
 		return -1;
+
+	*pack = flags;
 
 	flags = dumbfile_getc(f);
 
@@ -277,7 +282,10 @@ static int it_s3m_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *
 		pattern->n_entries++;
 		if (b) {
 			if (buflen + used[b] >= 65536) return -1;
-			dumbfile_getnc(buffer + buflen, used[b], f);
+			if (buflen + used[b] <= length)
+				dumbfile_getnc(buffer + buflen, used[b], f);
+			else
+				memset(buffer + buflen, 0, used[b]);
 			buflen += used[b];
 		} else {
 			/* End of row */
@@ -380,7 +388,8 @@ static int it_s3m_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *
 			if (b & 128) {
 				entry->effect = buffer[bufpos++];
 				entry->effectvalue = buffer[bufpos++];
-				if (entry->effect != 255) {
+				// XXX woot
+				if (entry->effect && entry->effect < IT_MIDI_MACRO /*!= 255*/) {
 					entry->mask |= IT_ENTRY_EFFECT;
 					switch (entry->effect) {
 					case IT_BREAK_TO_ROW:
@@ -429,11 +438,11 @@ static int it_s3m_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *
  * trouble.
  */
 
-#define IT_COMPONENT_INSTRUMENT 1
-#define IT_COMPONENT_PATTERN    2
-#define IT_COMPONENT_SAMPLE     3
+#define S3M_COMPONENT_INSTRUMENT 1
+#define S3M_COMPONENT_PATTERN    2
+#define S3M_COMPONENT_SAMPLE     3
 
-typedef struct IT_COMPONENT
+typedef struct S3M_COMPONENT
 {
 	unsigned char type;
 	unsigned char n;
@@ -441,14 +450,14 @@ typedef struct IT_COMPONENT
 	short sampfirst; /* component[sampfirst] = first sample data after this */
 	short sampnext; /* sampnext is used to create linked lists of sample data */
 }
-IT_COMPONENT;
+S3M_COMPONENT;
 
 
 
-static int it_component_compare(const void *e1, const void *e2)
+static int s3m_component_compare(const void *e1, const void *e2)
 {
-	return ((const IT_COMPONENT *)e1)->offset -
-	       ((const IT_COMPONENT *)e2)->offset;
+	return ((const S3M_COMPONENT *)e1)->offset -
+	       ((const S3M_COMPONENT *)e2)->offset;
 }
 
 
@@ -464,7 +473,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 
 	unsigned char sample_pack[256];
 
-	IT_COMPONENT *component;
+	S3M_COMPONENT *component;
 	int n_components = 0;
 
 	int n;
@@ -605,7 +614,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 	}
 
 	for (n = 0; n < sigdata->n_samples; n++) {
-		component[n_components].type = IT_COMPONENT_SAMPLE;
+		component[n_components].type = S3M_COMPONENT_SAMPLE;
 		component[n_components].n = n;
 		component[n_components].offset = dumbfile_igetw(f) << 4;
 		component[n_components].sampfirst = -1;
@@ -615,7 +624,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 	for (n = 0; n < sigdata->n_patterns; n++) {
 		long offset = dumbfile_igetw(f) << 4;
 		if (offset) {
-			component[n_components].type = IT_COMPONENT_PATTERN;
+			component[n_components].type = S3M_COMPONENT_PATTERN;
 			component[n_components].n = n;
 			component[n_components].offset = offset;
 			component[n_components].sampfirst = -1;
@@ -627,7 +636,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 		}
 	}
 
-	qsort(component, n_components, sizeof(IT_COMPONENT), &it_component_compare);
+	qsort(component, n_components, sizeof(S3M_COMPONENT), &s3m_component_compare);
 
 	/* I found a really dumb S3M file that claimed to contain default pan
 	 * data but didn't contain any. Programs would load it by reading part of
@@ -674,10 +683,10 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 	 */
 
 	for (n = 0; n < n_components; n++) {
-		if (component[n].type == IT_COMPONENT_PATTERN) {
+		if (component[n].type == S3M_COMPONENT_PATTERN) {
 			int m;
 			for (m = n + 1; m < n_components; m++) {
-				if (component[m].type == IT_COMPONENT_PATTERN) {
+				if (component[m].type == S3M_COMPONENT_PATTERN) {
 					if (component[n].offset == component[m].offset) {
 						int o, pattern;
 						pattern = component[m].n;
@@ -703,6 +712,9 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 	for (n = 0; n < n_components; n++) {
 		long offset;
 		int m;
+#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
+		int last;
+#endif
 
 		if (it_seek(f, component[n].offset)) {
 			free(buffer);
@@ -713,7 +725,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 
 		switch (component[n].type) {
 
-			case IT_COMPONENT_PATTERN:
+			case S3M_COMPONENT_PATTERN:
 				if (it_s3m_read_pattern(&sigdata->pattern[component[n].n], f, buffer, (n + 1 < n_components) ? (component[n+1].offset - component[n].offset) : 0)) {
 					free(buffer);
 					free(component);
@@ -722,7 +734,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 				}
 				break;
 
-			case IT_COMPONENT_SAMPLE:
+			case S3M_COMPONENT_SAMPLE:
 				if (it_s3m_read_sample_header(&sigdata->sample[component[n].n], &offset, &sample_pack[component[n].n], *cwtv, f)) {
 					free(buffer);
 					free(component);
@@ -752,20 +764,58 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 
 		m = component[n].sampfirst;
 
-		while (m >= 0) {
-			if (it_seek(f, component[m].offset)) {
-				free(buffer);
-				free(component);
-				_dumb_it_unload_sigdata(sigdata);
-				return NULL;
-			}
+#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
+		last = -1;
+#endif
 
-			if (it_s3m_read_sample_data(&sigdata->sample[component[m].n], ffi, sample_pack[component[n].n], f)) {
-				free(buffer);
-				free(component);
-				_dumb_it_unload_sigdata(sigdata);
-				return NULL;
+		while (m >= 0) {
+			// XXX
+#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
+			if ( last >= 0 ) {
+				if ( dumbfile_pos( f ) > component[m].offset ) {
+					IT_SAMPLE * s1 = &sigdata->sample[component[last].n];
+					IT_SAMPLE * s2 = &sigdata->sample[component[m].n];
+					if ( ( s1->flags | s2->flags ) & ( IT_SAMPLE_16BIT | IT_SAMPLE_STEREO ) ) {
+						free(buffer);
+						free(component);
+						_dumb_it_unload_sigdata(sigdata);
+						return NULL;
+					}
+					if ( component[m].offset >= component[last].offset &&
+						component[m].offset + s2->length <= component[last].offset + s1->length ) {
+						s2->left = malloc( s2->length );
+						if ( ! s2->left ) {
+							free(buffer);
+							free(component);
+							_dumb_it_unload_sigdata(sigdata);
+							return NULL;
+						}
+						memcpy( s2->left, ( const char * ) s1->left + component[m].offset - component[last].offset, s2->length );
+						last = -1;
+					}
+				}
+			} else last = 0;
+
+			if ( last >= 0 ) {
+#endif
+				if (it_seek(f, component[m].offset)) {
+					free(buffer);
+					free(component);
+					_dumb_it_unload_sigdata(sigdata);
+					return NULL;
+				}
+
+				if (it_s3m_read_sample_data(&sigdata->sample[component[m].n], ffi, sample_pack[component[m].n], f)) {
+					free(buffer);
+					free(component);
+					_dumb_it_unload_sigdata(sigdata);
+					return NULL;
+				}
+
+#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
+				last = m;
 			}
+#endif
 
 			m = component[m].sampnext;
 		}

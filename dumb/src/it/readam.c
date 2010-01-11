@@ -93,7 +93,7 @@ static int it_riff_am_process_sample( IT_SAMPLE * sample, const unsigned char * 
 		return 0;
 	}
 
-	if ( flags & ~( 0x80 | 0x20 | 0x10 | 0x08 | 0x04 ) )
+	if ( flags & ~( 0x8000 | 0x80 | 0x20 | 0x10 | 0x08 | 0x04 ) )
 		return -1;
 
 	length_bytes = length << ( ( flags & 0x04 ) >> 2 );
@@ -298,11 +298,11 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( struct riff * stream )
 
 		case DUMB_ID( 'I', 'N', 'S', 'T' ):
 			{
-				if ( c->size < 0x121 ) goto error;
+				if ( c->size < 0xE1 ) goto error;
 				ptr = ( unsigned char * ) c->data;
 				if ( ptr[ 1 ] >= sigdata->n_samples ) sigdata->n_samples = ptr[ 1 ] + 1;
-				if ( ptr[ 0xE1 ] == 'S' && ptr[ 0xE2 ] == 'A' &&
-					ptr[ 0xE3 ] == 'M' && ptr[ 0xE4 ] == 'P' )
+				if ( c->size >= 0x121 && ( ptr[ 0xE1 ] == 'S' && ptr[ 0xE2 ] == 'A' &&
+					ptr[ 0xE3 ] == 'M' && ptr[ 0xE4 ] == 'P' ) )
 				{
 					unsigned size = ptr[ 0xE5 ] | ( ptr[ 0xE6 ] << 8 ) | ( ptr[ 0xE7 ] << 16 ) | ( ptr[ 0xE8 ] << 24 );
 					if ( size + 0xE1 + 8 > c->size ) goto error;
@@ -409,11 +409,10 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( struct riff * stream )
 		case DUMB_ID( 'I', 'N', 'S', 'T' ):
 			{
 				IT_SAMPLE * sample;
-				if ( c->size < 0x121 ) goto error;
 				ptr = ( unsigned char * ) c->data;
 				sample = sigdata->sample + ptr[ 1 ];
-				if ( ptr[ 0xE1 ] == 'S' && ptr[ 0xE2 ] == 'A' &&
-					ptr[ 0xE3 ] == 'M' && ptr[ 0xE4 ] == 'P' )
+				if ( c->size >= 0x121 && ( ptr[ 0xE1 ] == 'S' && ptr[ 0xE2 ] == 'A' &&
+					ptr[ 0xE3 ] == 'M' && ptr[ 0xE4 ] == 'P' ) )
 				{
 					unsigned size = ptr[ 0xE5 ] | ( ptr[ 0xE6 ] << 8 ) | ( ptr[ 0xE7 ] << 16 ) | ( ptr[ 0xE8 ] << 24 );
 					if ( it_riff_am_process_sample( sample, ptr + 0xE1 + 8, size, 0 ) ) goto error_usd;

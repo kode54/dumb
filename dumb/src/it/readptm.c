@@ -313,24 +313,24 @@ static int it_ptm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *
  * trouble.
  */
 
-#define IT_COMPONENT_INSTRUMENT 1
-#define IT_COMPONENT_PATTERN    2
-#define IT_COMPONENT_SAMPLE     3
+#define PTM_COMPONENT_INSTRUMENT 1
+#define PTM_COMPONENT_PATTERN    2
+#define PTM_COMPONENT_SAMPLE     3
 
-typedef struct IT_COMPONENT
+typedef struct PTM_COMPONENT
 {
 	unsigned char type;
 	unsigned char n;
 	long offset;
 }
-IT_COMPONENT;
+PTM_COMPONENT;
 
 
 
-static int it_component_compare(const void *e1, const void *e2)
+static int ptm_component_compare(const void *e1, const void *e2)
 {
-	return ((const IT_COMPONENT *)e1)->offset -
-	       ((const IT_COMPONENT *)e2)->offset;
+	return ((const PTM_COMPONENT *)e1)->offset -
+	       ((const PTM_COMPONENT *)e2)->offset;
 }
 
 
@@ -339,7 +339,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 {
 	DUMB_IT_SIGDATA *sigdata;
 
-	IT_COMPONENT *component;
+	PTM_COMPONENT *component;
 	int n_components = 0;
 
 	int n;
@@ -460,7 +460,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 	}
 
 	for (n = 0; n < sigdata->n_patterns; n++) {
-		component[n_components].type = IT_COMPONENT_PATTERN;
+		component[n_components].type = PTM_COMPONENT_PATTERN;
 		component[n_components].n = n;
 		component[n_components].offset = dumbfile_igetw(f) << 4;
 		n_components++;
@@ -477,12 +477,12 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 			return NULL;
 		}
 		if (!(sigdata->sample[n].flags & IT_SAMPLE_EXISTS)) continue;
-		component[n_components].type = IT_COMPONENT_SAMPLE;
+		component[n_components].type = PTM_COMPONENT_SAMPLE;
 		component[n_components].n = n;
 		n_components++;
 	}
 
-	qsort(component, n_components, sizeof(IT_COMPONENT), &it_component_compare);
+	qsort(component, n_components, sizeof(PTM_COMPONENT), &ptm_component_compare);
 
 	{
 		int i;
@@ -518,7 +518,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 
 		switch (component[n].type) {
 
-			case IT_COMPONENT_PATTERN:
+			case PTM_COMPONENT_PATTERN:
 				if (it_ptm_read_pattern(&sigdata->pattern[component[n].n], f, buffer, (n + 1 < n_components) ? (component[n+1].offset - component[n].offset) : 0)) {
 					free(buffer);
 					free(component);
@@ -527,7 +527,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 				}
 				break;
 
-			case IT_COMPONENT_SAMPLE:
+			case PTM_COMPONENT_SAMPLE:
 				if (it_ptm_read_sample_data(&sigdata->sample[component[n].n], (n + 1 == n_components), f)) {
 					free(buffer);
 					free(component);

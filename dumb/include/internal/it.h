@@ -61,6 +61,8 @@ sigdata->flags & IT_COMPATIBLE_GXX
 #define IT_INSTRUMENT_SIGNATURE DUMB_ID('I', 'M', 'P', 'I')
 #define IT_SAMPLE_SIGNATURE     DUMB_ID('I', 'M', 'P', 'S')
 
+// olivier sux
+#define IT_MPTX_SIGNATURE       DUMB_ID('X', 'T', 'P', 'M')
 
 
 /* 1 minute per 4 rows, each row 6 ticks; this is divided by the tempo to get
