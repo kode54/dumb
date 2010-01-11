@@ -373,11 +373,12 @@ static int it_xm_read_instrument(IT_INSTRUMENT *instrument, XM_INSTRUMENT_EXTRA 
 
 	if (extra->n_samples) {
 		/* sample header size */
-		i = dumbfile_igetl(f);
+		dumbfile_skip(f, 4); // XXX can't be trusted, as there are trackers that write the wrong value here
+		/*i = dumbfile_igetl(f);
 		if (i && i != 0x28) { // XXX some crap with 0 here
 			TRACE("XM error: unexpected sample header size\n");
 			return -1;
-		}
+		}*/
 
 		/* sample map */
 		for (i = 0; i < 96; i++) {
