@@ -120,6 +120,8 @@ static IT_PLAYING *dup_playing(IT_PLAYING *src, IT_CHANNEL *dstchannel, IT_CHANN
 	dst->resampler.pickup_data = dst;
 	dst->time_lost = src->time_lost;
 
+	//dst->output = src->output;
+
 	return dst;
 }
 
@@ -219,6 +221,8 @@ static void dup_channel(IT_CHANNEL *dst, IT_CHANNEL *src)
 	dst->played_patjump = bit_array_dup(src->played_patjump);
 	dst->played_patjump_order = src->played_patjump_order;
 #endif
+
+	//dst->output = src->output;
 }
 
 
@@ -291,6 +295,8 @@ static DUMB_IT_SIGRENDERER *dup_sigrenderer(DUMB_IT_SIGRENDERER *src, int n_chan
 
 	dst->gvz_time = src->gvz_time;
 	dst->gvz_sub_time = src->gvz_sub_time;
+
+	//dst->max_output = src->max_output;
 
 	return dst;
 }
@@ -833,14 +839,18 @@ static void it_playing_update_resamplers(IT_PLAYING *playing)
 	if ((playing->sample->flags & IT_SAMPLE_SUS_LOOP) && !(playing->flags & IT_PLAYING_SUSTAINOFF)) {
 		playing->resampler.start = playing->sample->sus_loop_start;
 		playing->resampler.end = playing->sample->sus_loop_end;
-		if (playing->sample->flags & IT_SAMPLE_PINGPONG_SUS_LOOP)
+		if (playing->resampler.start == playing->resampler.end)
+			playing->resampler.pickup = &it_pickup_stop_at_end;
+		else if (playing->sample->flags & IT_SAMPLE_PINGPONG_SUS_LOOP)
 			playing->resampler.pickup = &it_pickup_pingpong_loop;
 		else
 			playing->resampler.pickup = &it_pickup_loop;
 	} else if (playing->sample->flags & IT_SAMPLE_LOOP) {
 		playing->resampler.start = playing->sample->loop_start;
 		playing->resampler.end = playing->sample->loop_end;
-		if (playing->sample->flags & IT_SAMPLE_PINGPONG_LOOP)
+		if (playing->resampler.start == playing->resampler.end)
+			playing->resampler.pickup = &it_pickup_stop_at_end;
+		else if (playing->sample->flags & IT_SAMPLE_PINGPONG_LOOP)
 			playing->resampler.pickup = &it_pickup_pingpong_loop;
 		else
 			playing->resampler.pickup = &it_pickup_loop;
@@ -1598,6 +1608,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	channel->playing->enabled_envelopes = 0;
 	channel->playing->volume_offset = 0;
 	channel->playing->panning_offset = 0;
+	//channel->playing->output = channel->output;
 	if (sigdata->flags & IT_USE_INSTRUMENTS) {
 		IT_PLAYING * playing = channel->playing;
 		IT_INSTRUMENT * instrument = playing->instrument;
@@ -1606,6 +1617,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 		if (instrument->pitch_envelope.flags & IT_ENVELOPE_ON) playing->enabled_envelopes |= IT_ENV_PITCH;
 		if (instrument->random_volume) playing->volume_offset = (rand() % (instrument->random_volume * 2 + 1)) - instrument->random_volume;
 		if (instrument->random_pan) playing->panning_offset = (rand() % (instrument->random_pan * 2 + 1)) - instrument->random_pan;
+		//if (instrument->output) playing->output = instrument->output;
 	}
 	channel->playing->filter_cutoff = 127;
 	channel->playing->filter_resonance = 0;
@@ -3029,11 +3041,13 @@ static void process_xm_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *ent
 			channel->playing->enabled_envelopes = 0;
 			channel->playing->volume_offset = 0;
 			channel->playing->panning_offset = 0;
+			//channel->playing->output = channel->output;
 			if (sigdata->flags & IT_USE_INSTRUMENTS) {
 				IT_PLAYING * playing = channel->playing;
 				IT_INSTRUMENT * instrument = playing->instrument;
 				if (instrument->volume_envelope.flags & IT_ENVELOPE_ON) playing->enabled_envelopes |= IT_ENV_VOLUME;
 				if (instrument->pan_envelope.flags & IT_ENVELOPE_ON) playing->enabled_envelopes |= IT_ENV_PANNING;
+				//if (instrument->output) playing->output = instrument->output;
 			}
 			channel->playing->filter_cutoff = 127;
 			channel->playing->filter_resonance = 0;
@@ -4578,8 +4592,8 @@ static void apply_pitch_modifications(DUMB_IT_SIGDATA *sigdata, IT_PLAYING *play
 
 				*delta -= sample_vibrato_shift / AMIGA_DIVISOR;
 
-				if (*delta < (1.0f / 65536.0f) / 32768.0f) {
-					*delta = (1.0f / 65536.0f) / 32768.0f;
+				if (*delta < (1.0f / 65536.0f) / 32767.0f) {
+					*delta = (1.0f / 65536.0f) / 32767.0f;
 				}
 
 				*delta = (1.0f / 65536.0f) / *delta * scale;
@@ -4612,6 +4626,8 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 
 	int ramp_style = sigrenderer->ramp_style;
 
+	//int max_output = sigrenderer->max_output;
+
 	if (ramp_style > 2) {
 		if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM | IT_WAS_A_MOD)) == IT_WAS_AN_XM) ramp_style = 2;
 		else ramp_style -= 3;
@@ -4640,6 +4656,7 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 		IT_PLAYING *playing = to_mix[i].playing;
 		float note_delta = delta * playing->delta;
 		int cutoff = playing->filter_cutoff << IT_ENVELOPE_SHIFT;
+		//int output = min( playing->output, max_output );
 
 		apply_pitch_modifications(sigrenderer->sigdata, playing, &note_delta, &cutoff);
 
@@ -4664,12 +4681,12 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 				size_rendered = render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, 0, size, samples_to_filter, 1, &left_to_mix, ramp_style);
 				sigrenderer->click_remover = cr;
 				if (sigrenderer->n_channels == 2) {
-					it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0], pos, samples_to_filter[0], size_rendered,
+					it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0 /*output*/], pos, samples_to_filter[0], size_rendered,
 						2, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
-					it_filter(cr ? cr[1] : NULL, &playing->filter_state[1], samples[0]+1, pos, samples_to_filter[0]+1, size_rendered,
+					it_filter(cr ? cr[1] : NULL, &playing->filter_state[1], samples[0 /*output*/]+1, pos, samples_to_filter[0]+1, size_rendered,
 						2, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
 				} else {
-					it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0], pos, samples_to_filter[0], size_rendered,
+					it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0 /*output*/], pos, samples_to_filter[0], size_rendered,
 						1, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
 				}
 				// FIXME: filtering is not prevented by low left_to_mix!
@@ -4678,7 +4695,7 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 		} else {
 			it_reset_filter_state(&playing->filter_state[0]);
 			it_reset_filter_state(&playing->filter_state[1]);
-			render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, pos, size, samples, 0, &left_to_mix, ramp_style);
+			render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, pos, size, samples /*&samples[output]*/, 0, &left_to_mix, ramp_style);
 		}
 	}
 
@@ -4804,6 +4821,7 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 		channel->played_patjump = NULL;
 		channel->played_patjump_order = 0xFFFE;
 #endif
+		//channel->output = 0;
 	}
 
 	if (sigdata->flags & IT_WAS_A_669)
@@ -4867,6 +4885,8 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 
 	sigrenderer->gvz_time = 0;
 	sigrenderer->gvz_sub_time = 0;
+
+	//sigrenderer->max_output = 0;
 
 	return sigrenderer;
 }

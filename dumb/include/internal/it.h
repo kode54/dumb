@@ -70,6 +70,7 @@ sigdata->flags & IT_COMPATIBLE_GXX
 
 // olivier sux
 #define IT_MPTX_SIGNATURE       DUMB_ID('X', 'T', 'P', 'M')
+#define IT_INSM_SIGNATURE       DUMB_ID('M', 'S', 'N', 'I')
 
 
 /* 1 minute per 4 rows, each row 6 ticks; this is divided by the tempo to get
@@ -183,6 +184,8 @@ struct IT_INSTRUMENT
 
 	unsigned char map_note[120];
 	unsigned short map_sample[120];
+
+	//int output;
 };
 
 
@@ -533,6 +536,8 @@ struct IT_PLAYING
 	 * proceeding.
 	 */
 	long time_lost;
+
+	//int output;
 };
 
 
@@ -642,6 +647,8 @@ struct IT_CHANNEL
 	void * played_patjump;
 	int played_patjump_order;
 #endif
+
+	//int output;
 };
 
 
@@ -698,6 +705,8 @@ struct DUMB_IT_SIGRENDERER
 	int gvz_sub_time;
 
 	int ramp_style;
+
+	//int max_output;
 };
 
 

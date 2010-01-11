@@ -471,6 +471,14 @@ static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f, int maxlen
 	instrument->filter_resonance = dumbfile_getc(f);
 
 	/* Skip MIDI Channel, Program and Bank. */
+	//dumbfile_skip(f, 4);
+	/*instrument->output = dumbfile_getc(f);
+	if ( instrument->output > 16 ) {
+		instrument->output -= 128;
+	} else {
+		instrument->output = 0;
+	}
+	dumbfile_skip(f, 3);*/
 	dumbfile_skip(f, 4);
 
 	for (n = 0; n < 120; n++) {
@@ -498,6 +506,25 @@ static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f, int maxlen
 		if (dumbfile_error(f))
 			return -1;
 	}
+
+	/*if ( dumbfile_mgetl(f) == IT_INSM_SIGNATURE ) {
+		long end = dumbfile_igetl(f);
+		end += dumbfile_pos(f);
+		while ( dumbfile_pos(f) < end ) {
+			int chunkid = dumbfile_igetl(f);
+			switch ( chunkid ) {
+				case DUMB_ID('P','L','U','G'):
+					instrument->output = dumbfile_getc(f);
+					break;
+				default:
+					chunkid = chunkid / 0x100 + dumbfile_getc(f) * 0x1000000;
+					break;
+			}
+		}
+
+		if (dumbfile_error(f))
+			return -1;
+	}*/
 
 	return 0;
 }
