@@ -249,6 +249,9 @@
     <ClCompile Include="..\..\src\it\xmeffect.c">
       <Filter>src\it</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\helpers\blip_buf.c">
+      <Filter>src\helpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\dumb.h">
@@ -266,12 +269,15 @@
     <ClInclude Include="..\..\include\internal\riff.h">
       <Filter>include\internal</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\internal\blip_buf.h">
+      <Filter>include\internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\src\helpers\resamp2.inc">
+    <CustomBuild Include="..\..\src\helpers\resamp3.inc">
       <Filter>src\helpers</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\..\src\helpers\resamp3.inc">
+    <CustomBuild Include="..\..\src\helpers\resamp2.inc">
       <Filter>src\helpers</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\helpers\resample.inc">

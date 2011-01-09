@@ -306,6 +306,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="..\..\src\helpers\blip_buf.c" />
     <ClCompile Include="..\..\src\helpers\clickrem.c">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -710,6 +711,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\dumb.h" />
     <ClInclude Include="..\..\include\internal\barray.h" />
+    <ClInclude Include="..\..\include\internal\blip_buf.h" />
     <ClInclude Include="..\..\include\internal\dumb.h" />
     <ClInclude Include="..\..\include\internal\it.h" />
     <ClInclude Include="..\..\include\internal\riff.h" />
