@@ -92,6 +92,7 @@ int dumb_resampling_quality = DUMB_RQ_CUBIC;
  * Clobbers the 'iterator' variable.
  * The loop is unrolled by four.
  */
+#if 0
 #define LOOP4(iterator, CONTENT) \
 { \
 	if ((iterator) & 2) { \
@@ -110,8 +111,15 @@ int dumb_resampling_quality = DUMB_RQ_CUBIC;
 		(iterator)--; \
 	} \
 }
-
-
+#else
+#define LOOP4(iterator, CONTENT) \
+{ \
+	while ( (iterator)-- ) \
+	{ \
+		CONTENT; \
+	} \
+}
+#endif
 
 #define PASTERAW(a, b) a ## b /* This does not expand macros in b ... */
 #define PASTE(a, b) PASTERAW(a, b) /* ... but b is expanded during this substitution. */

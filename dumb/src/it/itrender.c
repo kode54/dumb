@@ -149,13 +149,13 @@ static IT_PLAYING *dup_playing(IT_PLAYING *src, IT_CHANNEL *dstchannel, IT_CHANN
 
 	dst->resampler = src->resampler;
 	dst->resampler.pickup_data = dst;
-	dst->resampler.blip_buffer[0] = blip_dup( dst->resampler.blip_buffer[0] );
+	dst->resampler.blip_buffer[0] = blip_dup( src->resampler.blip_buffer[0] );
 	if ( !dst->resampler.blip_buffer[0] )
 	{
 		free( dst );
 		return NULL;
 	}
-	dst->resampler.blip_buffer[1] = blip_dup( dst->resampler.blip_buffer[1] );
+	dst->resampler.blip_buffer[1] = blip_dup( src->resampler.blip_buffer[1] );
 	if ( !dst->resampler.blip_buffer[1] )
 	{
 		blip_delete( dst->resampler.blip_buffer[0] );
@@ -4845,7 +4845,7 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 		channel->channelvolume = sigdata->channel_volume[i];
 		channel->instrument = 0;
 		channel->sample = 0;
-		channel->note = 0;
+		channel->note = IT_NOTE_OFF;
 		channel->SFmacro = 0;
 		channel->filter_cutoff = 127;
 		channel->filter_resonance = 0;
