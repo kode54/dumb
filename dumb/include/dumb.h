@@ -393,6 +393,7 @@ DUH *dumb_load_mtm(const char *filename);
 DUH *dumb_load_riff(const char *filename);
 DUH *dumb_load_asy(const char *filename);
 DUH *dumb_load_amf(const char *filename);
+DUH *dumb_load_okt(const char *filename);
 
 DUH *dumb_read_it(DUMBFILE *f);
 DUH *dumb_read_xm(DUMBFILE *f);
@@ -407,6 +408,7 @@ DUH *dumb_read_mtm(DUMBFILE *f);
 DUH *dumb_read_riff(DUMBFILE *f);
 DUH *dumb_read_asy(DUMBFILE *f);
 DUH *dumb_read_amf(DUMBFILE *f);
+DUH *dumb_read_okt(DUMBFILE *f);
 
 DUH *dumb_load_it_quick(const char *filename);
 DUH *dumb_load_xm_quick(const char *filename);
@@ -421,6 +423,7 @@ DUH *dumb_load_mtm_quick(const char *filename);
 DUH *dumb_load_riff_quick(const char *filename);
 DUH *dumb_load_asy_quick(const char *filename);
 DUH *dumb_load_amf_quick(const char *filename);
+DUH *dumb_load_okt_quick(const char *filename);
 
 DUH *dumb_read_it_quick(DUMBFILE *f);
 DUH *dumb_read_xm_quick(DUMBFILE *f);
@@ -435,6 +438,7 @@ DUH *dumb_read_mtm_quick(DUMBFILE *f);
 DUH *dumb_read_riff_quick(DUMBFILE *f);
 DUH *dumb_read_asy_quick(DUMBFILE *f);
 DUH *dumb_read_amf_quick(DUMBFILE *f);
+DUH *dumb_read_okt_quick(DUMBFILE *f);
 
 long dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder);
 void dumb_it_do_initial_runthrough(DUH *duh);
