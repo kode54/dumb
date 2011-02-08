@@ -40,14 +40,16 @@ static int it_seek(DUMBFILE *f, long offset)
 	return 0;
 }
 
-static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f )
+static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f, unsigned short *offset )
 {
 	dumbfile_getnc( sample->filename, 12, f );
 	sample->filename[12] = 0;
 
 	memcpy( sample->name, sample->filename, 13 );
 
-	dumbfile_skip( f, 2 + 2 );
+	dumbfile_skip( f, 2 );
+
+	*offset = dumbfile_igetw( f );
 
 	sample->length = dumbfile_igetw( f );
 	sample->loop_start = dumbfile_igetw( f );
@@ -90,24 +92,15 @@ static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f )
 	return dumbfile_error(f);
 }
 
-static int it_stm_read_sample_data( IT_SAMPLE *sample, DUMBFILE *f )
+static int it_stm_read_sample_data( IT_SAMPLE *sample, void *data_block, long offset )
 {
-	long n;
-
 	if ( ! sample->length ) return 0;
-
-	n = dumbfile_pos( f );
-	if ( n & 15 ) {
-		if ( dumbfile_skip( f, 16 - ( n & 15 ) ) )
-			return -1;
-	}
 
 	sample->data = malloc( sample->length );
 	if (!sample->data)
 		return -1;
 
-	if ( dumbfile_getnc( sample->data, sample->length, f ) != sample->length )
-		return -1;
+	memcpy( sample->data, (unsigned char*)data_block + offset, sample->length );	
 
 	return 0;
 }
@@ -210,7 +203,13 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 
 	char tracker_name[ 8 ];
 
+	unsigned short sample_offset[ 31 ];
+
+	void *data_block;
+
 	int n;
+
+	long o, p, q;
 
 	sigdata = malloc(sizeof(*sigdata));
 	if (!sigdata) return NULL;
@@ -298,7 +297,7 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 	sigdata->channel_pan[ 3 ] = 16;
 
 	for ( n = 0; n < sigdata->n_samples; ++n ) {
-		if ( it_stm_read_sample_header( &sigdata->sample[ n ], f ) ) {
+		if ( it_stm_read_sample_header( &sigdata->sample[ n ], f, &sample_offset[ n ] ) ) {
 			_dumb_it_unload_sigdata( sigdata );
 			return NULL;
 		}
@@ -344,12 +343,53 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 		free( buffer );
 	}
 
+	o = LONG_MAX;
+	p = 0;
+
 	for ( n = 0; n < sigdata->n_samples; ++n ) {
-		if ( it_stm_read_sample_data( &sigdata->sample[ n ], f ) ) {
+		if ((sigdata->sample[ n ].flags & IT_SAMPLE_EXISTS) && sample_offset[ n ]) {
+			q = ((long)sample_offset[ n ]) * 16;
+			if (q < o) {
+				o = q;
+			}
+			if (q + sigdata->sample[ n ].length > p) {
+				p = q + sigdata->sample[ n ].length;
+			}
+		}
+		else {
+			sigdata->sample[ n ].flags = 0;
+			sigdata->sample[ n ].length = 0;
+		}
+	}
+
+	data_block = malloc( p - o );
+	if ( !data_block ) {
+		_dumb_it_unload_sigdata( sigdata );
+		return NULL;
+	}
+
+	for ( n = 0, q = o / 16; n < sigdata->n_samples; ++n ) {
+		if ( sample_offset[ n ] ) {
+			sample_offset[ n ] -= q;
+		}
+	}
+
+	dumbfile_skip( f, o - dumbfile_pos( f ) );
+	if ( dumbfile_getnc( (char*)data_block, p - o, f ) != p - o ) {
+		free( data_block );
+		_dumb_it_unload_sigdata( sigdata );
+		return NULL;
+	}
+
+	for ( n = 0; n < sigdata->n_samples; ++n ) {
+		if ( it_stm_read_sample_data( &sigdata->sample[ n ], data_block, ((long)sample_offset[ n ]) * 16 ) ) {
+			free( data_block );
 			_dumb_it_unload_sigdata( sigdata );
 			return NULL;
 		}
 	}
+
+	free( data_block );
 
 	_dumb_it_fix_invalid_orders(sigdata);
 
