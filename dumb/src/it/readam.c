@@ -330,6 +330,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( struct riff * stream )
 
 	sigdata->n_instruments = 0;
 	sigdata->n_orders = 0;
+	sigdata->restart_position = 0;
 
 	memset(sigdata->channel_volume, 64, DUMB_IT_N_CHANNELS);
 
@@ -552,6 +553,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( struct riff * stream )
 
 	sigdata->n_instruments = 0;
 	sigdata->n_orders = 0;
+	sigdata->restart_position = 0;
 
 	memset(sigdata->channel_volume, 64, DUMB_IT_N_CHANNELS);
 

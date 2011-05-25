@@ -259,10 +259,10 @@
       <Filter>src\it\readers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\it\loadokt.c">
-      <Filter>src\it\readers</Filter>
+      <Filter>src\it\loaders</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\it\loadokt2.c">
-      <Filter>src\it\readers</Filter>
+      <Filter>src\it\loaders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
