@@ -1640,8 +1640,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	if (channel->sample == 0 || channel->note >= 120)
 		return;
 
-	if (sigdata->flags & (IT_WAS_AN_S3M | IT_WAS_A_PTM | IT_WAS_A_669 | IT_WAS_AN_OKT))
-		channel->destnote = IT_NOTE_OFF;
+	channel->destnote = IT_NOTE_OFF;
 
 	if (channel->playing) {
 		for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
