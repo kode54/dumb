@@ -217,7 +217,6 @@ long duh_get_length(DUH *duh);
 
 const char *duh_get_tag(DUH *duh, const char *key);
 
-
 /* Signal Rendering Functions */
 
 typedef struct DUH_SIGRENDERER DUH_SIGRENDERER;
@@ -589,6 +588,8 @@ typedef struct DUH_SIGTYPE_DESC
 DUH_SIGTYPE_DESC;
 
 void dumb_register_sigtype(DUH_SIGTYPE_DESC *desc);
+
+int duh_add_signal(DUH *duh, DUH_SIGTYPE_DESC *desc, sigdata_t *sigdata);
 
 
 // Decide where to put these functions; new heading?
