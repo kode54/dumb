@@ -379,6 +379,8 @@ void dumb_it_set_global_volume_zero_callback(DUMB_IT_SIGRENDERER *sigrenderer, i
 int dumb_it_callback_terminate(void *data);
 int dumb_it_callback_midi_block(void *data, int channel, unsigned char midi_byte);
 
+/* dumb_*_mod*: restrict |= 1-Don't read 15 sample files / 2-Use old pattern counting method */
+
 DUH *dumb_load_it(const char *filename);
 DUH *dumb_load_xm(const char *filename);
 DUH *dumb_load_s3m(const char *filename);
