@@ -542,7 +542,6 @@ static void it_reset_filter_state(IT_FILTER_STATE *state)
 
 
 
-#if 0
 #define LOG10 2.30258509299
 
 /* IMPORTANT: This function expects one extra sample in 'src' so it can apply
@@ -551,7 +550,7 @@ static void it_reset_filter_state(IT_FILTER_STATE *state)
  * click removal right.
  */
 
-static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
+static void it_filter_int(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
 {
 	sample_t currsample = state->currsample;
 	sample_t prevsample = state->prevsample;
@@ -653,8 +652,100 @@ static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *
 	state->currsample = currsample;
 	state->prevsample = prevsample;
 }
-#undef LOG10
+
+#if defined(_USE_SSE)
+#include <xmmintrin.h>
+
+static void it_filter_sse(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
+{
+    __m128 data, impulse;
+    __m128 temp1, temp2;
+
+    sample_t currsample = state->currsample;
+    sample_t prevsample = state->prevsample;
+
+    float imp[4];
+
+    //profiler( filter_sse ); On ClawHammer Athlon64 3200+, ~12000 cycles, ~500 for that x87 setup code (as opposed to ~25500 for the original integer code)
+
+    long datasize;
+
+    {
+        float inv_angle = (float)(sampfreq * pow(0.5, 0.25 + cutoff*(1.0/(24<<IT_ENVELOPE_SHIFT))) * (1.0/(2*3.14159265358979323846*110.0)));
+        float loss = (float)exp(resonance*(-LOG10*1.2/128.0));
+        float d, e;
+#if 0
+        loss *= 2; // This is the mistake most players seem to make!
 #endif
+
+#if 1
+        d = (1.0f - loss) / inv_angle;
+        if (d > 2.0f) d = 2.0f;
+        d = (loss - d) * inv_angle;
+        e = inv_angle * inv_angle;
+        imp[0] = 1.0f / (1.0f + d + e);
+        imp[2] = -e * imp[0];
+        imp[1] = 1.0f - imp[0] - imp[2];
+#else
+        imp[0] = 1.0f / (inv_angle*inv_angle + inv_angle*loss + loss);
+        imp[2] = -(inv_angle*inv_angle) * imp[0];
+        imp[1] = 1.0f - imp[0] - imp[2];
+#endif
+        imp[3] = 0;
+    }
+
+    dst += pos * step;
+    datasize = size * step;
+
+    {
+        int ai, bi, ci, i;
+
+        if (cr) {
+            sample_t startstep;
+            ai = (int)(imp[0] * (1 << (16+SCALEB)));
+            bi = (int)(imp[1] * (1 << (16+SCALEB)));
+            ci = (int)(imp[2] * (1 << (16+SCALEB)));
+            startstep = MULSCA(src[0], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
+            dumb_record_click(cr, pos, startstep);
+        }
+
+        data = _mm_cvtsi32_ss( _mm_setzero_ps(), prevsample );
+        data = _mm_cvtsi32_ss( _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 0, 0, 0) ), currsample );
+        impulse = _mm_loadu_ps( (const float *) &imp );
+        temp1 = _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 1, 0, 0) );
+
+        for (i = 0; i < datasize; i += step) {
+            data = _mm_cvtsi32_ss( temp1, src [i] );
+            temp1 = _mm_mul_ps( data, impulse );
+            temp2 = _mm_movehl_ps( temp1, temp1 );
+            temp1 = _mm_add_ps( temp1, temp2 );
+            temp2 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 1) );
+            temp1 = _mm_add_ps( temp1, temp2 );
+            temp1 = _mm_shuffle_ps( temp1, data, _MM_SHUFFLE(0, 1, 0, 0) );
+            dst [i] += _mm_cvtss_si32( temp1 );
+        }
+
+        currsample = _mm_cvtss_si32( temp1 );
+        temp1 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 2) );
+        prevsample = _mm_cvtss_si32( temp1 );
+
+        if (cr) {
+            sample_t endstep = MULSCA(src[datasize], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
+            dumb_record_click(cr, pos + size, -endstep);
+        }
+    }
+
+    state->currsample = currsample;
+    state->prevsample = prevsample;
+}
+
+#define it_filter it_filter_sse
+
+#else
+#define it_filter it_filter_int
+#endif
+
+#undef LOG10
 
 
 
