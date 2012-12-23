@@ -319,7 +319,7 @@ unsigned get_chunk_count(IFF_CHUNKED *mod, unsigned type)
 }
 
 
-static DUMB_IT_SIGDATA *it_okt_load_sigdata(DUMBFILE *f, int restrict)
+static DUMB_IT_SIGDATA *it_okt_load_sigdata(DUMBFILE *f)
 {
 	DUMB_IT_SIGDATA *sigdata;
 	unsigned n_channels;
@@ -538,13 +538,13 @@ static DUMB_IT_SIGDATA *it_okt_load_sigdata(DUMBFILE *f, int restrict)
 
 
 
-DUH *dumb_read_okt_quick(DUMBFILE *f, int restrict)
+DUH *dumb_read_okt_quick(DUMBFILE *f)
 {
 	sigdata_t *sigdata;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
-	sigdata = it_okt_load_sigdata(f, restrict);
+    sigdata = it_okt_load_sigdata(f);
 
 	if (!sigdata)
 		return NULL;
