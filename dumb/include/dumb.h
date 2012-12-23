@@ -441,6 +441,12 @@ DUH *dumb_read_asy_quick(DUMBFILE *f);
 DUH *dumb_read_amf_quick(DUMBFILE *f);
 DUH *dumb_read_okt_quick(DUMBFILE *f);
 
+DUH *dumb_read_any_quick(DUMBFILE *f, int restrict, int subsong);
+DUH *dumb_read_any(DUMBFILE *f, int restrict, int subsong);
+
+DUH *dumb_load_any_quick(const char *filename, int restrict, int subsong);
+DUH *dumb_load_any(const char *filename, int restrict, int subsong);
+
 long dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder);
 void dumb_it_do_initial_runthrough(DUH *duh);
 
