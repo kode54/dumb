@@ -10,6 +10,8 @@ TARGET = dumb
 TEMPLATE = lib
 CONFIG += staticlib
 
+DEFINES += _USE_SSE
+
 INCLUDEPATH += ../../include
 
 SOURCES += \
@@ -91,7 +93,11 @@ SOURCES += \
     ../../src/it/itorder.c \
     ../../src/it/itmisc.c \
     ../../src/it/itload2.c \
-    ../../src/it/itload.c
+    ../../src/it/itload.c \
+    ../../src/it/readany.c \
+    ../../src/it/loadany2.c \
+    ../../src/it/loadany.c \
+    ../../src/it/readany2.c
 
 HEADERS += \
     ../../include/dumb.h \

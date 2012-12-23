@@ -25,6 +25,10 @@
 #include "dumb.h"
 #include "internal/it.h"
 
+#ifndef _MSC_VER
+#define strnicmp strncasecmp
+#endif
+
 /** WARNING: this is duplicated in itread.c */
 static int it_seek(DUMBFILE *f, long offset)
 {

@@ -23,6 +23,10 @@
 #include "dumb.h"
 #include "internal/it.h"
 
+#ifndef min
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
 #define PSMV_OLD 940730
 #define PSMV_NEW 940902
 
@@ -1264,7 +1268,8 @@ DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong)
 		if ( ver )
 		{
 			tag[2][0] = "FORMATVERSION";
-			itoa(ver, version, 10);
+            snprintf( version, 15, "%u", ver );
+            version[15] = 0;
 			tag[2][1] = (const char *) &version;
 			++n_tags;
 		}

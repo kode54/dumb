@@ -23,6 +23,9 @@
 #include "dumb.h"
 #include "internal/it.h"
 
+#ifndef min
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#endif
 
 
 #define INVESTIGATE_OLD_INSTRUMENTS
