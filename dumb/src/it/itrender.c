@@ -3886,7 +3886,9 @@ static void process_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playin
 	playing->sample_vibrato_time += playing->sample->vibrato_speed;
 }
 
+#ifdef _MSC_VER
 static float log2(float x) {return (float)log(x)/(float)log(2.0f);}
+#endif
 
 static int delta_to_note(float delta, int base)
 {
