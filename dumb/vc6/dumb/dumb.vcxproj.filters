@@ -264,6 +264,18 @@
     <ClCompile Include="..\..\src\it\loadokt2.c">
       <Filter>src\it\loaders</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\it\loadany.c">
+      <Filter>src\it\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\it\loadany2.c">
+      <Filter>src\it\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\it\readany.c">
+      <Filter>src\it\readers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\it\readany2.c">
+      <Filter>src\it\readers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\dumb.h">

@@ -301,6 +301,8 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="..\..\src\it\loadany.c" />
+    <ClCompile Include="..\..\src\it\loadany2.c" />
     <ClCompile Include="..\..\src\it\loadokt.c" />
     <ClCompile Include="..\..\src\it\loadokt2.c" />
     <ClCompile Include="..\..\src\it\ptmeffect.c">
@@ -312,6 +314,8 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="..\..\src\it\readany.c" />
+    <ClCompile Include="..\..\src\it\readany2.c" />
     <ClCompile Include="..\..\src\it\readokt.c" />
     <ClCompile Include="..\..\src\it\readokt2.c" />
     <ClCompile Include="..\..\src\it\xmeffect.c">
