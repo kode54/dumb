@@ -27,6 +27,10 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
+#ifdef _MSC_VER
+#define snprintf sprintf_s
+#endif
+
 #define PSMV_OLD 940730
 #define PSMV_NEW 940902
 
