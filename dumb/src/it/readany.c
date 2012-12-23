@@ -34,7 +34,6 @@ struct BUFFERED_MOD
 {
     unsigned char *buffered;
     long ptr, len;
-    DUMBFILE *remaining;
 };
 
 
@@ -47,11 +46,11 @@ static int buffer_mod_skip(void *f, long n)
         if (bm->ptr >= bm->len) {
             free(bm->buffered);
             bm->buffered = NULL;
-            return dumbfile_skip(bm->remaining, bm->ptr - bm->len);
+            return (bm->len - bm->ptr);
         }
         return 0;
     }
-    return dumbfile_skip(bm->remaining, n);
+    return n ? -1 : 0;
 }
 
 
@@ -67,7 +66,7 @@ static int buffer_mod_getc(void *f)
         }
         return rv;
     }
-    return dumbfile_getc(bm->remaining);
+    return -1;
 }
 
 
@@ -81,18 +80,13 @@ static long buffer_mod_getnc(char *ptr, long n, void *f)
             memcpy(ptr, bm->buffered + bm->ptr, left);
             free(bm->buffered);
             bm->buffered = NULL;
-            if (n - left) {
-                int rv = dumbfile_getnc(ptr + left, n - left, bm->remaining);
-                return left + MAX(rv, 0);
-            } else {
-                return left;
-            }
+            return left;
         }
         memcpy(ptr, bm->buffered + bm->ptr, n);
         bm->ptr += n;
         return n;
     }
-    return dumbfile_getnc(ptr, n, bm->remaining);
+    return 0;
 }
 
 
@@ -101,7 +95,6 @@ static void buffer_mod_close(void *f)
 {
     BUFFERED_MOD *bm = f;
     if (bm->buffered) free(bm->buffered);
-    /* Do NOT close bm->remaining */
     free(f);
 }
 
@@ -159,8 +152,6 @@ static DUMBFILE *dumbfile_buffer_mod(DUMBFILE *f, unsigned char const* * signatu
         free(bm->buffered);
         bm->buffered = NULL;
     }
-
-    bm->remaining = f;
 
     return dumbfile_open_ex(bm, &buffer_mod_dfs);
 }
