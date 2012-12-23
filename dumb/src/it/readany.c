@@ -22,7 +22,9 @@
 
 #include "dumb.h"
 
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+#define strnicmp _strnicmp
+#else
 #define strnicmp strncasecmp
 #endif
 
@@ -118,9 +120,7 @@ static DUMBFILE_SYSTEM buffer_mod_dfs = {
 static DUMBFILE *dumbfile_buffer_mod(DUMBFILE *f, unsigned char const* * signature, unsigned long * signature_size)
 {
     long read;
-    int sample_number;
     BUFFERED_MOD *bm = malloc(sizeof(*bm));
-    unsigned char *ptr;
     if (!bm) return NULL;
 
     bm->buffered = malloc(32768);
@@ -318,12 +318,13 @@ DUH *dumb_read_any_quick(DUMBFILE *f, int restrict, int subsong)
     if ( !duh )
     {
         dumbfile_mem_status memdata;
+		DUMBFILE * memf;
 
         memdata.ptr = signature;
         memdata.offset = 0;
         memdata.size = signature_size;
 
-        DUMBFILE * memf = dumbfile_open_ex(&memdata, &mem_dfs);
+        memf = dumbfile_open_ex(&memdata, &mem_dfs);
         if ( memf )
         {
             duh = dumb_read_mod_quick( memf, restrict );
