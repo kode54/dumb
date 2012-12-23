@@ -25,7 +25,9 @@
 #include "dumb.h"
 #include "internal/it.h"
 
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+#define strnicmp _strnicmp
+#else
 #define strnicmp strncasecmp
 #endif
 
