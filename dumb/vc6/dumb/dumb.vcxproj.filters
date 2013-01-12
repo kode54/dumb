@@ -69,6 +69,12 @@
     <ClCompile Include="..\..\src\helpers\clickrem.c">
       <Filter>src\helpers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\helpers\fir_resampler.c">
+      <Filter>src\helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\helpers\lpc.c">
+      <Filter>src\helpers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\helpers\memfile.c">
       <Filter>src\helpers</Filter>
     </ClCompile>
@@ -287,10 +293,19 @@
     <ClInclude Include="..\..\include\internal\dumb.h">
       <Filter>include\internal</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\internal\fir_resampler.h">
+      <Filter>include\internal</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\include\internal\it.h">
       <Filter>include\internal</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\internal\lpc.h">
+      <Filter>include\internal</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\include\internal\riff.h">
+      <Filter>include\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\internal\stack_alloc.h">
       <Filter>include\internal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\internal\blip_buf.h">

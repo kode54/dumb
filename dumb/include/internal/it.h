@@ -414,6 +414,8 @@ struct IT_PATTERN
 
 #define IT_WAS_AN_STM     4096
 
+#define IT_WAS_PROCESSED  8192 /* Will be set the first time a sigdata passes through a sigrenderer */
+
 #define IT_ORDER_END  255
 #define IT_ORDER_SKIP 254
 

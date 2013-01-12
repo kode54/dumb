@@ -97,7 +97,9 @@ SOURCES += \
     ../../src/it/readany.c \
     ../../src/it/loadany2.c \
     ../../src/it/loadany.c \
-    ../../src/it/readany2.c
+    ../../src/it/readany2.c \
+    ../../src/helpers/fir_resampler.c \
+    ../../src/helpers/lpc.c
 
 HEADERS += \
     ../../include/dumb.h \
@@ -106,7 +108,10 @@ HEADERS += \
     ../../include/internal/dumb.h \
     ../../include/internal/blip_buf.h \
     ../../include/internal/barray.h \
-    ../../include/internal/aldumb.h
+    ../../include/internal/aldumb.h \
+    ../../include/internal/fir_resampler.h \
+    ../../include/internal/stack_alloc.h \
+    ../../include/internal/lpc.h
 unix:!symbian {
     maemo5 {
         target.path = /opt/usr/lib

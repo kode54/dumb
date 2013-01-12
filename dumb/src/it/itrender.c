@@ -23,6 +23,7 @@
 #include "dumb.h"
 #include "internal/dumb.h"
 #include "internal/it.h"
+#include "internal/lpc.h"
 
 // #define BIT_ARRAY_BULLSHIT
 
@@ -49,12 +50,32 @@ static IT_PLAYING *new_playing()
 		}
 		blip_set_rates(r->resampler.blip_buffer[0], 65536, 1);
 		blip_set_rates(r->resampler.blip_buffer[1], 65536, 1);
-	}
+        r->resampler.fir_resampler_ratio = 0.0;
+        r->resampler.fir_resampler[0] = fir_resampler_create();
+        if ( !r->resampler.fir_resampler[0] )
+        {
+            free( r->resampler.blip_buffer[1] );
+            free( r->resampler.blip_buffer[0] );
+            free( r );
+            return NULL;
+        }
+        r->resampler.fir_resampler[1] = fir_resampler_create();
+        if ( !r->resampler.fir_resampler[1] )
+        {
+            fir_resampler_delete( r->resampler.fir_resampler[0] );
+            free( r->resampler.blip_buffer[1] );
+            free( r->resampler.blip_buffer[0] );
+            free( r );
+            return NULL;
+        }
+    }
 	return r;
 }
 
 static void free_playing(IT_PLAYING * r)
 {
+    fir_resampler_delete( r->resampler.fir_resampler[1] );
+    fir_resampler_delete( r->resampler.fir_resampler[0] );
 	blip_delete( r->resampler.blip_buffer[1] );
 	blip_delete( r->resampler.blip_buffer[0] );
 	free( r );
@@ -162,6 +183,24 @@ static IT_PLAYING *dup_playing(IT_PLAYING *src, IT_CHANNEL *dstchannel, IT_CHANN
 		free( dst );
 		return NULL;
 	}
+    dst->resampler.fir_resampler_ratio = src->resampler.fir_resampler_ratio;
+    dst->resampler.fir_resampler[0] = fir_resampler_dup( src->resampler.fir_resampler[0] );
+    if ( !dst->resampler.fir_resampler[0] )
+    {
+        blip_delete( dst->resampler.blip_buffer[1] );
+        blip_delete( dst->resampler.blip_buffer[0] );
+        free( dst );
+        return NULL;
+    }
+    dst->resampler.fir_resampler[1] = fir_resampler_dup( src->resampler.fir_resampler[1] );
+    if ( !dst->resampler.fir_resampler[1] )
+    {
+        fir_resampler_delete( dst->resampler.fir_resampler[0] );
+        blip_delete( dst->resampler.blip_buffer[1] );
+        blip_delete( dst->resampler.blip_buffer[0] );
+        free( dst );
+        return NULL;
+    }
 	dst->time_lost = src->time_lost;
 
 	//dst->output = src->output;
@@ -847,7 +886,7 @@ static const signed char it_xm_squarewave[256] = {
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+     64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
@@ -1812,7 +1851,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	if (channel->playing)
 		free_playing(channel->playing);
 
-	channel->playing = new_playing();
+    channel->playing = new_playing();
 
 	if (!channel->playing)
 		return;
@@ -3444,7 +3483,7 @@ static void process_xm_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *ent
 			channel->destnote = IT_NOTE_OFF;
 
 			if (!channel->playing) {
-				channel->playing = new_playing();
+                channel->playing = new_playing();
 				if (!channel->playing) {
 					if (playing) free_playing(playing);
 					return;
@@ -5193,7 +5232,7 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 		}
 	}
 
-	destroy_sample_buffer(samples_to_filter);
+    destroy_sample_buffer(samples_to_filter);
 
 	for (i = 0; i < DUMB_IT_N_CHANNELS; i++) {
 		if (sigrenderer->channel[i].playing) {
@@ -5385,6 +5424,12 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 	sigrenderer->gvz_sub_time = 0;
 
 	//sigrenderer->max_output = 0;
+
+    if ( !(sigdata->flags & IT_WAS_PROCESSED) ) {
+        dumb_it_add_lpc( sigdata );
+
+        sigdata->flags |= IT_WAS_PROCESSED;
+    }
 
 	return sigrenderer;
 }
