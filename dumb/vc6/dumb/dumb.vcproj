@@ -1908,6 +1908,14 @@
 						>
 					</File>
 					<File
+						RelativePath="..\..\src\helpers\fir_resampler.c"
+						>
+					</File>
+					<File
+						RelativePath="..\..\src\helpers\lpc.c"
+						>
+					</File>
+					<File
 						RelativePath="..\..\src\it\readxm.c"
 						>
 						<FileConfiguration
@@ -1973,6 +1981,18 @@
 				</File>
 				<File
 					RelativePath="..\..\include\internal\riff.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\include\internal\fir_resampler.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\include\internal\lpc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\include\internal\stack_alloc.h"
 					>
 				</File>
 			</Filter>
