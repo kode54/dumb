@@ -654,7 +654,8 @@ void dumb_destroy_click_remover_array(int n, DUMB_CLICK_REMOVER **cr);
 #define DUMB_RQ_ALIASING 0
 #define DUMB_RQ_LINEAR   1
 #define DUMB_RQ_CUBIC    2
-#define DUMB_RQ_N_LEVELS 3
+#define DUMB_RQ_FIR      3
+#define DUMB_RQ_N_LEVELS 4
 extern int dumb_resampling_quality;
 
 typedef struct DUMB_RESAMPLER DUMB_RESAMPLER;
@@ -664,6 +665,7 @@ typedef struct DUMB_VOLUME_RAMP_INFO DUMB_VOLUME_RAMP_INFO;
 typedef void (*DUMB_RESAMPLE_PICKUP)(DUMB_RESAMPLER *resampler, void *data);
 
 #include "internal/blip_buf.h"
+#include "internal/fir_resampler.h"
 
 struct DUMB_RESAMPLER
 {
@@ -685,6 +687,8 @@ struct DUMB_RESAMPLER
 	int last_clock;
 	int last_amp[2];
 	blip_t* blip_buffer[2];
+    double fir_resampler_ratio;
+    void* fir_resampler[2];
 };
 
 struct DUMB_VOLUME_RAMP_INFO
