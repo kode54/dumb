@@ -738,14 +738,20 @@ static void it_filter_sse(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample
     state->currsample = currsample;
     state->prevsample = prevsample;
 }
-
-#define it_filter it_filter_sse
-
-#else
-#define it_filter it_filter_int
 #endif
 
 #undef LOG10
+
+int _dumb_it_use_sse = 0;
+
+static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
+{
+#if defined(_USE_SSE)
+	if ( _dumb_it_use_sse ) it_filter_sse( cr, state, dst, pos, src, size, step, sampfreq, cutoff, resonance );
+	else
+#endif
+	it_filter_int( cr, state, dst, pos, src, size, step, sampfreq, cutoff, resonance );
+}
 
 
 
