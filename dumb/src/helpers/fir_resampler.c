@@ -28,13 +28,16 @@ static void gen_sinc( double rolloff, int width, double offset, double spacing, 
 	double const step = PI / maxh * spacing;
 	double const to_w = maxh * 2 / width;
 	double const pow_a_n = pow( rolloff, maxh );
-	scale /= maxh * 2;
 	
 	double angle = (count / 2 - 1 + offset) * -step;
+
+	scale /= maxh * 2;
+
 	while ( count-- )
 	{
+		double w;
 		*out++ = 0;
-		double w = angle * to_w;
+		w = angle * to_w;
 		if ( fabs( w ) < PI )
 		{
 			double rolloff_cos_a = rolloff * cos( angle );

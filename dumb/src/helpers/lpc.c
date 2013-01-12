@@ -160,11 +160,12 @@ void vorbis_lpc_predict(float *coeff,float *prime,int m,
 #include "internal/dumb.h"
 #include "internal/it.h"
 
-void dumb_it_add_lpc(struct DUMB_IT_SIGDATA *sigdata){
-    const int lpc_max   = 256;
-    const int lpc_order = 32;
-    const int lpc_extra = 64;
+enum { lpc_max   = 256 };
+enum { lpc_order = 32  };
+enum { lpc_extra = 64  };
 
+
+void dumb_it_add_lpc(struct DUMB_IT_SIGDATA *sigdata){
     float lpc[lpc_order * 2];
     float lpc_input[lpc_max * 2];
     float lpc_output[lpc_extra * 2];
