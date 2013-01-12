@@ -673,12 +673,12 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 		}
 	}
 	else
-	{
+    {
         for (i = 0; i < 128; i++)
-		{
-			if (sigdata->order[i] > sigdata->n_patterns)
-				sigdata->n_patterns = sigdata->order[i];
-		}
+        {
+            if (sigdata->order[i] > sigdata->n_patterns)
+                sigdata->n_patterns = sigdata->order[i];
+        }
 		sigdata->n_patterns++;
 	}
 
