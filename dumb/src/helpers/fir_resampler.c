@@ -59,6 +59,8 @@ typedef struct fir_resampler
     int read_pos, read_filled;
     unsigned short phase;
     unsigned int phase_inc;
+    float a0, a1, a2, b0, b1, b2;
+    float xn1, xn2, yn1, yn2;
     short buffer_in[fir_buffer_size * 2];
     int buffer_out[fir_buffer_size];
 } fir_resampler;
@@ -74,6 +76,10 @@ void * fir_resampler_create()
     r->read_filled = 0;
     r->phase = 0;
     r->phase_inc = 0;
+    r->a0 = 0; r->a1 = 0; r->a2 = 0;
+    r->b0 = 0; r->b1 = 0; r->b2 = 0;
+    r->xn1 = 0; r->xn2 = 0;
+    r->yn1 = 0; r->yn2 = 0;
     memset( r->buffer_in, 0, sizeof(r->buffer_in) );
     memset( r->buffer_out, 0, sizeof(r->buffer_out) );
 
@@ -97,6 +103,16 @@ void * fir_resampler_dup(void * _r)
     r_out->read_filled = r_in->read_filled;
     r_out->phase = r_in->phase;
     r_out->phase_inc = r_in->phase_inc;
+    r_out->a0 = r_in->a0;
+    r_out->a1 = r_in->a1;
+    r_out->a2 = r_in->a2;
+    r_out->b0 = r_in->b0;
+    r_out->b1 = r_in->b1;
+    r_out->b2 = r_in->b2;
+    r_out->xn1 = r_in->xn1;
+    r_out->xn2 = r_in->xn2;
+    r_out->yn1 = r_in->yn1;
+    r_out->yn2 = r_in->yn2;
     memcpy( r_out->buffer_in, r_in->buffer_in, sizeof(r_in->buffer_in) );
     memcpy( r_out->buffer_out, r_in->buffer_out, sizeof(r_in->buffer_out) );
 
@@ -123,7 +139,31 @@ void fir_resampler_clear(void *_r)
     r->read_pos = 0;
     r->read_filled = 0;
     r->phase = 0;
+    r->xn1 = 0;
+    r->xn2 = 0;
+    r->yn1 = 0;
+    r->yn2 = 0;
     memset( r->buffer_in, 0, sizeof(r->buffer_in) );
+}
+
+void fir_resampler_set_rate(void *_r, double new_factor)
+{
+    fir_resampler * r = ( fir_resampler * ) _r;
+    r->phase_inc = (int)( new_factor * 65536.0 );
+    if ( r->phase_inc > 65536 )
+    {
+        double omega = 2 * PI * 0.5 / new_factor;
+        double cs = cos(omega);
+        double sn = sin(omega);
+        double a1pha = sn / 20.0;
+
+        r->b0 =  (1.0 - cs) / 2.0 ;
+        r->b1 =   1.0 - cs ;
+        r->b2 =  (1.0 - cs) / 2.0 ;
+        r->a0 =   1.0 + a1pha ;
+        r->a1 =  -2.0 * cs ;
+        r->a2 =   1.0 - a1pha ;
+    }
 }
 
 void fir_resampler_write_sample(void *_r, short s)
@@ -132,6 +172,21 @@ void fir_resampler_write_sample(void *_r, short s)
 
     if ( r->write_filled < fir_buffer_size )
 	{
+        if ( r->phase_inc > 65536 )
+        {
+            int s32;
+            float in, out;
+            in = s;
+            out = (r->b0 * in + r->b1 * r->xn1 + r->b2 * r->xn2 - r->a1 * r->yn1 - r->a2 * r->yn2) / r->a0;
+            r->xn2 = r->xn1;
+            r->xn1 = in;
+            r->yn2 = r->yn1;
+            r->yn1 = out;
+            s32 = out;
+            if ( (unsigned)(s32 + 0x8000) >= 0x10000 ) s32 = (s32 >> 31) ^ 0x7FFF;
+            s = (short) s32;
+        }
+
         r->buffer_in[ r->write_pos ] = s;
         r->buffer_in[ r->write_pos + fir_buffer_size ] = s;
 
@@ -139,12 +194,6 @@ void fir_resampler_write_sample(void *_r, short s)
 
 		r->write_pos = ( r->write_pos + 1 ) % fir_buffer_size;
 	}
-}
-
-void fir_resampler_set_rate(void *_r, double new_factor)
-{
-    fir_resampler * r = ( fir_resampler * ) _r;
-    r->phase_inc = (int)( new_factor * 65536.0 );
 }
 
 void fir_init()
