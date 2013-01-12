@@ -189,28 +189,18 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					);
                                 } else {
                                     /* FIR resampling, backwards */
-                                    SRCTYPE xbuf[2*SRC_CHANNELS];
-                                    SRCTYPE *x = &xbuf[0];
-                                    COPYSRC(xbuf, 0, resampler->X, 1);
-                                    COPYSRC(xbuf, 1, resampler->X, 2);
+                                    SRCTYPE *x;
                                     if ( resampler->fir_resampler_ratio != delta ) {
                                         fir_resampler_set_rate( resampler->fir_resampler[0], delta );
                                         fir_resampler_set_rate( resampler->fir_resampler[1], delta );
                                         resampler->fir_resampler_ratio = delta;
-                                    }
-                                    while (fir_resampler_get_free_count( resampler->fir_resampler[0] ) && x < &xbuf[2*SRC_CHANNELS]) {
-                                            // TODO: check what happens when multiple tempo slides occur per row
-                                            HEAVYASSERT(pos >= resampler->start);
-                                            POKE_FIR(0);
-                                            pos--;
-                                            x += SRC_CHANNELS;
                                     }
                                     x = &src[pos*SRC_CHANNELS];
                                     while ( todo ) {
                                             while ( fir_resampler_get_free_count( resampler->fir_resampler[0] ) &&
                                                     pos >= resampler->start )
                                             {
-                                                    POKE_FIR(2);
+                                                    POKE_FIR(0);
                                                     pos--;
                                                     x -= SRC_CHANNELS;
                                             }
@@ -325,27 +315,18 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					);
                                 } else {
                                     /* FIR resampling, forwards */
-                                    SRCTYPE xbuf[2*SRC_CHANNELS];
-                                    SRCTYPE *x = &xbuf[0];
-                                    COPYSRC(xbuf, 0, resampler->X, 1);
-                                    COPYSRC(xbuf, 1, resampler->X, 2);
+                                    SRCTYPE *x;
                                     if ( resampler->fir_resampler_ratio != delta ) {
                                         fir_resampler_set_rate( resampler->fir_resampler[0], delta );
                                         fir_resampler_set_rate( resampler->fir_resampler[1], delta );
                                         resampler->fir_resampler_ratio = delta;
-                                    }
-                                    while (fir_resampler_get_free_count( resampler->fir_resampler[0] ) && x < &xbuf[2*SRC_CHANNELS]) {
-                                            HEAVYASSERT(pos < resampler->end);
-                                            POKE_FIR(0);
-                                            pos++;
-                                            x += SRC_CHANNELS;
                                     }
                                     x = &src[pos*SRC_CHANNELS];
                                     while ( todo ) {
                                             while ( fir_resampler_get_free_count( resampler->fir_resampler[0] ) &&
                                                     pos < resampler->end )
                                             {
-                                                    POKE_FIR(-2);
+                                                    POKE_FIR(0);
                                                     pos++;
                                                     x += SRC_CHANNELS;
                                             }
@@ -449,7 +430,9 @@ void dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, VOLUME_PARAMETE
 #undef MIX_CUBIC
 #undef MIX_LINEAR
 #undef MIX_ALIAS
+#undef MIX_FIR
 #undef PEEK_ALIAS
+#undef PEEK_FIR
 #undef VOLUMES_ARE_ZERO
 #undef SET_VOLUME_VARIABLES
 #undef RETURN_VOLUME_VARIABLES
