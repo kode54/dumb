@@ -160,10 +160,12 @@ void vorbis_lpc_predict(float *coeff,float *prime,int m,
 #include "internal/dumb.h"
 #include "internal/it.h"
 
-enum { lpc_max   = 256 };
-enum { lpc_order = 32  };
-enum { lpc_extra = 64  };
+enum { lpc_max   = 256 }; /* Maximum number of input samples to train the function */
+enum { lpc_order = 32  }; /* Order of the filter */
+enum { lpc_extra = 64  }; /* How many samples of padding to predict or silence */
 
+
+/* This extra sample padding is really only needed by the FIR resampler, but it helps the other resamplers as well. */
 
 void dumb_it_add_lpc(struct DUMB_IT_SIGDATA *sigdata){
     float lpc[lpc_order * 2];
@@ -177,121 +179,141 @@ void dumb_it_add_lpc(struct DUMB_IT_SIGDATA *sigdata){
 
     for ( n = 0; n < sigdata->n_samples; n++ ) {
         IT_SAMPLE * sample = sigdata->sample + n;
-        if ( ( ( sample->flags & ( IT_SAMPLE_EXISTS | IT_SAMPLE_LOOP) ) == IT_SAMPLE_EXISTS ) &&
-             sample->length >= lpc_order ) {
-            lpc_samples = sample->length;
-            if (lpc_samples > lpc_max) lpc_samples = lpc_max;
-            offset = sample->length - lpc_samples;
+        if ( ( sample->flags & ( IT_SAMPLE_EXISTS | IT_SAMPLE_LOOP) ) == IT_SAMPLE_EXISTS ) {
+            /* If we have enough sample data to train the filter, use the filter to generate the padding */
+            if ( sample->length >= lpc_order ) {
+                lpc_samples = sample->length;
+                if (lpc_samples > lpc_max) lpc_samples = lpc_max;
+                offset = sample->length - lpc_samples;
 
-            if ( sample->flags & IT_SAMPLE_STEREO )
-            {
-                if ( sample->flags & IT_SAMPLE_16BIT )
+                if ( sample->flags & IT_SAMPLE_STEREO )
                 {
-                    s16 = ( signed short * ) sample->data;
-                    s16 += offset * 2;
-                    for ( o = 0; o < lpc_samples; o++ )
+                    if ( sample->flags & IT_SAMPLE_16BIT )
                     {
-                        lpc_input[ o ] = s16[ o * 2 + 0 ];
-                        lpc_input[ o + lpc_max ] = s16[ o * 2 + 1 ];
+                        s16 = ( signed short * ) sample->data;
+                        s16 += offset * 2;
+                        for ( o = 0; o < lpc_samples; o++ )
+                        {
+                            lpc_input[ o ] = s16[ o * 2 + 0 ];
+                            lpc_input[ o + lpc_max ] = s16[ o * 2 + 1 ];
+                        }
+                    }
+                    else
+                    {
+                        s8 = ( signed char * ) sample->data;
+                        s8 += offset * 2;
+                        for ( o = 0; o < lpc_samples; o++ )
+                        {
+                            lpc_input[ o ] = s8[ o * 2 + 0 ];
+                            lpc_input[ o + lpc_max ] = s8[ o * 2 + 1 ];
+                        }
+                    }
+
+                    vorbis_lpc_from_data( lpc_input, lpc, lpc_samples, lpc_order );
+                    vorbis_lpc_from_data( lpc_input + lpc_max, lpc + lpc_order, lpc_samples, lpc_order );
+
+                    vorbis_lpc_predict( lpc, lpc_input + lpc_samples - lpc_order, lpc_order, lpc_output, lpc_extra );
+                    vorbis_lpc_predict( lpc + lpc_order, lpc_input + lpc_max + lpc_samples - lpc_order, lpc_order, lpc_output + lpc_extra, lpc_extra );
+
+                    if ( sample->flags & IT_SAMPLE_16BIT )
+                    {
+                        s16 = ( signed short * ) realloc( sample->data, ( sample->length + lpc_extra ) * 2 * sizeof(short) );
+                        sample->data = s16;
+
+                        s16 += sample->length * 2;
+                        sample->length += lpc_extra;
+
+                        for ( o = 0; o < lpc_extra; o++ )
+                        {
+                            s16[ o * 2 + 0 ] = lpc_output[ o ];
+                            s16[ o * 2 + 1 ] = lpc_output[ o + lpc_extra ];
+                        }
+                    }
+                    else
+                    {
+                        s8 = ( signed char * ) realloc( sample->data, ( sample->length + lpc_extra ) * 2 );
+                        sample->data = s8;
+
+                        s8 += sample->length * 2;
+                        sample->length += lpc_extra;
+
+                        for ( o = 0; o < lpc_extra; o++ )
+                        {
+                            s8[ o * 2 + 0 ] = lpc_output[ o ];
+                            s8[ o * 2 + 1 ] = lpc_output[ o + lpc_extra ];
+                        }
                     }
                 }
                 else
                 {
-                    s8 = ( signed char * ) sample->data;
-                    s8 += offset * 2;
-                    for ( o = 0; o < lpc_samples; o++ )
+                    if ( sample->flags & IT_SAMPLE_16BIT )
                     {
-                        lpc_input[ o ] = s8[ o * 2 + 0 ];
-                        lpc_input[ o + lpc_max ] = s8[ o * 2 + 1 ];
+                        s16 = ( signed short * ) sample->data;
+                        s16 += offset;
+                        for ( o = 0; o < lpc_samples; o++ )
+                        {
+                            lpc_input[ o ] = s16[ o ];
+                        }
                     }
-                }
-
-                vorbis_lpc_from_data( lpc_input, lpc, lpc_samples, lpc_order );
-                vorbis_lpc_from_data( lpc_input + lpc_max, lpc + lpc_order, lpc_samples, lpc_order );
-
-                vorbis_lpc_predict( lpc, lpc_input + lpc_samples - lpc_order, lpc_order, lpc_output, lpc_extra );
-                vorbis_lpc_predict( lpc + lpc_order, lpc_input + lpc_max + lpc_samples - lpc_order, lpc_order, lpc_output + lpc_extra, lpc_extra );
-
-                if ( sample->flags & IT_SAMPLE_16BIT )
-                {
-                    s16 = ( signed short * ) realloc( sample->data, ( sample->length + lpc_extra ) * 2 * sizeof(short) );
-                    sample->data = s16;
-
-                    s16 += sample->length * 2;
-                    sample->length += lpc_extra;
-
-                    for ( o = 0; o < lpc_extra; o++ )
+                    else
                     {
-                        s16[ o * 2 + 0 ] = lpc_output[ o ];
-                        s16[ o * 2 + 1 ] = lpc_output[ o + lpc_extra ];
+                        s8 = ( signed char * ) sample->data;
+                        s8 += offset;
+                        for ( o = 0; o < lpc_samples; o++ )
+                        {
+                            lpc_input[ o ] = s8[ o ];
+                        }
                     }
-                }
-                else
-                {
-                    s8 = ( signed char * ) realloc( sample->data, ( sample->length + lpc_extra ) * 2 );
-                    sample->data = s8;
 
-                    s8 += sample->length * 2;
-                    sample->length += lpc_extra;
+                    vorbis_lpc_from_data( lpc_input, lpc, lpc_samples, lpc_order );
 
-                    for ( o = 0; o < lpc_extra; o++ )
+                    vorbis_lpc_predict( lpc, lpc_input + lpc_samples - lpc_order, lpc_order, lpc_output, lpc_extra );
+
+                    if ( sample->flags & IT_SAMPLE_16BIT )
                     {
-                        s8[ o * 2 + 0 ] = lpc_output[ o ];
-                        s8[ o * 2 + 1 ] = lpc_output[ o + lpc_extra ];
+                        s16 = ( signed short * ) realloc( sample->data, ( sample->length + lpc_extra ) * sizeof(short) );
+                        sample->data = s16;
+
+                        s16 += sample->length;
+                        sample->length += lpc_extra;
+
+                        for ( o = 0; o < lpc_extra; o++ )
+                        {
+                            s16[ o ] = lpc_output[ o ];
+                        }
+                    }
+                    else
+                    {
+                        s8 = ( signed char * ) realloc( sample->data, sample->length + lpc_extra );
+                        sample->data = s8;
+
+                        s8 += sample->length;
+                        sample->length += lpc_extra;
+
+                        for ( o = 0; o < lpc_extra; o++ )
+                        {
+                            s8[ o ] = lpc_output[ o ];
+                        }
                     }
                 }
             }
             else
+            /* Otherwise, pad with silence. */
             {
-                if ( sample->flags & IT_SAMPLE_16BIT )
-                {
-                    s16 = ( signed short * ) sample->data;
-                    s16 += offset;
-                    for ( o = 0; o < lpc_samples; o++ )
-                    {
-                        lpc_input[ o ] = s16[ o ];
-                    }
-                }
-                else
-                {
-                    s8 = ( signed char * ) sample->data;
-                    s8 += offset;
-                    for ( o = 0; o < lpc_samples; o++ )
-                    {
-                        lpc_input[ o ] = s8[ o ];
-                    }
-                }
+                offset = sample->length;
+                lpc_samples = lpc_extra;
 
-                vorbis_lpc_from_data( lpc_input, lpc, lpc_samples, lpc_order );
+                sample->length += lpc_samples;
 
-                vorbis_lpc_predict( lpc, lpc_input + lpc_samples - lpc_order, lpc_order, lpc_output, lpc_extra );
+                n = 1;
+                if ( sample->flags & IT_SAMPLE_STEREO ) n *= 2;
+                if ( sample->flags & IT_SAMPLE_16BIT ) n *= 2;
 
-                if ( sample->flags & IT_SAMPLE_16BIT )
-                {
-                    s16 = ( signed short * ) realloc( sample->data, ( sample->length + lpc_extra ) * sizeof(short) );
-                    sample->data = s16;
+                offset *= n;
+                lpc_samples *= n;
 
-                    s16 += sample->length;
-                    sample->length += lpc_extra;
-
-                    for ( o = 0; o < lpc_extra; o++ )
-                    {
-                        s16[ o ] = lpc_output[ o ];
-                    }
-                }
-                else
-                {
-                    s8 = ( signed char * ) realloc( sample->data, sample->length + lpc_extra );
-                    sample->data = s8;
-
-                    s8 += sample->length;
-                    sample->length += lpc_extra;
-
-                    for ( o = 0; o < lpc_extra; o++ )
-                    {
-                        s8[ o ] = lpc_output[ o ];
-                    }
-                }
+                sample->data = realloc( sample->data, offset + lpc_samples );
+                memset( (char*)sample->data + offset, 0, lpc_samples );
             }
         }
     }
