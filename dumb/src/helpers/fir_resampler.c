@@ -61,7 +61,7 @@ typedef struct fir_resampler
     unsigned int phase_inc;
     float a1, a2, b02, b1;
     float yn1, yn2;
-    short buffer_in[fir_buffer_size * 2];
+    int buffer_in[fir_buffer_size * 2];
     int buffer_out[fir_buffer_size];
 } fir_resampler;
 
@@ -166,23 +166,22 @@ void fir_resampler_write_sample(void *_r, short s)
 
     if ( r->write_filled < fir_buffer_size )
 	{
+        int s32 = s;
+
         if ( r->phase_inc > 65536 )
         {
             /* The filter is implemented in Direct-II form. */
-            int s32;
             float in, out, dsp_centernode;
-            in = s;
+            in = s32;
             dsp_centernode = in - r->a1 * r->yn1 - r->a2 * r->yn2;
             out = r->b02 * (dsp_centernode + r->yn2) + r->b1 * r->yn1;
             r->yn2 = r->yn1;
             r->yn1 = dsp_centernode;
             s32 = out;
-            if ( (unsigned)(s32 + 0x8000) >= 0x10000 ) s32 = (s32 >> 31) ^ 0x7FFF;
-            s = (short) s32;
         }
 
-        r->buffer_in[ r->write_pos ] = s;
-        r->buffer_in[ r->write_pos + fir_buffer_size ] = s;
+        r->buffer_in[ r->write_pos ] = s32;
+        r->buffer_in[ r->write_pos + fir_buffer_size ] = s32;
 
         ++r->write_filled;
 
@@ -220,14 +219,14 @@ int fir_resampler_run(void *_r, int ** out_, int * out_end)
 {
 	fir_resampler * r = ( fir_resampler * ) _r;
     int in_size = r->write_filled;
-    short const* in_ = r->buffer_in + fir_buffer_size + r->write_pos - r->write_filled;
+    int const* in_ = r->buffer_in + fir_buffer_size + r->write_pos - r->write_filled;
 	int used = 0;
 	in_size -= fir_write_offset;
 	if ( in_size > 0 )
 	{
 		int* out = *out_;
-		short const* in = in_;
-		short const* const in_end = in + in_size;
+		int const* in = in_;
+		int const* const in_end = in + in_size;
         int phase = r->phase;
         int phase_inc = r->phase_inc;
 		
