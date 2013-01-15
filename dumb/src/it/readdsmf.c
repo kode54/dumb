@@ -216,8 +216,6 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( DUMBFILE * f, struct riff * s
 
 	int n, o, found;
 
-	unsigned char * ptr;
-
 	if ( ! stream ) goto error;
 
 	if ( stream->type != DUMB_ID( 'D', 'S', 'M', 'F' ) ) goto error;

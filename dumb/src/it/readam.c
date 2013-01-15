@@ -268,8 +268,6 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 
     int n, o, p, found;
 
-	unsigned char * ptr;
-
 	if ( ! stream ) goto error;
 
 	if ( stream->type != DUMB_ID( 'A', 'M', 'F', 'F' ) ) goto error;
@@ -468,8 +466,6 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 	DUMB_IT_SIGDATA *sigdata;
 
 	int n, o, p, found;
-
-	unsigned char * ptr;
 
     if ( ! f || ! stream ) goto error;
 

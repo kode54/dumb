@@ -194,8 +194,6 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 
     int n;
 
-	long o, p, q;
-
 	sigdata = malloc(sizeof(*sigdata));
 	if (!sigdata) return NULL;
 
