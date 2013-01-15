@@ -83,7 +83,7 @@ static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f, unsigned s
 	return dumbfile_error(f);
 }
 
-static int it_stm_read_sample_data( IT_SAMPLE *sample, void *data_block, long offset )
+static int it_stm_read_sample_data( IT_SAMPLE *sample, DUMBFILE * f )
 {
 	if ( ! sample->length ) return 0;
 
@@ -91,9 +91,9 @@ static int it_stm_read_sample_data( IT_SAMPLE *sample, void *data_block, long of
 	if (!sample->data)
 		return -1;
 
-	memcpy( sample->data, (unsigned char*)data_block + offset, sample->length );	
+    dumbfile_getnc( sample->data, sample->length, f );
 
-	return 0;
+    return dumbfile_error( f );
 }
 
 static int it_stm_read_pattern( IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buffer )
@@ -192,9 +192,7 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 
 	unsigned short sample_offset[ 31 ];
 
-	void *data_block;
-
-	int n;
+    int n;
 
 	long o, p, q;
 
@@ -331,60 +329,21 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 		free( buffer );
 	}
 
-	o = LONG_MAX;
-	p = 0;
-
-	for ( n = 0; n < sigdata->n_samples; ++n ) {
-		if ((sigdata->sample[ n ].flags & IT_SAMPLE_EXISTS) && sample_offset[ n ]) {
-			q = ((long)sample_offset[ n ]) * 16;
-			if (q < o) {
-				o = q;
-			}
-			if (q + sigdata->sample[ n ].length > p) {
-				p = q + sigdata->sample[ n ].length;
-			}
-		}
-		else {
-			sigdata->sample[ n ].flags = 0;
-			sigdata->sample[ n ].length = 0;
-		}
-	}
-
-	data_block = malloc( p - o );
-	if ( !data_block ) {
-		_dumb_it_unload_sigdata( sigdata );
-		return NULL;
-	}
-
-	for ( n = 0, q = o / 16; n < sigdata->n_samples; ++n ) {
-		if ( sample_offset[ n ] ) {
-			sample_offset[ n ] -= q;
-		}
-	}
-
-	q = o - dumbfile_pos( f );
-	p -= o;
-	o = 0;
-	if ( q >= 0 ) dumbfile_skip( f, q );
-	else {
-		o = -q;
-		memset ( data_block, 0, o );
-	}
-	if ( dumbfile_getnc( (char*)data_block + o, p - o, f ) != p - o ) {
-		free( data_block );
-		_dumb_it_unload_sigdata( sigdata );
-		return NULL;
-	}
-
-	for ( n = 0; n < sigdata->n_samples; ++n ) {
-		if ( it_stm_read_sample_data( &sigdata->sample[ n ], data_block, ((long)sample_offset[ n ]) * 16 ) ) {
-			free( data_block );
-			_dumb_it_unload_sigdata( sigdata );
-			return NULL;
-		}
-	}
-
-	free( data_block );
+    for ( n = 0; n < sigdata->n_samples; ++n ) {
+        if ( sample_offset[ n ] )
+        {
+            if ( dumbfile_seek( f, sample_offset[ n ] * 16, DFS_SEEK_SET ) ||
+                 it_stm_read_sample_data( &sigdata->sample[ n ], f ) ) {
+                _dumb_it_unload_sigdata( sigdata );
+                return NULL;
+            }
+        }
+        else
+        {
+            sigdata->sample[ n ].flags = 0;
+            sigdata->sample[ n ].length = 0;
+        }
+    }
 
 	_dumb_it_fix_invalid_orders(sigdata);
 

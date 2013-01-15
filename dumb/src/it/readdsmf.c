@@ -114,7 +114,7 @@ static int it_riff_dsmf_process_pattern( IT_PATTERN * pattern, DUMBFILE * f, int
     start = dumbfile_pos( f );
     end = start + len;
 
-    while ( (row < 64) && (dumbfile_pos( f ) < end) ) {
+    while ( (row < 64) && !dumbfile_error( f ) && (dumbfile_pos( f ) < end) ) {
         p = dumbfile_getc( f );
         if ( ! p ) {
 			++ row;
@@ -143,7 +143,7 @@ static int it_riff_dsmf_process_pattern( IT_PATTERN * pattern, DUMBFILE * f, int
 
     if ( dumbfile_seek( f, start, DFS_SEEK_SET ) ) return -1;
 
-    while ( ( row < 64 ) && ( dumbfile_pos( f ) < end ) )
+    while ( ( row < 64 ) && !dumbfile_error( f ) && ( dumbfile_pos( f ) < end ) )
 	{
         p = dumbfile_getc( f );
         if ( ! p )

@@ -466,7 +466,8 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
         long total_sample_size;
         long offset = dumbfile_pos(f);
         long remain = dumbfile_get_size(f) - offset;
-        if ( dumbfile_seek(f, 0, SEEK_END) ) {
+        if ( dumbfile_error( f ) ||
+             dumbfile_seek( f, 0, SEEK_END ) ) {
             _dumb_it_unload_sigdata(sigdata);
             return NULL;
         }

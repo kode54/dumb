@@ -166,7 +166,7 @@ static int it_riff_am_process_pattern( IT_PATTERN * pattern, DUMBFILE * f, int l
     start = dumbfile_pos( f );
     end = start + len;
 
-    while ( (row < nrows) && (dumbfile_pos( f ) < end) ) {
+    while ( (row < nrows) && !dumbfile_error( f ) && (dumbfile_pos( f ) < end) ) {
         p = dumbfile_getc( f );
         if ( ! p ) {
 			++ row;
@@ -196,7 +196,7 @@ static int it_riff_am_process_pattern( IT_PATTERN * pattern, DUMBFILE * f, int l
 
     dumbfile_seek( f, start, DFS_SEEK_SET );
 
-    while ( ( row < nrows ) && ( dumbfile_pos( f ) < end ) )
+    while ( ( row < nrows ) && !dumbfile_error( f ) && ( dumbfile_pos( f ) < end ) )
 	{
         p = dumbfile_getc( f );
 

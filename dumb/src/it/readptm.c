@@ -26,23 +26,6 @@
 
 
 
-/** WARNING: this is duplicated in itread.c */
-static int it_seek(DUMBFILE *f, long offset)
-{
-	long pos = dumbfile_pos(f);
-
-	if (pos > offset)
-		return -1;
-
-	if (pos < offset)
-		if (dumbfile_skip(f, offset - pos))
-			return -1;
-
-	return 0;
-}
-
-
-
 static int it_ptm_read_sample_header(IT_SAMPLE *sample, long *offset, DUMBFILE *f)
 {
 	int flags;
@@ -455,7 +438,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 		return NULL;
 	}
 
-	if (it_seek(f, 352)) {
+    if (dumbfile_seek(f, 352, DFS_SEEK_SET)) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
 	}
@@ -467,7 +450,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 		n_components++;
 	}
 
-	if (it_seek(f, 608)) {
+    if (dumbfile_seek(f, 608, DFS_SEEK_SET)) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
 	}
@@ -510,7 +493,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f)
 	}
 
 	for (n = 0; n < n_components; n++) {
-		if (it_seek(f, component[n].offset)) {
+        if (dumbfile_seek(f, component[n].offset, DFS_SEEK_SET)) {
 			free(buffer);
 			free(component);
 			_dumb_it_unload_sigdata(sigdata);

@@ -1352,7 +1352,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
         }
 
         mptx_id = dumbfile_igetl( f );
-        while ( dumbfile_pos(f) < dumbfile_get_size(f) )
+        while ( !dumbfile_error(f) && dumbfile_pos(f) < dumbfile_get_size(f) )
         {
             unsigned int size = dumbfile_igetw( f );
             switch (mptx_id)
