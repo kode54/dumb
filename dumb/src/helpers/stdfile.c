@@ -134,12 +134,13 @@ static const DUMBFILE_SYSTEM stdfile_dfs_leave_open = {
 DUMBFILE *dumbfile_open_stdfile(FILE *p)
 {
     dumb_stdfile * file = ( dumb_stdfile * ) malloc( sizeof(dumb_stdfile) );
+	DUMBFILE *d;
     if ( !file ) return 0;
     file->file = p;
     fseek(p, 0, SEEK_END);
     file->size = ftell(p);
     fseek(p, 0, SEEK_SET);
-    DUMBFILE *d = dumbfile_open_ex(file, &stdfile_dfs_leave_open);
+    d = dumbfile_open_ex(file, &stdfile_dfs_leave_open);
 
 	return d;
 }

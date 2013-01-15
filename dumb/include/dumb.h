@@ -170,7 +170,7 @@ typedef struct DUMBFILE DUMBFILE;
 void register_dumbfile_system(const DUMBFILE_SYSTEM *dfs);
 
 DUMBFILE *dumbfile_open(const char *filename);
-DUMBFILE *dumbfile_open_ex(void *file, DUMBFILE_SYSTEM *dfs);
+DUMBFILE *dumbfile_open_ex(void *file, const DUMBFILE_SYSTEM *dfs);
 
 long dumbfile_pos(DUMBFILE *f);
 int dumbfile_skip(DUMBFILE *f, long n);

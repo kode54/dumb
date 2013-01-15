@@ -23,7 +23,7 @@
 
 
 
-static DUMBFILE_SYSTEM *the_dfs = NULL;
+static const DUMBFILE_SYSTEM *the_dfs = NULL;
 
 
 
@@ -42,7 +42,7 @@ void register_dumbfile_system(const DUMBFILE_SYSTEM *dfs)
 
 struct DUMBFILE
 {
-	DUMBFILE_SYSTEM *dfs;
+	const DUMBFILE_SYSTEM *dfs;
 	void *file;
 	long pos;
 };
@@ -55,7 +55,7 @@ DUMBFILE *dumbfile_open(const char *filename)
 
 	ASSERT(the_dfs);
 
-	f = malloc(sizeof(*f));
+	f = (DUMBFILE *) malloc(sizeof(*f));
 
 	if (!f)
 		return NULL;
@@ -76,7 +76,7 @@ DUMBFILE *dumbfile_open(const char *filename)
 
 
 
-DUMBFILE *dumbfile_open_ex(void *file, DUMBFILE_SYSTEM *dfs)
+DUMBFILE *dumbfile_open_ex(void *file, const DUMBFILE_SYSTEM *dfs)
 {
 	DUMBFILE *f;
 
@@ -84,7 +84,7 @@ DUMBFILE *dumbfile_open_ex(void *file, DUMBFILE_SYSTEM *dfs)
 	ASSERT(dfs->getc);
 	ASSERT(file);
 
-	f = malloc(sizeof(*f));
+	f = (DUMBFILE *) malloc(sizeof(*f));
 
 	if (!f) {
 		if (dfs->close)
