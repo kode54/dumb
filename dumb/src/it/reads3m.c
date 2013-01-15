@@ -24,26 +24,6 @@
 #include "dumb.h"
 #include "internal/it.h"
 
-//#define S3M_BROKEN_OVERLAPPED_SAMPLES
-
-/** WARNING: this is duplicated in itread.c */
-static int it_seek(DUMBFILE *f, long offset)
-{
-	long pos = dumbfile_pos(f);
-
-	if (pos > offset) {
-		return -1;
-	}
-
-	if (pos < offset)
-		if (dumbfile_skip(f, offset - pos))
-			return -1;
-
-	return 0;
-}
-
-
-
 static int it_s3m_read_sample_header(IT_SAMPLE *sample, long *offset, unsigned char *pack, int cwtv, DUMBFILE *f)
 {
 	unsigned char type;
@@ -214,7 +194,7 @@ static int it_s3m_read_sample_data(IT_SAMPLE *sample, int ffi, unsigned char pac
 
 
 
-static int it_s3m_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buffer, int maxlen)
+static int it_s3m_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buffer)
 {
 	int length;
 	int buflen = 0;
@@ -246,18 +226,13 @@ static int it_s3m_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *
 	 * against buffer overflow, this method should work with all sensibly
 	 * written S3M files. If you find one for which it does not work, please
 	 * let me know at entheh@users.sf.net so I can look at it.
+     *
+     * "for a good reason" ? What's this nonsense? -kode54
+     *
 	 */
 
-	/* Discard the length. */
-	/* read at most length bytes, in case of retarded crap */
 	length = dumbfile_igetw(f);
 	
-	if (maxlen)
-	{
-		maxlen -= 2;
-		if (length > maxlen) length = maxlen;
-	}
-
 	if (dumbfile_error(f) || !length)
 		return -1;
 
@@ -673,45 +648,11 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 		return NULL;
 	}
 
-	/* Voila, I must deal with a very dumb S3M myself. This file refers to the same file offset twice
-	 * for two different patterns. Solution: Eliminate it.
-	 */
-
-	for (n = 0; n < n_components; n++) {
-		if (component[n].type == S3M_COMPONENT_PATTERN) {
-			int m;
-			for (m = n + 1; m < n_components; m++) {
-				if (component[m].type == S3M_COMPONENT_PATTERN) {
-					if (component[n].offset == component[m].offset) {
-						int o, pattern;
-						pattern = component[m].n;
-						n_components--;
-						for (o = m; o < n_components; o++) {
-							component[o] = component[o + 1];
-						}
-						for (o = 0; o < sigdata->n_orders; o++) {
-							if (sigdata->order[o] == pattern) {
-								sigdata->order[o] = component[n].n;
-							}
-						}
-						sigdata->pattern[pattern].n_rows = 64;
-						sigdata->pattern[pattern].n_entries = 0;
-						m--;
-					} else
-						break;
-				}
-			}
-		}
-	}
-
 	for (n = 0; n < n_components; n++) {
 		long offset;
 		int m;
-#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
-		int last;
-#endif
 
-		if (it_seek(f, component[n].offset)) {
+        if (dumbfile_seek(f, component[n].offset, DFS_SEEK_SET)) {
 			free(buffer);
 			free(component);
 			_dumb_it_unload_sigdata(sigdata);
@@ -721,7 +662,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 		switch (component[n].type) {
 
 			case S3M_COMPONENT_PATTERN:
-				if (it_s3m_read_pattern(&sigdata->pattern[component[n].n], f, buffer, (n + 1 < n_components) ? (component[n+1].offset - component[n].offset) : 0)) {
+                if (it_s3m_read_pattern(&sigdata->pattern[component[n].n], f, buffer)) {
 					free(buffer);
 					free(component);
 					_dumb_it_unload_sigdata(sigdata);
@@ -759,41 +700,9 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 
 		m = component[n].sampfirst;
 
-#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
-		last = -1;
-#endif
-
 		while (m >= 0) {
 			// XXX
-#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
-			if ( last >= 0 ) {
-				if ( dumbfile_pos( f ) > component[m].offset ) {
-					IT_SAMPLE * s1 = &sigdata->sample[component[last].n];
-					IT_SAMPLE * s2 = &sigdata->sample[component[m].n];
-					if ( ( s1->flags | s2->flags ) & ( IT_SAMPLE_16BIT | IT_SAMPLE_STEREO ) ) {
-						free(buffer);
-						free(component);
-						_dumb_it_unload_sigdata(sigdata);
-						return NULL;
-					}
-					if ( component[m].offset >= component[last].offset &&
-						component[m].offset + s2->length <= component[last].offset + s1->length ) {
-						s2->left = malloc( s2->length );
-						if ( ! s2->left ) {
-							free(buffer);
-							free(component);
-							_dumb_it_unload_sigdata(sigdata);
-							return NULL;
-						}
-						memcpy( s2->left, ( const char * ) s1->left + component[m].offset - component[last].offset, s2->length );
-						last = -1;
-					}
-				}
-			} else last = 0;
-
-			if ( last >= 0 ) {
-#endif
-				if (it_seek(f, component[m].offset)) {
+                if (dumbfile_seek(f, component[m].offset, DFS_SEEK_SET)) {
 					free(buffer);
 					free(component);
 					_dumb_it_unload_sigdata(sigdata);
@@ -806,11 +715,6 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 					_dumb_it_unload_sigdata(sigdata);
 					return NULL;
 				}
-
-#ifdef S3M_BROKEN_OVERLAPPED_SAMPLES
-				last = m;
-			}
-#endif
 
 			m = component[m].sampnext;
 		}

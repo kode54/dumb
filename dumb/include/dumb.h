@@ -160,6 +160,8 @@ typedef struct DUMBFILE_SYSTEM
 	int (*getc)(void *f);
 	long (*getnc)(char *ptr, long n, void *f);
 	void (*close)(void *f);
+    int (*seek)(void *f, long n);
+    long (*get_size)(void *f);
 }
 DUMBFILE_SYSTEM;
 
@@ -172,6 +174,14 @@ DUMBFILE *dumbfile_open_ex(void *file, DUMBFILE_SYSTEM *dfs);
 
 long dumbfile_pos(DUMBFILE *f);
 int dumbfile_skip(DUMBFILE *f, long n);
+
+#define DFS_SEEK_SET 0
+#define DFS_SEEK_CUR 1
+#define DFS_SEEK_END 2
+
+int dumbfile_seek(DUMBFILE *f, long n, int origin);
+
+long dumbfile_get_size(DUMBFILE *f);
 
 int dumbfile_getc(DUMBFILE *f);
 

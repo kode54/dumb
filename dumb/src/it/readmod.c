@@ -270,193 +270,7 @@ static int it_mod_read_sample_data(IT_SAMPLE *sample, DUMBFILE *f, unsigned long
 
 
 
-typedef struct BUFFERED_MOD BUFFERED_MOD;
-
-struct BUFFERED_MOD
-{
-	unsigned char *buffered;
-	long ptr, len;
-	DUMBFILE *remaining;
-};
-
-
-
-static int buffer_mod_skip(void *f, long n)
-{
-	BUFFERED_MOD *bm = f;
-	if (bm->buffered) {
-		bm->ptr += n;
-		if (bm->ptr >= bm->len) {
-			free(bm->buffered);
-			bm->buffered = NULL;
-			return dumbfile_skip(bm->remaining, bm->ptr - bm->len);
-		}
-		return 0;
-	}
-	return dumbfile_skip(bm->remaining, n);
-}
-
-
-
-static int buffer_mod_getc(void *f)
-{
-	BUFFERED_MOD *bm = f;
-	if (bm->buffered) {
-		int rv = bm->buffered[bm->ptr++];
-		if (bm->ptr >= bm->len) {
-			free(bm->buffered);
-			bm->buffered = NULL;
-		}
-		return rv;
-	}
-	return dumbfile_getc(bm->remaining);
-}
-
-
-
-static long buffer_mod_getnc(char *ptr, long n, void *f)
-{
-	BUFFERED_MOD *bm = f;
-	if (bm->buffered) {
-		int left = bm->len - bm->ptr;
-		if (n >= left) {
-			memcpy(ptr, bm->buffered + bm->ptr, left);
-			free(bm->buffered);
-			bm->buffered = NULL;
-			if (n - left) {
-				int rv = dumbfile_getnc(ptr + left, n - left, bm->remaining);
-				return left + MAX(rv, 0);
-			} else {
-				return left;
-			}
-		}
-		memcpy(ptr, bm->buffered + bm->ptr, n);
-		bm->ptr += n;
-		return n;
-	}
-	return dumbfile_getnc(ptr, n, bm->remaining);
-}
-
-
-
-static void buffer_mod_close(void *f)
-{
-	BUFFERED_MOD *bm = f;
-	if (bm->buffered) free(bm->buffered);
-	/* Do NOT close bm->remaining */
-	free(f);
-}
-
-
-
-DUMBFILE_SYSTEM buffer_mod_dfs = {
-	NULL,
-	&buffer_mod_skip,
-	&buffer_mod_getc,
-	&buffer_mod_getnc,
-	&buffer_mod_close
-};
-
-
-
 #define MOD_FFT_OFFSET (20 + 31*(22+2+1+1+2+2) + 1 + 1 + 128)
-
-static DUMBFILE *dumbfile_buffer_mod(DUMBFILE *f, unsigned long *fft)
-{
-	BUFFERED_MOD *bm = malloc(sizeof(*bm));
-	if (!bm) return NULL;
-
-	bm->buffered = malloc(MOD_FFT_OFFSET + 4);
-	if (!bm->buffered) {
-		free(bm);
-		return NULL;
-	}
-
-	bm->len = dumbfile_getnc(bm->buffered, MOD_FFT_OFFSET + 4, f);
-
-	if (bm->len > 0) {
-		if (bm->len >= MOD_FFT_OFFSET + 4)
-			*fft = (unsigned long)bm->buffered[MOD_FFT_OFFSET  ] << 24
-			     | (unsigned long)bm->buffered[MOD_FFT_OFFSET+1] << 16
-			     | (unsigned long)bm->buffered[MOD_FFT_OFFSET+2] << 8
-			     | (unsigned long)bm->buffered[MOD_FFT_OFFSET+3];
-		else
-			*fft = 0;
-		bm->ptr = 0;
-	} else {
-		free(bm->buffered);
-		bm->buffered = NULL;
-	}
-
-	bm->remaining = f;
-
-	return dumbfile_open_ex(bm, &buffer_mod_dfs);
-}
-
-static DUMBFILE *dumbfile_buffer_mod_2(DUMBFILE *f, int n_samples, IT_SAMPLE * sample, long *total_sample_size, long *remain)
-{
-	long read;
-	int sample_number;
-	BUFFERED_MOD *bm = malloc(sizeof(*bm));
-	unsigned char *ptr;
-	if (!bm) return NULL;
-
-	bm->buffered = malloc(32768);
-	if (!bm->buffered) {
-		free(bm);
-		return NULL;
-	}
-
-	bm->len = 0;
-	*remain = 0;
-
-	read = dumbfile_getnc(bm->buffered, 32768, f);
-
-	if (read >= 0) {
-		bm->len += read;
-		*remain += read;
-
-		while (read >= 32768) {
-			bm->buffered = realloc(bm->buffered, *remain + 32768);
-			if (!bm->buffered) {
-				free(bm);
-				return 0;
-			}
-			read = dumbfile_getnc(bm->buffered + *remain, 32768, f);
-			if (read >= 0) {
-				bm->len += read;
-				*remain += read;
-			}
-		}
-	}
-
-	if (*remain) {
-		bm->ptr = 0;
-		ptr = bm->buffered + *remain;
-		sample_number = n_samples - 1;
-		*total_sample_size = 0;
-		while (ptr > bm->buffered && sample_number >= 0) {
-			if (sample[sample_number].flags & IT_SAMPLE_EXISTS) {
-				ptr -= (sample[sample_number].length + 1) / 2 + 5 + 16;
-				if (ptr >= bm->buffered && !memcmp(ptr, "ADPCM", 5)) { /* BAH */
-					*total_sample_size += (sample[sample_number].length + 1) / 2 + 5 + 16;
-				} else {
-					*total_sample_size += sample[sample_number].length;
-					ptr -= sample[sample_number].length - ((sample[sample_number].length + 1) / 2 + 5 + 16);
-				}
-			}
-			sample_number--;
-		}
-	} else {
-		free(bm->buffered);
-		bm->buffered = NULL;
-	}
-
-	bm->remaining = f;
-
-	return dumbfile_open_ex(bm, &buffer_mod_dfs);
-}
-
 
 static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 {
@@ -464,15 +278,19 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	int n_channels;
 	int i;
 	unsigned long fft;
-	DUMBFILE *rem = NULL;
 
-	f = dumbfile_buffer_mod(f, &fft);
-	if (!f)
-		return NULL;
+    if ( dumbfile_seek(f, MOD_FFT_OFFSET, DFS_SEEK_SET) )
+        return NULL;
+
+    fft = dumbfile_mgetl(f);
+    if (dumbfile_error(f))
+        return NULL;
+
+    if ( dumbfile_seek(f, 0, DFS_SEEK_SET) )
+        return NULL;
 
 	sigdata = malloc(sizeof(*sigdata));
 	if (!sigdata) {
-		dumbfile_close(f);
 		return NULL;
 	}
 
@@ -483,8 +301,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	*/
 	if (dumbfile_getnc(sigdata->name, 20, f) < 20) {
 		free(sigdata);
-		dumbfile_close(f);
-		return NULL;
+        return NULL;
 	}
 	sigdata->name[20] = 0;
 
@@ -570,8 +387,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	if ( ( restrict & 1 ) && sigdata->n_samples == 15 )
 	{
 		free(sigdata);
-		dumbfile_close(f);
-		return NULL;
+        return NULL;
 	}
 
 	sigdata->n_pchannels = n_channels ? n_channels : 8; /* special case for 0, see above */
@@ -579,8 +395,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	sigdata->sample = malloc(sigdata->n_samples * sizeof(*sigdata->sample));
 	if (!sigdata->sample) {
 		free(sigdata);
-		dumbfile_close(f);
-		return NULL;
+        return NULL;
 	}
 
 	sigdata->song_message = NULL;
@@ -598,8 +413,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	for (i = 0; i < sigdata->n_samples; i++) {
 		if (it_mod_read_sample_header(&sigdata->sample[i], f)) {
 			_dumb_it_unload_sigdata(sigdata);
-			dumbfile_close(f);
-			return NULL;
+            return NULL;
 		}
 	}
 
@@ -609,8 +423,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 
 /*	if (sigdata->n_orders <= 0 || sigdata->n_orders > 128) { // is this right?
 		_dumb_it_unload_sigdata(sigdata);
-		dumbfile_close(f);
-		return NULL;
+        return NULL;
 	}*/
 
 	//if (sigdata->restart_position >= sigdata->n_orders)
@@ -619,13 +432,11 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	sigdata->order = malloc(128); /* We may need to scan the extra ones! */
 	if (!sigdata->order) {
 		_dumb_it_unload_sigdata(sigdata);
-		dumbfile_close(f);
-		return NULL;
+        return NULL;
 	}
 	if (dumbfile_getnc(sigdata->order, 128, f) < 128) {
 		_dumb_it_unload_sigdata(sigdata);
-		dumbfile_close(f);
-		return NULL;
+        return NULL;
 	}
 
 	if (sigdata->n_orders <= 0 || sigdata->n_orders > 128) { // is this right?
@@ -650,23 +461,47 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 
     if ( ( restrict & 2 ) )
 	{
-		long total_sample_size;
-		long remain;
-		rem = f;
-		f = dumbfile_buffer_mod_2(rem, sigdata->n_samples, sigdata->sample, &total_sample_size, &remain);
-		if (!f) {
-			_dumb_it_unload_sigdata(sigdata);
-			dumbfile_close(rem);
-			return NULL;
-		}
+        unsigned char buffer[5];
+        long sample_number;
+        long total_sample_size;
+        long offset = dumbfile_pos(f);
+        long remain = dumbfile_get_size(f) - offset;
+        if ( dumbfile_seek(f, 0, SEEK_END) ) {
+            _dumb_it_unload_sigdata(sigdata);
+            return NULL;
+        }
+        sample_number = sigdata->n_samples - 1;
+        total_sample_size = 0;
+        while (dumbfile_pos(f) > offset && sample_number >= 0) {
+            if (sigdata->sample[sample_number].flags & IT_SAMPLE_EXISTS) {
+                if ( dumbfile_seek(f, -((sigdata->sample[sample_number].length + 1) / 2 + 5 + 16), DFS_SEEK_CUR) ||
+                     dumbfile_getnc(buffer, 5, f) < 5 ) {
+                    _dumb_it_unload_sigdata(sigdata);
+                    return NULL;
+                }
+                if ( !memcmp( buffer, "ADPCM", 5 ) ) { /* BAH */
+                    total_sample_size += (sigdata->sample[sample_number].length + 1) / 2 + 5 + 16;
+                    if ( dumbfile_seek(f, -5, DFS_SEEK_CUR) ) {
+                        _dumb_it_unload_sigdata(sigdata);
+                        return NULL;
+                    }
+                } else {
+                    total_sample_size += sigdata->sample[sample_number].length;
+                    if ( dumbfile_seek(f, -(sigdata->sample[sample_number].length - ((sigdata->sample[sample_number].length + 1) / 2 + 5 + 16) + 5), DFS_SEEK_CUR) ) {
+                        _dumb_it_unload_sigdata(sigdata);
+                        return NULL;
+                    }
+                }
+            }
+            --sample_number;
+        }
+
 		if (remain > total_sample_size) {
 			sigdata->n_patterns = ( remain - total_sample_size + 4 ) / ( 256 * sigdata->n_pchannels );
 			if (fft == DUMB_ID('M',0,0,0) || fft == DUMB_ID('8',0,0,0)) {
 				remain -= sigdata->n_patterns * 256 * sigdata->n_pchannels;
 				if (dumbfile_skip(f, remain - total_sample_size)) {
 					_dumb_it_unload_sigdata(sigdata);
-					dumbfile_close(f);
-					dumbfile_close(rem);
 					return NULL;
 				}
 			}
@@ -684,8 +519,6 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 
 	if ( sigdata->n_patterns <= 0 ) {
 		_dumb_it_unload_sigdata(sigdata);
-		dumbfile_close(f);
-		if (rem) dumbfile_close(rem);
 		return NULL;
 	}
 
@@ -698,8 +531,6 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	sigdata->pattern = malloc(sigdata->n_patterns * sizeof(*sigdata->pattern));
 	if (!sigdata->pattern) {
 		_dumb_it_unload_sigdata(sigdata);
-		dumbfile_close(f);
-		if (rem) dumbfile_close(rem);
 		return NULL;
 	}
 	for (i = 0; i < sigdata->n_patterns; i++)
@@ -710,16 +541,12 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 		unsigned char *buffer = malloc(256 * sigdata->n_pchannels); /* 64 rows * 4 bytes */
 		if (!buffer) {
 			_dumb_it_unload_sigdata(sigdata);
-			dumbfile_close(f);
-			if (rem) dumbfile_close(rem);
 			return NULL;
 		}
 		for (i = 0; i < sigdata->n_patterns; i++) {
 			if (it_mod_read_pattern(&sigdata->pattern[i], f, n_channels, buffer) != 0) {
 				free(buffer);
 				_dumb_it_unload_sigdata(sigdata);
-				dumbfile_close(f);
-				if (rem) dumbfile_close(rem);
 				return NULL;
 			}
 		}
@@ -730,8 +557,6 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	for (i = 0; i < sigdata->n_samples; i++) {
 		if (it_mod_read_sample_data(&sigdata->sample[i], f, fft)) {
 			_dumb_it_unload_sigdata(sigdata);
-			dumbfile_close(f);
-			if (rem) dumbfile_close(rem);
 			return NULL;
 		}
 	}
@@ -753,10 +578,6 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 			}
 		}
 	}*/
-
-	dumbfile_close(f); /* Destroy the BUFFERED_MOD DUMBFILE we were using. */
-	if (rem) dumbfile_close(rem); /* And the BUFFERED_MOD DUMBFILE used to pre-read the signature. */
-	/* The DUMBFILE originally passed to our function is intact. */
 
 	/* Now let's initialise the remaining variables, and we're done! */
 	sigdata->flags = IT_WAS_AN_XM | IT_WAS_A_MOD | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_STEREO;

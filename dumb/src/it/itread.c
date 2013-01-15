@@ -32,78 +32,6 @@
 
 
 
-typedef struct tdumbfile_mem_status
-{
-    const unsigned char * ptr;
-    unsigned offset, size;
-} dumbfile_mem_status;
-
-
-
-static int dumbfile_mem_skip(void * f, long n)
-{
-    dumbfile_mem_status * s = (dumbfile_mem_status *) f;
-    s->offset += n;
-    if (s->offset > s->size)
-    {
-        s->offset = s->size;
-        return 1;
-    }
-
-    return 0;
-}
-
-
-
-static int dumbfile_mem_getc(void * f)
-{
-    dumbfile_mem_status * s = (dumbfile_mem_status *) f;
-    if (s->offset < s->size)
-    {
-        return *(s->ptr + s->offset++);
-    }
-    return -1;
-}
-
-
-
-static long dumbfile_mem_getnc(char * ptr, long n, void * f)
-{
-    dumbfile_mem_status * s = (dumbfile_mem_status *) f;
-    long max = s->size - s->offset;
-    if (max > n) max = n;
-    if (max)
-    {
-        memcpy(ptr, s->ptr + s->offset, max);
-        s->offset += max;
-    }
-    return max;
-}
-
-
-
-static DUMBFILE_SYSTEM mem_dfs = {
-    NULL, // open
-    &dumbfile_mem_skip,
-    &dumbfile_mem_getc,
-    &dumbfile_mem_getnc,
-    NULL // close
-};
-
-
-
-static int it_seek(dumbfile_mem_status * s, long offset)
-{
-    if ( offset > s->size )
-        return -1;
-
-    s->offset = offset;
-
-	return 0;
-}
-
-
-
 typedef unsigned char byte;
 typedef unsigned short word;
 typedef unsigned long dword;
@@ -1013,47 +941,8 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 
 	unsigned char *buffer;
 
-    unsigned char *file_buffer = NULL;
-    unsigned int file_size = 0;
-    int block_size;
-
-    dumbfile_mem_status memdata;
-
-    do
-    {
-        void * temp = realloc( file_buffer, file_size + 32768 );
-        if ( !temp )
-        {
-            if ( file_buffer ) free( file_buffer );
-            return NULL;
-        }
-        file_buffer = temp;
-        block_size = dumbfile_getnc( file_buffer + file_size, 32768, f );
-        if ( block_size < 0 )
-        {
-            free( file_buffer );
-            return NULL;
-        }
-        file_size += block_size;
-    }
-    while ( block_size == 32768 );
-
-    memdata.ptr = file_buffer;
-    memdata.offset = 0;
-    memdata.size = file_size;
-
-    f = dumbfile_open_ex(&memdata, &mem_dfs);
-
-    if ( !f )
-    {
-        free( file_buffer );
-        return NULL;
-    }
-
 	if (dumbfile_mgetl(f) != IT_SIGNATURE)
     {
-        dumbfile_close(f);
-        free(file_buffer);
 		return NULL;
     }
 
@@ -1061,8 +950,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 
 	if (!sigdata)
     {
-        dumbfile_close(f);
-        free(file_buffer);
 		return NULL;
     }
 
@@ -1113,16 +1000,12 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	// XXX sample count
 	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_instruments > 256 || sigdata->n_samples > 4000 || sigdata->n_patterns > 256) {
 		_dumb_it_unload_sigdata(sigdata);
-        dumbfile_close(f);
-        free(file_buffer);
 		return NULL;
 	}
 
 	sigdata->order = malloc(sigdata->n_orders);
 	if (!sigdata->order) {
 		_dumb_it_unload_sigdata(sigdata);
-        dumbfile_close(f);
-        free(file_buffer);
 		return NULL;
 	}
 
@@ -1130,8 +1013,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		sigdata->instrument = malloc(sigdata->n_instruments * sizeof(*sigdata->instrument));
 		if (!sigdata->instrument) {
 			_dumb_it_unload_sigdata(sigdata);
-            dumbfile_close(f);
-            free(file_buffer);
 			return NULL;
 		}
 	}
@@ -1140,8 +1021,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		sigdata->sample = malloc(sigdata->n_samples * sizeof(*sigdata->sample));
 		if (!sigdata->sample) {
 			_dumb_it_unload_sigdata(sigdata);
-            dumbfile_close(f);
-            free(file_buffer);
 			return NULL;
 		}
 		for (n = 0; n < sigdata->n_samples; n++)
@@ -1152,8 +1031,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		sigdata->pattern = malloc(sigdata->n_patterns * sizeof(*sigdata->pattern));
 		if (!sigdata->pattern) {
 			_dumb_it_unload_sigdata(sigdata);
-            dumbfile_close(f);
-            free(file_buffer);
 			return NULL;
 		}
 		for (n = 0; n < sigdata->n_patterns; n++)
@@ -1166,8 +1043,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	component = malloc(769 * sizeof(*component));
 	if (!component) {
 		_dumb_it_unload_sigdata(sigdata);
-        dumbfile_close(f);
-        free(file_buffer);
 		return NULL;
 	}
 
@@ -1212,8 +1087,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	if (dumbfile_error(f)) {
 		free(component);
 		_dumb_it_unload_sigdata(sigdata);
-        dumbfile_close(f);
-        free(file_buffer);
 		return NULL;
 	}
 
@@ -1234,8 +1107,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		if (!sigdata->midi) {
 			free(component);
 			_dumb_it_unload_sigdata(sigdata);
-            dumbfile_close(f);
-            free(file_buffer);
 			return NULL;
 			// Should we be happy with this outcome in some situations?
 		}
@@ -1244,8 +1115,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		if (dumbfile_error(f) || dumbfile_skip(f, 8*i)) {
 			free(component);
 			_dumb_it_unload_sigdata(sigdata);
-            dumbfile_close(f);
-            free(file_buffer);
 			return NULL;
 		}
 		/* Read embedded MIDI configuration */
@@ -1253,8 +1122,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		if (dumbfile_skip(f, 32*9)) {
 			free(component);
 			_dumb_it_unload_sigdata(sigdata);
-            dumbfile_close(f);
-            free(file_buffer);
 			return NULL;
 		}
 		for (i = 0; i < 16; i++) {
@@ -1263,8 +1130,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 			if (dumbfile_getnc(mididata, 32, f) < 32) {
 				free(component);
 				_dumb_it_unload_sigdata(sigdata);
-                dumbfile_close(f);
-                free(file_buffer);
 				return NULL;
 			}
 			sigdata->midi->SFmacroz[i] = 0;
@@ -1326,8 +1191,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	if (!buffer) {
 		free(component);
 		_dumb_it_unload_sigdata(sigdata);
-        dumbfile_close(f);
-        free(file_buffer);
 		return NULL;
 	}
 
@@ -1356,12 +1219,10 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 			continue;
 		}
 
-        if (it_seek(&memdata, component[n].offset)) {
+        if (dumbfile_seek(f, component[n].offset, DFS_SEEK_SET)) {
 			free(buffer);
 			free(component);
 			_dumb_it_unload_sigdata(sigdata);
-            dumbfile_close(f);
-            free(file_buffer);
 			return NULL;
 		}
 
@@ -1377,8 +1238,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 						free(buffer);
 						free(component);
 						_dumb_it_unload_sigdata(sigdata);
-                        dumbfile_close(f);
-                        free(file_buffer);
 						return NULL;
 					}
 					sigdata->song_message[message_length] = 0;
@@ -1395,8 +1254,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 					free(buffer);
 					free(component);
 					_dumb_it_unload_sigdata(sigdata);
-                    dumbfile_close(f);
-                    free(file_buffer);
 					return NULL;
 				}
 				break;
@@ -1406,8 +1263,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 					free(buffer);
 					free(component);
 					_dumb_it_unload_sigdata(sigdata);
-                    dumbfile_close(f);
-                    free(file_buffer);
 					return NULL;
 				}
 				break;
@@ -1417,8 +1272,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 					free(buffer);
 					free(component);
 					_dumb_it_unload_sigdata(sigdata);
-                    dumbfile_close(f);
-                    free(file_buffer);
 					return NULL;
 				}
 
@@ -1445,12 +1298,10 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		m = component[n].sampfirst;
 
 		while (m >= 0) {
-            if (it_seek(&memdata, component[m].offset)) {
+            if (dumbfile_seek(f, component[m].offset, DFS_SEEK_SET)) {
 				free(buffer);
 				free(component);
 				_dumb_it_unload_sigdata(sigdata);
-                dumbfile_close(f);
-                free(file_buffer);
 				return NULL;
 			}
 
@@ -1458,8 +1309,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 				free(buffer);
 				free(component);
 				_dumb_it_unload_sigdata(sigdata);
-                dumbfile_close(f);
-                free(file_buffer);
 				return NULL;
 			}
 
@@ -1503,7 +1352,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
         }
 
         mptx_id = dumbfile_igetl( f );
-        while ( memdata.offset < file_size )
+        while ( dumbfile_pos(f) < dumbfile_get_size(f) )
         {
             unsigned int size = dumbfile_igetw( f );
             switch (mptx_id)
@@ -1527,9 +1376,6 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 
     free(buffer);
 	free(component);
-
-    dumbfile_close(f);
-    free(file_buffer);
 
 	_dumb_it_fix_invalid_orders(sigdata);
 

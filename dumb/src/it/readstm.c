@@ -31,22 +31,6 @@
 #define strnicmp strncasecmp
 #endif
 
-/** WARNING: this is duplicated in itread.c */
-static int it_seek(DUMBFILE *f, long offset)
-{
-	long pos = dumbfile_pos(f);
-
-	if (pos > offset) {
-		return -1;
-	}
-
-	if (pos < offset)
-		if (dumbfile_skip(f, offset - pos))
-			return -1;
-
-	return 0;
-}
-
 static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f, unsigned short *offset )
 {
 	dumbfile_getnc( sample->filename, 12, f );

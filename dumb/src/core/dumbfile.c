@@ -33,6 +33,8 @@ void register_dumbfile_system(const DUMBFILE_SYSTEM *dfs)
 	ASSERT(dfs->open);
 	ASSERT(dfs->getc);
 	ASSERT(dfs->close);
+    ASSERT(dfs->seek);
+    ASSERT(dfs->get_size);
 	the_dfs = dfs;
 }
 
@@ -371,6 +373,26 @@ long dumbfile_getnc(char *ptr, long n, DUMBFILE *f)
 	f->pos += rv;
 
 	return rv;
+}
+
+
+
+int dumbfile_seek(DUMBFILE *f, long n, int origin)
+{
+    switch ( origin )
+    {
+    case DFS_SEEK_CUR: n += f->pos; break;
+    case DFS_SEEK_END: n += (*f->dfs->get_size)(f->file); break;
+    }
+    f->pos = n;
+    return (*f->dfs->seek)(f->file, n);
+}
+
+
+
+long dumbfile_get_size(DUMBFILE *f)
+{
+    return (*f->dfs->get_size)(f->file);
 }
 
 

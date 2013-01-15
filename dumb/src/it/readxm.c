@@ -453,13 +453,29 @@ static void limit_xm_close(void *f)
 }
 
 
+/* These two can be stubs since this implementation doesn't use seeking */
+static int limit_xm_seek(void *f, long n)
+{
+    return 1;
+}
+
+
+
+static long limit_xm_get_size(void *f)
+{
+    return 0;
+}
+
+
 
 DUMBFILE_SYSTEM limit_xm_dfs = {
 	NULL,
 	&limit_xm_skip,
 	&limit_xm_getc,
 	&limit_xm_getnc,
-	&limit_xm_close
+    &limit_xm_close,
+    &limit_xm_seek,
+    &limit_xm_get_size
 };
 
 static DUMBFILE *dumbfile_limit_xm(DUMBFILE *f)
