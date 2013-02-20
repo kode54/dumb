@@ -3980,35 +3980,20 @@ static void playing_volume_setup(DUMB_IT_SIGRENDERER * sigrenderer, IT_PLAYING *
 {
 	DUMB_IT_SIGDATA * sigdata = sigrenderer->sigdata;
 	int pan;
-	float volume, vol, span;
-
-	if ((sigrenderer->n_channels == 2) && (sigdata->flags & IT_STEREO)) {
-		pan = apply_pan_envelope(playing);
-		if ((sigdata->flags & IT_WAS_AN_S3M) && IT_IS_SURROUND_SHIFTED(pan)) {
-			volume = -1.0f * (float)(pan) * (1.0f / (64.0f * 256.0f));
-		} else {
-			volume = 1.0f;
-		}
+	float vol, span;
+ 
+ 	if ((sigrenderer->n_channels == 2) && (sigdata->flags & IT_STEREO)) {
+ 		pan = apply_pan_envelope(playing);
 		span = (pan - (32<<8)) * sigdata->pan_separation * (1.0f / ((32<<8) * 128));
-		vol = volume;
+		vol = 0.5f;
 		if (!IT_IS_SURROUND_SHIFTED(pan)) vol *= 1.0f - span;
-		playing->float_volume[0] = vol;
+ 		playing->float_volume[0] = vol;
 		vol = -vol;
-		if (!IT_IS_SURROUND_SHIFTED(pan)) vol += 2.0f * volume;
-		playing->float_volume[1] = vol;
-	} else {
-		if ((sigdata->flags & IT_STEREO) && (playing->sample->flags & IT_SAMPLE_STEREO)) {
-			pan = apply_pan_envelope(playing);
-			span = (pan - (32<<8)) * sigdata->pan_separation * (1.0f / ((32<<8) * 128));
-			vol = 0.5f;
-			if (!IT_IS_SURROUND_SHIFTED(pan)) vol *= 1.0f - span;
-			playing->float_volume[0] = vol;
-			if (!IT_IS_SURROUND_SHIFTED(pan)) vol = 2.0f - vol;
-			playing->float_volume[1] = vol;
-		} else {
-			playing->float_volume[0] = 1.0f;
-			playing->float_volume[1] = 1.0f;
-		}
+		if (!IT_IS_SURROUND_SHIFTED(pan)) vol += 1.0f;
+ 		playing->float_volume[1] = vol;
+ 	} else {
+		playing->float_volume[0] = 1.0f;
+		playing->float_volume[1] = 1.0f;
 	}
 
 	vol = calculate_volume(sigrenderer, playing, 1.0f);
