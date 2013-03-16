@@ -2963,6 +2963,8 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 				}
 				break;
 			case IT_SET_GLOBAL_VOLUME:
+				if ((sigdata->flags & IT_WAS_AN_S3M) && (entry->effectvalue > 64))
+					break;
 				if (entry->effectvalue <= 128)
 					sigrenderer->globalvolume = entry->effectvalue;
 #ifdef VOLUME_OUT_OF_RANGE_SETS_MAXIMUM
