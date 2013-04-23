@@ -16,7 +16,15 @@ enum { fir_buffer_size = fir_width * 2 };
 
 typedef short fir_impulse[fir_adj_width];
 
-static fir_impulse fir_impulses[fir_max_res];
+/* exp slope to 31/32 of ln(8) */
+static const double fir_ratios[32] = {
+	1.000, 1.067, 1.139, 1.215, 1.297, 1.384, 1.477, 1.576,
+	1.682, 1.795, 1.915, 2.044, 2.181, 2.327, 2.484, 2.650,
+	2.828, 3.018, 3.221, 3.437, 3.668, 3.914, 4.177, 4.458,
+	4.757, 5.076, 5.417, 5.781, 6.169, 6.583, 7.025, 7.497
+};
+
+static fir_impulse fir_impulses[32][fir_max_res];
 
 #undef PI
 #define PI 3.1415926535897932384626433832795029
@@ -59,8 +67,7 @@ typedef struct fir_resampler
     int read_pos, read_filled;
     unsigned short phase;
     unsigned int phase_inc;
-    float a1, a2, b02, b1;
-    float yn1, yn2;
+	unsigned int ratio_set;
     int buffer_in[fir_buffer_size * 2];
     int buffer_out[fir_buffer_size];
 } fir_resampler;
@@ -76,9 +83,7 @@ void * fir_resampler_create()
     r->read_filled = 0;
     r->phase = 0;
     r->phase_inc = 0;
-    r->a1 = 0; r->a2 = 0;
-    r->b02 = 0; r->b1 = 0;
-    r->yn1 = 0; r->yn2 = 0;
+	r->ratio_set = 0;
     memset( r->buffer_in, 0, sizeof(r->buffer_in) );
     memset( r->buffer_out, 0, sizeof(r->buffer_out) );
 
@@ -102,12 +107,7 @@ void * fir_resampler_dup(void * _r)
     r_out->read_filled = r_in->read_filled;
     r_out->phase = r_in->phase;
     r_out->phase_inc = r_in->phase_inc;
-    r_out->a1 = r_in->a1;
-    r_out->a2 = r_in->a2;
-    r_out->b02 = r_in->b02;
-    r_out->b1 = r_in->b1;
-    r_out->yn1 = r_in->yn1;
-    r_out->yn2 = r_in->yn2;
+	r_out->ratio_set = r_in->ratio_set;
     memcpy( r_out->buffer_in, r_in->buffer_in, sizeof(r_in->buffer_in) );
     memcpy( r_out->buffer_out, r_in->buffer_out, sizeof(r_in->buffer_out) );
 
@@ -134,8 +134,6 @@ void fir_resampler_clear(void *_r)
     r->read_pos = 0;
     r->read_filled = 0;
     r->phase = 0;
-    r->yn1 = 0;
-    r->yn2 = 0;
     memset( r->buffer_in, 0, sizeof(r->buffer_in) );
 }
 
@@ -143,21 +141,8 @@ void fir_resampler_set_rate(void *_r, double new_factor)
 {
     fir_resampler * r = ( fir_resampler * ) _r;
     r->phase_inc = (int)( new_factor * 65536.0 );
-    if ( r->phase_inc > 65536 )
-    {
-        double omega = 2 * PI * 0.5 / new_factor;
-        double cs = cos(omega);
-        double sn = sin(omega);
-        double alpha = sn / 2.0;
-        double a0_inv = 1.0 / (1.0 + alpha);
-
-        double b1_temp = (1.0 - cs) * a0_inv;
-
-        r->b02 = b1_temp * 0.5;
-        r->b1 =  b1_temp;
-        r->a1 =  -2.0 * cs * a0_inv;
-        r->a2 =  (1.0 - alpha) * a0_inv;
-    }
+	r->ratio_set = 0;
+	while ( r->ratio_set < 31 && new_factor > fir_ratios[ r->ratio_set ] ) r->ratio_set++;
 }
 
 void fir_resampler_write_sample(void *_r, short s)
@@ -167,18 +152,6 @@ void fir_resampler_write_sample(void *_r, short s)
     if ( r->write_filled < fir_buffer_size )
 	{
         int s32 = s;
-
-        if ( r->phase_inc > 65536 )
-        {
-            /* The filter is implemented in Direct-II form. */
-            float in, out, dsp_centernode;
-            in = s32;
-            dsp_centernode = in - r->a1 * r->yn1 - r->a2 * r->yn2;
-            out = r->b02 * (dsp_centernode + r->yn2) + r->b1 * r->yn1;
-            r->yn2 = r->yn1;
-            r->yn1 = dsp_centernode;
-            s32 = out;
-        }
 
         r->buffer_in[ r->write_pos ] = s32;
         r->buffer_in[ r->write_pos + fir_buffer_size ] = s32;
@@ -196,23 +169,27 @@ void fir_init()
 
     int const res = fir_max_res;
 
-    double const ratio_ = 1.0 / (double)fir_max_res;
+	int i;
+
+	for (i = 0; i < 32; i++)
+	{
+	    double const ratio_ = fir_ratios[ i ];
 	
-    double fraction = fmod( ratio_, 1.0 );
+		double fraction = 1.0 / (double)fir_max_res;
 
-    double const filter = (ratio_ < 1.0) ? 1.0 : 1.0 / ratio_;
-    double pos = 0.0;
-    //int input_per_cycle = 0;
-    short* out = (short*) fir_impulses;
-    int n;
-    for ( n = res; --n >= 0; )
-    {
-        gen_sinc( rolloff, (int) (fir_adj_width * filter + 1) & ~1, pos, filter,
-                (double) (0x7FFF * gain * filter), (int) fir_adj_width, out );
-        out += fir_adj_width;
+		double const filter = (ratio_ < 1.0) ? 1.0 : 1.0 / ratio_;
+		double pos = 0.0;
+		short* out = (short*) fir_impulses[ i ];
+	    int n;
+		for ( n = res; --n >= 0; )
+		{
+			gen_sinc( rolloff, (int) (fir_adj_width * filter + 1) & ~1, pos, filter,
+				    (double) (0x7FFF * gain * filter), (int) fir_adj_width, out );
+			out += fir_adj_width;
 
-        pos += fraction;
-    }
+			pos += fraction;
+		}
+	}
 }
 
 int fir_resampler_run(void *_r, int ** out_, int * out_end)
@@ -229,11 +206,12 @@ int fir_resampler_run(void *_r, int ** out_, int * out_end)
 		int const* const in_end = in + in_size;
         int phase = r->phase;
         int phase_inc = r->phase_inc;
+		int ratio_set = r->ratio_set;
 		
 		do
 		{
 			// accumulate in extended precision
-            short const* imp = fir_impulses[(phase & 0xFFC0) >> 6];
+            short const* imp = fir_impulses[ratio_set][(phase & 0xFFC0) >> 6];
             int pt = imp [0];
             int s = pt * in [0];
             int n;
