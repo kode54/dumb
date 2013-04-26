@@ -282,6 +282,9 @@
     <ClCompile Include="..\..\src\it\readany2.c">
       <Filter>src\it\readers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\helpers\lanczos_resampler.c">
+      <Filter>src\helpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\dumb.h">
@@ -309,6 +312,9 @@
       <Filter>include\internal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\internal\blip_buf.h">
+      <Filter>include\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\internal\lanczos_resampler.h">
       <Filter>include\internal</Filter>
     </ClInclude>
   </ItemGroup>

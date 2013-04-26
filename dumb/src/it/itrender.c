@@ -51,7 +51,7 @@ static IT_PLAYING *new_playing()
 		blip_set_rates(r->resampler.blip_buffer[0], 65536, 1);
 		blip_set_rates(r->resampler.blip_buffer[1], 65536, 1);
         r->resampler.fir_resampler_ratio = 0.0;
-        r->resampler.fir_resampler[0] = fir_resampler_create();
+        r->resampler.fir_resampler[0] = lanczos_resampler_create();
         if ( !r->resampler.fir_resampler[0] )
         {
             free( r->resampler.blip_buffer[1] );
@@ -59,10 +59,10 @@ static IT_PLAYING *new_playing()
             free( r );
             return NULL;
         }
-        r->resampler.fir_resampler[1] = fir_resampler_create();
+        r->resampler.fir_resampler[1] = lanczos_resampler_create();
         if ( !r->resampler.fir_resampler[1] )
         {
-            fir_resampler_delete( r->resampler.fir_resampler[0] );
+            lanczos_resampler_delete( r->resampler.fir_resampler[0] );
             free( r->resampler.blip_buffer[1] );
             free( r->resampler.blip_buffer[0] );
             free( r );
@@ -74,8 +74,8 @@ static IT_PLAYING *new_playing()
 
 static void free_playing(IT_PLAYING * r)
 {
-    fir_resampler_delete( r->resampler.fir_resampler[1] );
-    fir_resampler_delete( r->resampler.fir_resampler[0] );
+    lanczos_resampler_delete( r->resampler.fir_resampler[1] );
+    lanczos_resampler_delete( r->resampler.fir_resampler[0] );
 	blip_delete( r->resampler.blip_buffer[1] );
 	blip_delete( r->resampler.blip_buffer[0] );
 	free( r );
@@ -184,7 +184,7 @@ static IT_PLAYING *dup_playing(IT_PLAYING *src, IT_CHANNEL *dstchannel, IT_CHANN
 		return NULL;
 	}
     dst->resampler.fir_resampler_ratio = src->resampler.fir_resampler_ratio;
-    dst->resampler.fir_resampler[0] = fir_resampler_dup( src->resampler.fir_resampler[0] );
+    dst->resampler.fir_resampler[0] = lanczos_resampler_dup( src->resampler.fir_resampler[0] );
     if ( !dst->resampler.fir_resampler[0] )
     {
         blip_delete( dst->resampler.blip_buffer[1] );
@@ -192,10 +192,10 @@ static IT_PLAYING *dup_playing(IT_PLAYING *src, IT_CHANNEL *dstchannel, IT_CHANN
         free( dst );
         return NULL;
     }
-    dst->resampler.fir_resampler[1] = fir_resampler_dup( src->resampler.fir_resampler[1] );
+    dst->resampler.fir_resampler[1] = lanczos_resampler_dup( src->resampler.fir_resampler[1] );
     if ( !dst->resampler.fir_resampler[1] )
     {
-        fir_resampler_delete( dst->resampler.fir_resampler[0] );
+        lanczos_resampler_delete( dst->resampler.fir_resampler[0] );
         blip_delete( dst->resampler.blip_buffer[1] );
         blip_delete( dst->resampler.blip_buffer[0] );
         free( dst );
@@ -304,7 +304,6 @@ static void dup_channel(IT_CHANNEL *dst, IT_CHANNEL *src)
 	dst->inv_loop_offset = src->inv_loop_offset;
 
 	dst->playing = dup_playing(src->playing, dst, src);
-
 
 #ifdef BIT_ARRAY_BULLSHIT
 	dst->played_patjump = bit_array_dup(src->played_patjump);
@@ -1223,6 +1222,46 @@ static void update_invert_loop(IT_CHANNEL *channel, IT_SAMPLE *sample)
 }
 
 
+static void update_playing_effects(IT_PLAYING *playing)
+{
+	IT_CHANNEL *channel = playing->channel;
+
+	if (channel->channelvolslide) {
+		playing->channel_volume = channel->channelvolume;
+	}
+
+	if (channel->okt_toneslide) {
+		if (channel->okt_toneslide--) {
+			playing->note += channel->toneslide;
+			if (playing->note >= 120) {
+				if (channel->toneslide < 0) playing->note = 0;
+				else playing->note = 119;
+			}
+		}
+	} else if (channel->ptm_toneslide) {
+		if (--channel->toneslide_tick == 0) {
+			channel->toneslide_tick = channel->ptm_toneslide;
+			if (playing) {
+				playing->note += channel->toneslide;
+				if (playing->note >= 120) {
+					if (channel->toneslide < 0) playing->note = 0;
+					else playing->note = 119;
+				}
+				if (channel->playing == playing) {
+					channel->note = channel->truenote = playing->note;
+				}
+				if (channel->toneslide_retrig) {
+					it_playing_reset_resamplers(playing, 0);
+#ifdef END_RAMPING
+					playing->declick_stage = 0;
+					playing->declick_volume = 1.f / 256.f;
+#endif
+				}
+			}
+		}
+	}
+}
+
 
 static void update_effects(DUMB_IT_SIGRENDERER *sigrenderer)
 {
@@ -1308,12 +1347,6 @@ static void update_effects(DUMB_IT_SIGRENDERER *sigrenderer)
 				else
 					channel->channelvolume = 0;
 			}
-			if (channel->playing)
-				channel->playing->channel_volume = channel->channelvolume;
-			for (j = 0; j < DUMB_IT_N_NNA_CHANNELS; j++) {
-				if (sigrenderer->playing[j] && sigrenderer->playing[j]->channel == channel)
-					sigrenderer->playing[j]->channel_volume = channel->channelvolume;
-			}
 		}
 
 		update_tremor(channel);
@@ -1324,126 +1357,65 @@ static void update_effects(DUMB_IT_SIGRENDERER *sigrenderer)
 
 		if (channel->inv_loop_speed) update_invert_loop(channel, playing ? playing->sample : NULL);
 
-		for (j = 0; j < DUMB_IT_N_NNA_CHANNELS; j++) {
-			if (sigrenderer->playing[j] && sigrenderer->playing[j]->channel == channel) break;
-		}
+		if (playing) {
+			playing->slide += channel->portamento;
 
-		if (playing || j < DUMB_IT_N_NNA_CHANNELS) {
-			if (playing) playing->slide += channel->portamento;
-			for (j = 0; j < DUMB_IT_N_NNA_CHANNELS; j++) {
-				if (sigrenderer->playing[j] && sigrenderer->playing[j]->channel == channel)
-					sigrenderer->playing[j]->slide += channel->portamento;
-			}
-
-			if (channel->okt_toneslide) {
-				if (channel->okt_toneslide--) {
-					if (playing) {
-						playing->note += channel->toneslide;
-						if (playing->note >= 120) {
-							if (channel->toneslide < 0) playing->note = 0;
-							else playing->note = 119;
+			if (sigrenderer->sigdata->flags & IT_LINEAR_SLIDES) {
+				if (channel->toneporta && channel->destnote < 120) {
+					int currpitch = ((playing->note - 60) << 8) + playing->slide;
+					int destpitch = (channel->destnote - 60) << 8;
+					if (currpitch > destpitch) {
+						currpitch -= channel->toneporta;
+						if (currpitch < destpitch) {
+							currpitch = destpitch;
+							channel->destnote = IT_NOTE_OFF;
 						}
-					}
-					for (j = 0; j < DUMB_IT_N_NNA_CHANNELS; j++) {
-						if (sigrenderer->playing[j] && sigrenderer->playing[j]->channel == channel) {
-							IT_PLAYING *playing = sigrenderer->playing[j];
-							playing->note += channel->toneslide;
-							if (playing->note >= 120) {
-								if (channel->toneslide < 0) playing->note = 0;
-								else playing->note = 119;
-							}
-						}
-					}
-				}
-			} else if (channel->ptm_toneslide) {
-				if (--channel->toneslide_tick == 0) {
-					channel->toneslide_tick = channel->ptm_toneslide;
-					if (playing) {
-						playing->note += channel->toneslide;
-						if (playing->note >= 120) {
-							if (channel->toneslide < 0) playing->note = 0;
-							else playing->note = 119;
-						}
-						channel->note = channel->truenote = playing->note;
-						if (channel->toneslide_retrig) {
-							it_playing_reset_resamplers(playing, 0);
-#ifdef END_RAMPING
-							playing->declick_stage = 0;
-							playing->declick_volume = 1.f / 256.f;
-#endif
-						}
-					}
-					for (j = 0; j < DUMB_IT_N_NNA_CHANNELS; j++) {
-						if (sigrenderer->playing[j] && sigrenderer->playing[j]->channel == channel) {
-							IT_PLAYING *playing = sigrenderer->playing[j];
-							playing->note += channel->toneslide;
-							if (playing->note >= 120) {
-								if (channel->toneslide < 0) playing->note = 0;
-								else playing->note = 119;
-							}
-							if (channel->toneslide_retrig) {
-								it_playing_reset_resamplers(playing, 0);
-#ifdef END_RAMPING
-								playing->declick_stage = 0;
-								playing->declick_volume = 1.f / 256.f;
-#endif
-							}
-						}
-					}
-				}
-			}
-
-			if (playing) {
-				if (sigrenderer->sigdata->flags & IT_LINEAR_SLIDES) {
-					if (channel->toneporta && channel->destnote < 120) {
-						int currpitch = ((playing->note - 60) << 8) + playing->slide;
-						int destpitch = (channel->destnote - 60) << 8;
+					} else if (currpitch < destpitch) {
+						currpitch += channel->toneporta;
 						if (currpitch > destpitch) {
-							currpitch -= channel->toneporta;
-							if (currpitch < destpitch) {
-								currpitch = destpitch;
-								channel->destnote = IT_NOTE_OFF;
-							}
-						} else if (currpitch < destpitch) {
-							currpitch += channel->toneporta;
-							if (currpitch > destpitch) {
-								currpitch = destpitch;
-								channel->destnote = IT_NOTE_OFF;
-							}
+							currpitch = destpitch;
+							channel->destnote = IT_NOTE_OFF;
 						}
-						playing->slide = currpitch - ((playing->note - 60) << 8);
 					}
-				} else {
-					if (channel->toneporta && channel->destnote < 120) {
-						float amiga_multiplier = playing->sample->C5_speed * (1.0f / AMIGA_DIVISOR);
+					playing->slide = currpitch - ((playing->note - 60) << 8);
+				}
+			} else {
+				if (channel->toneporta && channel->destnote < 120) {
+					float amiga_multiplier = playing->sample->C5_speed * (1.0f / AMIGA_DIVISOR);
 
-						float deltanote = (float)pow(DUMB_SEMITONE_BASE, 60 - playing->note);
-						/* deltanote is 1.0 for C-5, 0.5 for C-6, etc. */
+					float deltanote = (float)pow(DUMB_SEMITONE_BASE, 60 - playing->note);
+					/* deltanote is 1.0 for C-5, 0.5 for C-6, etc. */
 
-						float deltaslid = deltanote - playing->slide * amiga_multiplier;
+					float deltaslid = deltanote - playing->slide * amiga_multiplier;
 
-						float destdelta = (float)pow(DUMB_SEMITONE_BASE, 60 - channel->destnote);
+					float destdelta = (float)pow(DUMB_SEMITONE_BASE, 60 - channel->destnote);
+					if (deltaslid < destdelta) {
+						playing->slide -= channel->toneporta;
+						deltaslid = deltanote - playing->slide * amiga_multiplier;
+						if (deltaslid > destdelta) {
+							playing->note = channel->destnote;
+							playing->slide = 0;
+							channel->destnote = IT_NOTE_OFF;
+						}
+					} else {
+						playing->slide += channel->toneporta;
+						deltaslid = deltanote - playing->slide * amiga_multiplier;
 						if (deltaslid < destdelta) {
-							playing->slide -= channel->toneporta;
-							deltaslid = deltanote - playing->slide * amiga_multiplier;
-							if (deltaslid > destdelta) {
-								playing->note = channel->destnote;
-								playing->slide = 0;
-								channel->destnote = IT_NOTE_OFF;
-							}
-						} else {
-							playing->slide += channel->toneporta;
-							deltaslid = deltanote - playing->slide * amiga_multiplier;
-							if (deltaslid < destdelta) {
-								playing->note = channel->destnote;
-								playing->slide = 0;
-								channel->destnote = IT_NOTE_OFF;
-							}
+							playing->note = channel->destnote;
+							playing->slide = 0;
+							channel->destnote = IT_NOTE_OFF;
 						}
 					}
 				}
 			}
+
+			update_playing_effects(playing);
 		}
+	}
+
+	for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
+		IT_PLAYING *playing = sigrenderer->playing[i];
+		if (playing) update_playing_effects(playing);
 	}
 
 	update_smooth_effects(sigrenderer);
@@ -1714,7 +1686,6 @@ static void xm_note_off(DUMB_IT_SIGDATA *sigdata, IT_CHANNEL *channel)
 }
 
 
-
 static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *channel)
 {
 	IT_PLAYING_ENVELOPE volume_envelope;
@@ -1865,7 +1836,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	if (channel->playing)
 		free_playing(channel->playing);
 
-    channel->playing = new_playing();
+    channel->playing = new_playing(channel);
 
 	if (!channel->playing)
 		return;
@@ -3505,7 +3476,7 @@ static void process_xm_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *ent
 			channel->destnote = IT_NOTE_OFF;
 
 			if (!channel->playing) {
-                channel->playing = new_playing();
+                channel->playing = new_playing(channel);
 				if (!channel->playing) {
 					if (playing) free_playing(playing);
 					return;

@@ -675,7 +675,7 @@ typedef struct DUMB_VOLUME_RAMP_INFO DUMB_VOLUME_RAMP_INFO;
 typedef void (*DUMB_RESAMPLE_PICKUP)(DUMB_RESAMPLER *resampler, void *data);
 
 #include "internal/blip_buf.h"
-#include "internal/fir_resampler.h"
+#include "internal/lanczos_resampler.h"
 
 struct DUMB_RESAMPLER
 {

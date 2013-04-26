@@ -169,7 +169,7 @@ static short cubicA0[1025], cubicA1[1025];
 		cubicA1[t] =  (int)(3*t*t*t >> 17) - (int)(5*t*t >> 7)                 + (int)(1 << 14);
 	}
 
-    fir_init();
+    lanczos_init();
 }
 
 

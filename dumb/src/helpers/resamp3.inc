@@ -191,20 +191,20 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
                                     /* FIR resampling, backwards */
                                     SRCTYPE *x;
                                     if ( resampler->fir_resampler_ratio != delta ) {
-                                        fir_resampler_set_rate( resampler->fir_resampler[0], delta );
-                                        fir_resampler_set_rate( resampler->fir_resampler[1], delta );
+                                        lanczos_resampler_set_rate( resampler->fir_resampler[0], delta );
+                                        lanczos_resampler_set_rate( resampler->fir_resampler[1], delta );
                                         resampler->fir_resampler_ratio = delta;
                                     }
                                     x = &src[pos*SRC_CHANNELS];
                                     while ( todo ) {
-                                            while ( fir_resampler_get_free_count( resampler->fir_resampler[0] ) &&
+                                            while ( lanczos_resampler_get_free_count( resampler->fir_resampler[0] ) &&
                                                     pos >= resampler->start )
                                             {
                                                     POKE_FIR(0);
                                                     pos--;
                                                     x -= SRC_CHANNELS;
                                             }
-                                            if ( !fir_resampler_ready( resampler->fir_resampler[0] ) ) break;
+                                            if ( !lanczos_resampler_ready( resampler->fir_resampler[0] ) ) break;
                                             MIX_FIR;
                                             ADVANCE_FIR;
                                             --todo;
@@ -317,20 +317,20 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
                                     /* FIR resampling, forwards */
                                     SRCTYPE *x;
                                     if ( resampler->fir_resampler_ratio != delta ) {
-                                        fir_resampler_set_rate( resampler->fir_resampler[0], delta );
-                                        fir_resampler_set_rate( resampler->fir_resampler[1], delta );
+                                        lanczos_resampler_set_rate( resampler->fir_resampler[0], delta );
+                                        lanczos_resampler_set_rate( resampler->fir_resampler[1], delta );
                                         resampler->fir_resampler_ratio = delta;
                                     }
                                     x = &src[pos*SRC_CHANNELS];
                                     while ( todo ) {
-                                            while ( fir_resampler_get_free_count( resampler->fir_resampler[0] ) &&
+                                            while ( lanczos_resampler_get_free_count( resampler->fir_resampler[0] ) &&
                                                     pos < resampler->end )
                                             {
                                                     POKE_FIR(0);
                                                     pos++;
                                                     x += SRC_CHANNELS;
                                             }
-                                            if ( !fir_resampler_ready( resampler->fir_resampler[0] ) ) break;
+                                            if ( !lanczos_resampler_ready( resampler->fir_resampler[0] ) ) break;
                                             MIX_FIR;
                                             ADVANCE_FIR;
                                             --todo;
