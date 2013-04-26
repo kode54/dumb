@@ -154,6 +154,7 @@ int lanczos_resampler_run(void *_r, int ** out_, int * out_end)
 			// accumulate in extended precision
             double kernel[LANCZOS_WIDTH * 2], kernel_sum = 0.0;
 			int i = LANCZOS_WIDTH;
+			int phase_adj = phase * step / LANCZOS_RESOLUTION;
 			double sample;
 
 			if ( out >= out_end )
@@ -162,7 +163,7 @@ int lanczos_resampler_run(void *_r, int ** out_, int * out_end)
 			for (; i >= -LANCZOS_WIDTH + 1; --i)
 			{
 				int pos = i * step;
-				kernel_sum += kernel[i + LANCZOS_WIDTH - 1] = lanczos_lut[abs(phase - pos)];
+				kernel_sum += kernel[i + LANCZOS_WIDTH - 1] = lanczos_lut[abs(phase_adj - pos)];
 			}
 			for (sample = 0, i = 0; i < LANCZOS_WIDTH * 2; ++i)
 				sample += in[i] * kernel[i];
