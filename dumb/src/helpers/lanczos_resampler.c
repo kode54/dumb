@@ -33,7 +33,7 @@ void lanczos_init()
 		cosine_lut[i] = (1.0 - cos(((double)(i) / COSINE_RESOLUTION) * M_PI)) * 0.5;
 	dx = (double)(LANCZOS_WIDTH) / LANCZOS_SAMPLES; x = 0.0;
 	for (i = 0; i < LANCZOS_SAMPLES; ++i, x += dx)
-		lanczos_lut[i] = abs(x) < LANCZOS_WIDTH ? sinc(x) * (0.35875 + 0.48829 * cos((M_PI * x) / 3) + 0.14128 * cos((2 * M_PI * x) / 3) + 0.01168 * cos(M_PI * x)) : 0.0;
+		lanczos_lut[i] = abs(x) < LANCZOS_WIDTH ? sinc(x) * sinc(x / LANCZOS_WIDTH) : 0.0;
 }
 
 typedef struct lanczos_resampler
