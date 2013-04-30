@@ -3955,8 +3955,9 @@ static void playing_volume_setup(DUMB_IT_SIGRENDERER * sigrenderer, IT_PLAYING *
 	int pan;
 	float vol, span;
  
- 	if ((sigrenderer->n_channels == 2) && (sigdata->flags & IT_STEREO)) {
- 		pan = apply_pan_envelope(playing);
+	pan = apply_pan_envelope(playing);
+
+	if ((sigrenderer->n_channels >= 2) && (sigdata->flags & IT_STEREO) && (sigrenderer->n_channels == 3 && !IT_IS_SURROUND_SHIFTED(pan))) {
 		span = (pan - (32<<8)) * sigdata->pan_separation * (1.0f / ((32<<8) * 128));
 		vol = 0.5f;
 		if (!IT_IS_SURROUND_SHIFTED(pan)) vol *= 1.0f - span;
@@ -4665,7 +4666,7 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 		lvol.target = playing->float_volume [0];
 		rvol.target = playing->float_volume [1];
 		rvol.mix = lvol.mix = volume;
-		if (sigrenderer->n_channels == 2) {
+		if (sigrenderer->n_channels >= 2) {
 			if (playing->sample->flags & IT_SAMPLE_STEREO) {
 				if ((cr_record_which & 1) && sigrenderer->click_remover) {
 					sample_t click[2];
@@ -5125,7 +5126,7 @@ static void apply_pitch_modifications(DUMB_IT_SIGDATA *sigdata, IT_PLAYING *play
 
 
 
-static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, long pos, long size, sample_t **samples)
+static void render_normal(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, long pos, long size, sample_t **samples)
 {
 	int i;
 
@@ -5239,6 +5240,184 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 			}
 		}
 	}
+}
+
+
+
+static void render_surround(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, long pos, long size, sample_t **samples)
+{
+	int i;
+
+	int n_to_mix = 0, n_to_mix_surround = 0;
+	IT_TO_MIX to_mix[DUMB_IT_TOTAL_CHANNELS];
+	IT_TO_MIX to_mix_surround[DUMB_IT_TOTAL_CHANNELS];
+	int left_to_mix = dumb_it_max_to_mix;
+
+	int saved_channels = sigrenderer->n_channels;
+
+	sample_t **samples_to_filter = NULL;
+
+	int ramp_style = sigrenderer->ramp_style;
+
+	DUMB_CLICK_REMOVER **saved_cr = sigrenderer->click_remover;
+
+	//int max_output = sigrenderer->max_output;
+
+	if (ramp_style > 2) {
+		if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM | IT_WAS_A_MOD)) == IT_WAS_AN_XM) ramp_style = 2;
+		else ramp_style -= 3;
+	}
+
+	for (i = 0; i < DUMB_IT_N_CHANNELS; i++) {
+		if (sigrenderer->channel[i].playing && !(sigrenderer->channel[i].playing->flags & IT_PLAYING_DEAD)) {
+			IT_PLAYING *playing = sigrenderer->channel[i].playing;
+			IT_TO_MIX *_to_mix = IT_IS_SURROUND_SHIFTED(playing->pan) ? to_mix_surround + n_to_mix_surround++ : to_mix + n_to_mix++;
+			_to_mix->playing = playing;
+			_to_mix->volume = volume == 0 ? 0 : calculate_volume(sigrenderer, playing, volume);
+		}
+	}
+
+	for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
+		if (sigrenderer->playing[i]) { /* Won't be dead; it would have been freed. */
+			IT_PLAYING *playing = sigrenderer->playing[i];
+			IT_TO_MIX *_to_mix = IT_IS_SURROUND_SHIFTED(playing->pan) ? to_mix_surround + n_to_mix_surround++ : to_mix + n_to_mix++;
+			_to_mix->playing = playing;
+			_to_mix->volume = volume == 0 ? 0 : calculate_volume(sigrenderer, playing, volume);
+		}
+	}
+
+	if (volume != 0) {
+		qsort(to_mix, n_to_mix, sizeof(IT_TO_MIX), &it_to_mix_compare);
+		qsort(to_mix_surround, n_to_mix_surround, sizeof(IT_TO_MIX), &it_to_mix_compare);
+	}
+
+	sigrenderer->n_channels = 2;
+
+	for (i = 0; i < n_to_mix; i++) {
+		IT_PLAYING *playing = to_mix[i].playing;
+		float note_delta = delta * playing->delta;
+		int cutoff = playing->filter_cutoff << IT_ENVELOPE_SHIFT;
+		//int output = min( playing->output, max_output );
+
+		apply_pitch_modifications(sigrenderer->sigdata, playing, &note_delta, &cutoff);
+
+		if (cutoff != 127 << IT_ENVELOPE_SHIFT || playing->filter_resonance != 0) {
+			playing->true_filter_cutoff = cutoff;
+			playing->true_filter_resonance = playing->filter_resonance;
+		}
+
+		if (volume && (playing->true_filter_cutoff != 127 << IT_ENVELOPE_SHIFT || playing->true_filter_resonance != 0)) {
+			if (!samples_to_filter) {
+				samples_to_filter = allocate_sample_buffer(sigrenderer->n_channels, size + 1);
+				if (!samples_to_filter) {
+					render_playing_ramp(sigrenderer, playing, 0, delta, note_delta, pos, size, NULL, 0, &left_to_mix, ramp_style);
+					continue;
+				}
+			}
+			{
+				long size_rendered;
+				DUMB_CLICK_REMOVER **cr = sigrenderer->click_remover;
+				dumb_silence(samples_to_filter[0], sigrenderer->n_channels * (size + 1));
+				sigrenderer->click_remover = NULL;
+				size_rendered = render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, 0, size, samples_to_filter, 1, &left_to_mix, ramp_style);
+				sigrenderer->click_remover = cr;
+				it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[0 /*output*/], pos, samples_to_filter[0], size_rendered,
+					2, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
+				it_filter(cr ? cr[1] : NULL, &playing->filter_state[1], samples[0 /*output*/]+1, pos, samples_to_filter[0]+1, size_rendered,
+					2, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
+			}
+		} else {
+			it_reset_filter_state(&playing->filter_state[0]);
+			it_reset_filter_state(&playing->filter_state[1]);
+			render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, pos, size, samples /*&samples[output]*/, 0, &left_to_mix, ramp_style);
+		}
+	}
+
+	sigrenderer->n_channels = 1;
+	sigrenderer->click_remover = saved_cr ? saved_cr + 2 : 0;
+
+	for (i = 0; i < n_to_mix_surround; i++) {
+		IT_PLAYING *playing = to_mix_surround[i].playing;
+		float note_delta = delta * playing->delta;
+		int cutoff = playing->filter_cutoff << IT_ENVELOPE_SHIFT;
+		//int output = min( playing->output, max_output );
+
+		apply_pitch_modifications(sigrenderer->sigdata, playing, &note_delta, &cutoff);
+
+		if (cutoff != 127 << IT_ENVELOPE_SHIFT || playing->filter_resonance != 0) {
+			playing->true_filter_cutoff = cutoff;
+			playing->true_filter_resonance = playing->filter_resonance;
+		}
+
+		if (volume && (playing->true_filter_cutoff != 127 << IT_ENVELOPE_SHIFT || playing->true_filter_resonance != 0)) {
+			if (!samples_to_filter) {
+				samples_to_filter = allocate_sample_buffer(sigrenderer->n_channels, size + 1);
+				if (!samples_to_filter) {
+					render_playing_ramp(sigrenderer, playing, 0, delta, note_delta, pos, size, NULL, 0, &left_to_mix, ramp_style);
+					continue;
+				}
+			}
+			{
+				long size_rendered;
+				DUMB_CLICK_REMOVER **cr = sigrenderer->click_remover;
+				dumb_silence(samples_to_filter[0], size + 1);
+				sigrenderer->click_remover = NULL;
+				size_rendered = render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, 0, size, samples_to_filter, 1, &left_to_mix, ramp_style);
+				sigrenderer->click_remover = cr;
+				it_filter(cr ? cr[2] : NULL, &playing->filter_state[0], samples[1 /*output*/], pos, samples_to_filter[0], size_rendered,
+					1, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
+				// FIXME: filtering is not prevented by low left_to_mix!
+				// FIXME: change 'warning' to 'FIXME' everywhere
+			}
+		} else {
+			it_reset_filter_state(&playing->filter_state[0]);
+			it_reset_filter_state(&playing->filter_state[1]);
+			render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, pos, size, &samples[1], 0, &left_to_mix, ramp_style);
+		}
+	}
+
+	sigrenderer->n_channels = saved_channels;
+	sigrenderer->click_remover = saved_cr;
+
+    destroy_sample_buffer(samples_to_filter);
+
+	for (i = 0; i < DUMB_IT_N_CHANNELS; i++) {
+		if (sigrenderer->channel[i].playing) {
+			//if ((sigrenderer->channel[i].playing->flags & (IT_PLAYING_BACKGROUND | IT_PLAYING_DEAD)) == (IT_PLAYING_BACKGROUND | IT_PLAYING_DEAD)) {
+			// This change was made so Gxx would work correctly when a note faded out or whatever. Let's hope nothing else was broken by it.
+			if (
+#ifdef RAMP_DOWN
+			(sigrenderer->channel[i].playing->declick_stage == 3) || 
+#endif
+			(sigrenderer->channel[i].playing->flags & IT_PLAYING_DEAD)) {
+				free_playing(sigrenderer->channel[i].playing);
+				sigrenderer->channel[i].playing = NULL;
+			}
+		}
+	}
+
+	for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
+		if (sigrenderer->playing[i]) {
+			if (
+#ifdef RAMP_DOWN
+				(sigrenderer->playing[i]->declick_stage == 3) ||
+#endif
+				(sigrenderer->playing[i]->flags & IT_PLAYING_DEAD)) {
+				free_playing(sigrenderer->playing[i]);
+				sigrenderer->playing[i] = NULL;
+			}
+		}
+	}
+}
+
+
+
+static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, long pos, long size, sample_t **samples)
+{
+	if (sigrenderer->n_channels == 1 || sigrenderer->n_channels == 2)
+		render_normal(sigrenderer, volume, delta, pos, size, samples);
+	else if (sigrenderer->n_channels == 3)
+		render_surround(sigrenderer, volume, delta, pos, size, samples);
 }
 
 
