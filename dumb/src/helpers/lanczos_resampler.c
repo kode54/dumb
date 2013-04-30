@@ -5,12 +5,10 @@
 
 #include "internal/lanczos_resampler.h"
 
-enum { COSINE_RESOLUTION = 8192 };
 enum { LANCZOS_RESOLUTION = 8192 };
 enum { LANCZOS_WIDTH = 8 };
 enum { LANCZOS_SAMPLES = LANCZOS_RESOLUTION * LANCZOS_WIDTH };
 
-static double cosine_lut[COSINE_RESOLUTION];
 static double lanczos_lut[LANCZOS_SAMPLES];
 
 enum { lanczos_buffer_size = LANCZOS_WIDTH * 4 };
@@ -28,10 +26,7 @@ static double sinc(double x)
 void lanczos_init()
 {
 	unsigned i;
-	double dx, x;
-	for (i = 0; i < COSINE_RESOLUTION; ++i)
-		cosine_lut[i] = (1.0 - cos(((double)(i) / COSINE_RESOLUTION) * M_PI)) * 0.5;
-	dx = (double)(LANCZOS_WIDTH) / LANCZOS_SAMPLES; x = 0.0;
+	double dx = (double)(LANCZOS_WIDTH) / LANCZOS_SAMPLES, x = 0.0;
 	for (i = 0; i < LANCZOS_SAMPLES; ++i, x += dx)
 		lanczos_lut[i] = abs(x) < LANCZOS_WIDTH ? sinc(x) * sinc(x / LANCZOS_WIDTH) : 0.0;
 }
