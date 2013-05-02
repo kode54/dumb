@@ -5364,7 +5364,7 @@ static void render_surround(DUMB_IT_SIGRENDERER *sigrenderer, float volume, floa
 				sigrenderer->click_remover = NULL;
 				size_rendered = render_playing_ramp(sigrenderer, playing, volume, delta, note_delta, 0, size, samples_to_filter, 1, &left_to_mix, ramp_style);
 				sigrenderer->click_remover = cr;
-				it_filter(cr ? cr[2] : NULL, &playing->filter_state[0], samples[1 /*output*/], pos, samples_to_filter[0], size_rendered,
+				it_filter(cr ? cr[0] : NULL, &playing->filter_state[0], samples[1 /*output*/], pos, samples_to_filter[0], size_rendered,
 					1, (int)(65536.0f/delta), playing->true_filter_cutoff, playing->true_filter_resonance);
 				// FIXME: filtering is not prevented by low left_to_mix!
 				// FIXME: change 'warning' to 'FIXME' everywhere
