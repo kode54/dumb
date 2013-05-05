@@ -9,9 +9,15 @@ enum { LANCZOS_RESOLUTION = 8192 };
 enum { LANCZOS_WIDTH = 8 };
 enum { LANCZOS_SAMPLES = LANCZOS_RESOLUTION * LANCZOS_WIDTH };
 
-static double lanczos_lut[LANCZOS_SAMPLES];
+static double lanczos_lut[LANCZOS_SAMPLES + 1];
 
 enum { lanczos_buffer_size = LANCZOS_WIDTH * 4 };
+
+int my_abs(int in)
+{
+	int const mask = in >> sizeof(int) * CHAR_BIT - 1;
+	return (in + mask) ^ mask;
+}
 
 int fEqual(const double b, const double a)
 {
@@ -27,8 +33,8 @@ void lanczos_init()
 {
 	unsigned i;
 	double dx = (double)(LANCZOS_WIDTH) / LANCZOS_SAMPLES, x = 0.0;
-	for (i = 0; i < LANCZOS_SAMPLES; ++i, x += dx)
-		lanczos_lut[i] = abs(x) < LANCZOS_WIDTH ? sinc(x) * sinc(x / LANCZOS_WIDTH) : 0.0;
+	for (i = 0; i < LANCZOS_SAMPLES + 1; ++i, x += dx)
+		lanczos_lut[i] = my_abs(x) < LANCZOS_WIDTH ? sinc(x) * sinc(x / LANCZOS_WIDTH) : 0.0;
 }
 
 typedef struct lanczos_resampler
@@ -37,7 +43,7 @@ typedef struct lanczos_resampler
     int read_pos, read_filled;
     unsigned short phase;
     unsigned int phase_inc;
-    int buffer_in[lanczos_buffer_size * 2];
+    float buffer_in[lanczos_buffer_size * 2];
     int buffer_out[lanczos_buffer_size];
 } lanczos_resampler;
 
@@ -116,7 +122,7 @@ void lanczos_resampler_write_sample(void *_r, short s)
 
     if ( r->write_filled < lanczos_buffer_size )
 	{
-        int s32 = s;
+        float s32 = s;
 
         r->buffer_in[ r->write_pos ] = s32;
         r->buffer_in[ r->write_pos + lanczos_buffer_size ] = s32;
@@ -131,14 +137,14 @@ int lanczos_resampler_run(void *_r, int ** out_, int * out_end)
 {
 	lanczos_resampler * r = ( lanczos_resampler * ) _r;
     int in_size = r->write_filled;
-    int const* in_ = r->buffer_in + lanczos_buffer_size + r->write_pos - r->write_filled;
+    float const* in_ = r->buffer_in + lanczos_buffer_size + r->write_pos - r->write_filled;
 	int used = 0;
 	in_size -= LANCZOS_WIDTH * 2;
 	if ( in_size > 0 )
 	{
 		int* out = *out_;
-		int const* in = in_;
-		int const* const in_end = in + in_size;
+		float const* in = in_;
+		float const* const in_end = in + in_size;
         int phase = r->phase;
         int phase_inc = r->phase_inc;
 
@@ -158,7 +164,7 @@ int lanczos_resampler_run(void *_r, int ** out_, int * out_end)
 			for (; i >= -LANCZOS_WIDTH + 1; --i)
 			{
 				int pos = i * step;
-				kernel_sum += kernel[i + LANCZOS_WIDTH - 1] = lanczos_lut[abs(phase_adj - pos)];
+				kernel_sum += kernel[i + LANCZOS_WIDTH - 1] = lanczos_lut[my_abs(phase_adj - pos)];
 			}
 			for (sample = 0, i = 0; i < LANCZOS_WIDTH * 2; ++i)
 				sample += in[i] * kernel[i];
