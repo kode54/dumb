@@ -3957,7 +3957,7 @@ static void playing_volume_setup(DUMB_IT_SIGRENDERER * sigrenderer, IT_PLAYING *
  
 	pan = apply_pan_envelope(playing);
 
-	if ((sigrenderer->n_channels >= 2) && (sigdata->flags & IT_STEREO) && (sigrenderer->n_channels == 3 && !IT_IS_SURROUND_SHIFTED(pan))) {
+	if ((sigrenderer->n_channels >= 2) && (sigdata->flags & IT_STEREO) && (sigrenderer->n_channels != 3 || !IT_IS_SURROUND_SHIFTED(pan))) {
 		span = (pan - (32<<8)) * sigdata->pan_separation * (1.0f / ((32<<8) * 128));
 		vol = 0.5f;
 		if (!IT_IS_SURROUND_SHIFTED(pan)) vol *= 1.0f - span;
