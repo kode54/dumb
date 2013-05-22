@@ -389,13 +389,13 @@ void dumb_it_set_global_volume_zero_callback(DUMB_IT_SIGRENDERER *sigrenderer, i
 int dumb_it_callback_terminate(void *data);
 int dumb_it_callback_midi_block(void *data, int channel, unsigned char midi_byte);
 
-/* dumb_*_mod*: restrict |= 1-Don't read 15 sample files / 2-Use old pattern counting method */
+/* dumb_*_mod*: restrict_ |= 1-Don't read 15 sample files / 2-Use old pattern counting method */
 
 DUH *dumb_load_it(const char *filename);
 DUH *dumb_load_xm(const char *filename);
 DUH *dumb_load_s3m(const char *filename);
 DUH *dumb_load_stm(const char *filename);
-DUH *dumb_load_mod(const char *filename, int restrict);
+DUH *dumb_load_mod(const char *filename, int restrict_);
 DUH *dumb_load_ptm(const char *filename);
 DUH *dumb_load_669(const char *filename);
 DUH *dumb_load_psm(const char *filename, int subsong);
@@ -410,7 +410,7 @@ DUH *dumb_read_it(DUMBFILE *f);
 DUH *dumb_read_xm(DUMBFILE *f);
 DUH *dumb_read_s3m(DUMBFILE *f);
 DUH *dumb_read_stm(DUMBFILE *f);
-DUH *dumb_read_mod(DUMBFILE *f, int restrict);
+DUH *dumb_read_mod(DUMBFILE *f, int restrict_);
 DUH *dumb_read_ptm(DUMBFILE *f);
 DUH *dumb_read_669(DUMBFILE *f);
 DUH *dumb_read_psm(DUMBFILE *f, int subsong);
@@ -425,7 +425,7 @@ DUH *dumb_load_it_quick(const char *filename);
 DUH *dumb_load_xm_quick(const char *filename);
 DUH *dumb_load_s3m_quick(const char *filename);
 DUH *dumb_load_stm_quick(const char *filename);
-DUH *dumb_load_mod_quick(const char *filename, int restrict);
+DUH *dumb_load_mod_quick(const char *filename, int restrict_);
 DUH *dumb_load_ptm_quick(const char *filename);
 DUH *dumb_load_669_quick(const char *filename);
 DUH *dumb_load_psm_quick(const char *filename, int subsong);
@@ -440,7 +440,7 @@ DUH *dumb_read_it_quick(DUMBFILE *f);
 DUH *dumb_read_xm_quick(DUMBFILE *f);
 DUH *dumb_read_s3m_quick(DUMBFILE *f);
 DUH *dumb_read_stm_quick(DUMBFILE *f);
-DUH *dumb_read_mod_quick(DUMBFILE *f, int restrict);
+DUH *dumb_read_mod_quick(DUMBFILE *f, int restrict_);
 DUH *dumb_read_ptm_quick(DUMBFILE *f);
 DUH *dumb_read_669_quick(DUMBFILE *f);
 DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong);
@@ -451,11 +451,11 @@ DUH *dumb_read_asy_quick(DUMBFILE *f);
 DUH *dumb_read_amf_quick(DUMBFILE *f);
 DUH *dumb_read_okt_quick(DUMBFILE *f);
 
-DUH *dumb_read_any_quick(DUMBFILE *f, int restrict, int subsong);
-DUH *dumb_read_any(DUMBFILE *f, int restrict, int subsong);
+DUH *dumb_read_any_quick(DUMBFILE *f, int restrict_, int subsong);
+DUH *dumb_read_any(DUMBFILE *f, int restrict_, int subsong);
 
-DUH *dumb_load_any_quick(const char *filename, int restrict, int subsong);
-DUH *dumb_load_any(const char *filename, int restrict, int subsong);
+DUH *dumb_load_any_quick(const char *filename, int restrict_, int subsong);
+DUH *dumb_load_any(const char *filename, int restrict_, int subsong);
 
 long dumb_it_build_checkpoints(DUMB_IT_SIGDATA *sigdata, int startorder);
 void dumb_it_do_initial_runthrough(DUH *duh);

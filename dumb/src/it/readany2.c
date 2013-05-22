@@ -21,9 +21,9 @@
 
 
 
-DUH *dumb_read_any(DUMBFILE *f, int restrict, int subsong)
+DUH *dumb_read_any(DUMBFILE *f, int restrict_, int subsong)
 {
-    DUH *duh = dumb_read_any_quick(f, restrict, subsong);
+    DUH *duh = dumb_read_any_quick(f, restrict_, subsong);
 	dumb_it_do_initial_runthrough(duh);
 	return duh;
 }

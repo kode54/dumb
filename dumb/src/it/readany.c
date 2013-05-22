@@ -30,7 +30,7 @@
 
 enum { maximum_signature_size = 0x30 };
 
-DUH *dumb_read_any_quick(DUMBFILE *f, int restrict, int subsong)
+DUH *dumb_read_any_quick(DUMBFILE *f, int restrict_, int subsong)
 {
     unsigned char signature[ maximum_signature_size ];
     unsigned long signature_size;
@@ -122,7 +122,7 @@ DUH *dumb_read_any_quick(DUMBFILE *f, int restrict, int subsong)
     if ( !duh )
     {
         dumbfile_seek( f, 0, DFS_SEEK_SET );
-        duh = dumb_read_mod_quick( f, restrict );
+        duh = dumb_read_mod_quick( f, restrict_ );
     }
 
     return duh;

@@ -273,7 +273,7 @@ static int it_mod_read_sample_data(IT_SAMPLE *sample, DUMBFILE *f, unsigned long
 
 #define MOD_FFT_OFFSET (20 + 31*(22+2+1+1+2+2) + 1 + 1 + 128)
 
-static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
+static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
 {
 	DUMB_IT_SIGDATA *sigdata;
 	int n_channels;
@@ -385,7 +385,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 	}
 
 	// moo
-	if ( ( restrict & 1 ) && sigdata->n_samples == 15 )
+	if ( ( restrict_ & 1 ) && sigdata->n_samples == 15 )
 	{
 		free(sigdata);
         return NULL;
@@ -460,7 +460,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 
 	sigdata->n_patterns = -1;
 
-    if ( ( restrict & 2 ) )
+    if ( ( restrict_ & 2 ) )
 	{
         unsigned char buffer[5];
         long sample_number;
@@ -609,13 +609,13 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict)
 
 
 
-DUH *dumb_read_mod_quick(DUMBFILE *f, int restrict)
+DUH *dumb_read_mod_quick(DUMBFILE *f, int restrict_)
 {
 	sigdata_t *sigdata;
 
 	DUH_SIGTYPE_DESC *descptr = &_dumb_sigtype_it;
 
-	sigdata = it_mod_load_sigdata(f, restrict);
+	sigdata = it_mod_load_sigdata(f, restrict_);
 
 	if (!sigdata)
 		return NULL;

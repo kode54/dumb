@@ -22,7 +22,7 @@
 
 
 
-DUH *dumb_load_any_quick(const char *filename, int restrict, int subsong)
+DUH *dumb_load_any_quick(const char *filename, int restrict_, int subsong)
 {
 	DUH *duh;
 	DUMBFILE *f = dumbfile_open(filename);
@@ -30,7 +30,7 @@ DUH *dumb_load_any_quick(const char *filename, int restrict, int subsong)
 	if (!f)
 		return NULL;
 
-    duh = dumb_read_any_quick(f, restrict, subsong);
+    duh = dumb_read_any_quick(f, restrict_, subsong);
 
 	dumbfile_close(f);
 
