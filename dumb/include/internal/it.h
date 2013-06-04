@@ -33,6 +33,7 @@
 #include <stddef.h>
 
 #include "barray.h"
+#include "tarray.h"
 
 
 /** TO DO: THINK ABOUT THE FOLLOWING:
@@ -722,6 +723,21 @@ struct DUMB_IT_SIGRENDERER
 #ifdef BIT_ARRAY_BULLSHIT
 	/* bit array, which rows are played, only checked by pattern break or loop commands */
 	void * played;
+
+	/*
+	   Loop indicator for internal processes, may also be useful for external processes 
+	   0 - Not looped
+	   1 - Looped
+	  -1 - Continued past loop
+	 */
+	int looped;
+
+	/*
+	   Kept until looped
+	*/
+	LONG_LONG time_played;
+
+	void * row_timekeeper;
 #endif
 
 	long gvz_time;

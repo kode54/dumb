@@ -285,6 +285,9 @@
     <ClCompile Include="..\..\src\helpers\lanczos_resampler.c">
       <Filter>src\helpers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\helpers\tarray.c">
+      <Filter>src\helpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\dumb.h">
@@ -315,6 +318,9 @@
       <Filter>include\internal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\internal\lanczos_resampler.h">
+      <Filter>include\internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\internal\tarray.h">
       <Filter>include\internal</Filter>
     </ClInclude>
   </ItemGroup>

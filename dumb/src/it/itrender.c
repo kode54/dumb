@@ -379,6 +379,8 @@ static DUMB_IT_SIGRENDERER *dup_sigrenderer(DUMB_IT_SIGRENDERER *src, int n_chan
 
 #ifdef BIT_ARRAY_BULLSHIT
 	dst->played = bit_array_dup(src->played);
+
+	dst->row_timekeeper = timekeeping_array_dup(src->row_timekeeper);
 #endif
 
 	dst->gvz_time = src->gvz_time;
@@ -2196,6 +2198,9 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 					bit_array_set(sigrenderer->played, sigrenderer->order * 256 + sigrenderer->row);
 #endif
 					sigrenderer->speed = 0;
+#ifdef BIT_ARRAY_BULLSHIT
+					sigrenderer->looped = 1;
+#endif
 					if (sigrenderer->callbacks->xm_speed_zero && (*sigrenderer->callbacks->xm_speed_zero)(sigrenderer->callbacks->xm_speed_zero_data))
 						return 1;
 				}
@@ -4235,6 +4240,10 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 				*/
 #endif
 				bit_array_set(sigrenderer->played, sigrenderer->order * 256 + sigrenderer->row);
+				if (sigrenderer->looped == 0) {
+					timekeeping_array_push(sigrenderer->row_timekeeper, sigrenderer->order * 256 + sigrenderer->row, sigrenderer->time_played);
+				}
+				timekeeping_array_bump(sigrenderer->row_timekeeper, sigrenderer->order * 256 + sigrenderer->row);
 				{
 					int n;
 					for (n = 0; n < DUMB_IT_N_CHANNELS; n++)
@@ -4349,6 +4358,9 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 					&& bit_array_test(sigrenderer->played, sigrenderer->processorder * 256 + sigrenderer->processrow)
 #endif
 					) {
+#ifdef BIT_ARRAY_BULLSHIT
+					sigrenderer->looped = 1;
+#endif
 					if (sigrenderer->callbacks->loop) {
 						if ((*sigrenderer->callbacks->loop)(sigrenderer->callbacks->loop_data))
 							return 1;
@@ -4444,6 +4456,9 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 			sigrenderer->gvz_time += (int)(t >> 16);
 			sigrenderer->gvz_sub_time = (int)t & 65535;
 			if (sigrenderer->gvz_time >= 65536 * 12) {
+#ifdef BIT_ARRAY_BULLSHIT
+				sigrenderer->looped = 1;
+#endif
 				if ((*sigrenderer->callbacks->global_volume_zero)(sigrenderer->callbacks->global_volume_zero_data))
 					return 1;
 			}
@@ -5575,6 +5590,10 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 
 #ifdef BIT_ARRAY_BULLSHIT
 	sigrenderer->played = bit_array_create(sigdata->n_orders * 256);
+
+	sigrenderer->looped = 0;
+	sigrenderer->time_played = 0;
+	sigrenderer->row_timekeeper = timekeeping_array_create(sigdata->n_orders * 256);
 #endif
 
 	sigrenderer->gvz_time = 0;
@@ -5758,7 +5777,7 @@ static long it_sigrenderer_get_samples(
 	long pos;
 	int dt;
 	long todo;
-	LONG_LONG t;
+	LONG_LONG time_left, t;
 
 	if (sigrenderer->order < 0) return 0; // problematic
 
@@ -5771,7 +5790,8 @@ static long it_sigrenderer_get_samples(
 	if (!samples) volume = 0;
 
 	for (;;) {
-		todo = (long)((((LONG_LONG)sigrenderer->time_left << 16) | sigrenderer->sub_time_left) / dt);
+		time_left = ((LONG_LONG)sigrenderer->time_left << 16) | sigrenderer->sub_time_left;
+		todo = (long)(time_left / dt);
 
 		if (todo >= size)
 			break;
@@ -5785,11 +5805,25 @@ static long it_sigrenderer_get_samples(
 		sigrenderer->sub_time_left = (long)t & 65535;
 		sigrenderer->time_left += (long)(t >> 16);
 
+#ifdef BIT_ARRAY_BULLSHIT
+		sigrenderer->time_played += time_left;
+#endif
+
 		if (process_tick(sigrenderer)) {
 			sigrenderer->order = -1;
 			sigrenderer->row = -1;
 			return pos;
 		}
+
+#ifdef BIT_ARRAY_BULLSHIT
+		if (sigrenderer->looped == 1) {
+			sigrenderer->looped = -1;
+			size = 0;
+			timekeeping_array_reset(sigrenderer->row_timekeeper, sigrenderer->order * 256 + sigrenderer->row);
+			sigrenderer->time_played = timekeeping_array_get_item(sigrenderer->row_timekeeper, sigrenderer->order * 256 + sigrenderer->row);
+			break;
+		}
+#endif
 	}
 
 	render(sigrenderer, volume, delta, pos, size, samples);
@@ -5799,6 +5833,10 @@ static long it_sigrenderer_get_samples(
 	t = sigrenderer->sub_time_left - (LONG_LONG)size * dt;
 	sigrenderer->sub_time_left = (long)t & 65535;
 	sigrenderer->time_left += (long)(t >> 16);
+
+#ifdef BIT_ARRAY_BULLSHIT
+	sigrenderer->time_played += (LONG_LONG)size * dt;
+#endif
 
 	if (samples)
 		dumb_remove_clicks_array(sigrenderer->n_channels, sigrenderer->click_remover, samples, pos, 512.0f / delta);
@@ -5843,11 +5881,24 @@ void _dumb_it_end_sigrenderer(sigrenderer_t *vsigrenderer)
 
 #ifdef BIT_ARRAY_BULLSHIT
 		bit_array_destroy(sigrenderer->played);
+
+		timekeeping_array_destroy(sigrenderer->row_timekeeper);
 #endif
 
 		free(vsigrenderer);
 	}
 }
+
+
+
+#ifdef BIT_ARRAY_BULLSHIT
+static long it_sigrenderer_get_position(sigrenderer_t *vsigrenderer)
+{
+	DUMB_IT_SIGRENDERER *sigrenderer = vsigrenderer;
+
+	return sigrenderer->time_played >> 16;
+}
+#endif
 
 
 
@@ -5858,6 +5909,11 @@ DUH_SIGTYPE_DESC _dumb_sigtype_it = {
 	NULL,
 	&it_sigrenderer_get_samples,
 	&it_sigrenderer_get_current_sample,
+#ifdef BIT_ARRAY_BULLSHIT
+	&it_sigrenderer_get_position,
+#else
+	NULL,
+#endif
 	&_dumb_it_end_sigrenderer,
 	&_dumb_it_unload_sigdata
 };

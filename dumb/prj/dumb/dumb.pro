@@ -36,6 +36,7 @@ SOURCES += \
     ../../src/helpers/clickrem.c \
     ../../src/helpers/blip_buf.c \
     ../../src/helpers/barray.c \
+    ../../src/helpers/tarray.c \
     ../../src/it/xmeffect.c \
     ../../src/it/readxm2.c \
     ../../src/it/readxm.c \
@@ -108,6 +109,7 @@ HEADERS += \
     ../../include/internal/dumb.h \
     ../../include/internal/blip_buf.h \
     ../../include/internal/barray.h \
+    ../../include/internal/tarray.h \
     ../../include/internal/aldumb.h \
     ../../include/internal/fir_resampler.h \
     ../../include/internal/stack_alloc.h \
