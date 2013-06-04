@@ -5777,6 +5777,7 @@ static long it_sigrenderer_get_samples(
 	long pos;
 	int dt;
 	long todo;
+	int ret;
 	LONG_LONG time_left, t;
 
 	if (sigrenderer->order < 0) return 0; // problematic
@@ -5809,11 +5810,7 @@ static long it_sigrenderer_get_samples(
 		sigrenderer->time_played += time_left;
 #endif
 
-		if (process_tick(sigrenderer)) {
-			sigrenderer->order = -1;
-			sigrenderer->row = -1;
-			return pos;
-		}
+		ret = process_tick(sigrenderer);
 
 #ifdef BIT_ARRAY_BULLSHIT
 		if (sigrenderer->looped == 1) {
@@ -5824,6 +5821,12 @@ static long it_sigrenderer_get_samples(
 			break;
 		}
 #endif
+
+		if (ret) {
+			sigrenderer->order = -1;
+			sigrenderer->row = -1;
+			return pos;
+		}
 	}
 
 	render(sigrenderer, volume, delta, pos, size, samples);
