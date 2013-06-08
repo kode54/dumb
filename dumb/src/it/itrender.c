@@ -5814,6 +5814,11 @@ static long it_sigrenderer_get_samples(
 
 		ret = process_tick(sigrenderer);
 
+		if (ret) {
+			sigrenderer->order = -1;
+			sigrenderer->row = -1;
+		}
+
 #ifdef BIT_ARRAY_BULLSHIT
 		if (sigrenderer->looped == 1) {
 			sigrenderer->looped = -1;
@@ -5825,8 +5830,6 @@ static long it_sigrenderer_get_samples(
 #endif
 
 		if (ret) {
-			sigrenderer->order = -1;
-			sigrenderer->row = -1;
 			return pos;
 		}
 	}
