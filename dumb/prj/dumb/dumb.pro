@@ -14,6 +14,8 @@ DEFINES += _USE_SSE
 
 INCLUDEPATH += ../../include
 
+QMAKE_CFLAGS += -msse
+
 SOURCES += \
     ../../src/core/unload.c \
     ../../src/core/rendsig.c \
