@@ -5745,6 +5745,10 @@ static sigrenderer_t *it_start_sigrenderer(DUH *duh, sigdata_t *vsigdata, int n_
 	while (pos > 0 && pos >= sigrenderer->time_left) {
 		render(sigrenderer, 0, 1.0f, 0, sigrenderer->time_left, NULL);
 
+#ifdef BIT_ARRAY_BULLSHIT
+		sigrenderer->time_played += (LONG_LONG)sigrenderer->time_left << 16;
+#endif
+
 		pos -= sigrenderer->time_left;
 		sigrenderer->time_left = 0;
 
@@ -5756,6 +5760,10 @@ static sigrenderer_t *it_start_sigrenderer(DUH *duh, sigdata_t *vsigdata, int n_
 
 	render(sigrenderer, 0, 1.0f, 0, pos, NULL);
 	sigrenderer->time_left -= pos;
+
+#ifdef BIT_ARRAY_BULLSHIT
+	sigrenderer->time_played += (LONG_LONG)pos << 16;
+#endif
 
 	return sigrenderer;
 }
