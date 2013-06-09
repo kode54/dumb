@@ -50,32 +50,30 @@ static IT_PLAYING *new_playing()
 		}
 		blip_set_rates(r->resampler.blip_buffer[0], 65536, 1);
 		blip_set_rates(r->resampler.blip_buffer[1], 65536, 1);
-        r->resampler.fir_resampler_ratio = 0.0;
-        r->resampler.fir_resampler[0] = lanczos_resampler_create();
-        if ( !r->resampler.fir_resampler[0] )
-        {
-            free( r->resampler.blip_buffer[1] );
-            free( r->resampler.blip_buffer[0] );
-            free( r );
-            return NULL;
-        }
-        r->resampler.fir_resampler[1] = lanczos_resampler_create();
-        if ( !r->resampler.fir_resampler[1] )
-        {
-            lanczos_resampler_delete( r->resampler.fir_resampler[0] );
-            free( r->resampler.blip_buffer[1] );
-            free( r->resampler.blip_buffer[0] );
-            free( r );
-            return NULL;
-        }
-    }
+		r->resampler.fir_resampler_ratio = 0.0;
+		r->resampler.fir_resampler[0] = lanczos_resampler_create();
+		if ( !r->resampler.fir_resampler[0] ) {
+			free( r->resampler.blip_buffer[1] );
+			free( r->resampler.blip_buffer[0] );
+			free( r );
+			return NULL;
+		}
+		r->resampler.fir_resampler[1] = lanczos_resampler_create();
+		if ( !r->resampler.fir_resampler[1] ) {
+			lanczos_resampler_delete( r->resampler.fir_resampler[0] );
+			free( r->resampler.blip_buffer[1] );
+			free( r->resampler.blip_buffer[0] );
+			free( r );
+			return NULL;
+		}
+	}
 	return r;
 }
 
 static void free_playing(IT_PLAYING * r)
 {
-    lanczos_resampler_delete( r->resampler.fir_resampler[1] );
-    lanczos_resampler_delete( r->resampler.fir_resampler[0] );
+	lanczos_resampler_delete( r->resampler.fir_resampler[1] );
+	lanczos_resampler_delete( r->resampler.fir_resampler[0] );
 	blip_delete( r->resampler.blip_buffer[1] );
 	blip_delete( r->resampler.blip_buffer[0] );
 	free( r );
@@ -183,24 +181,22 @@ static IT_PLAYING *dup_playing(IT_PLAYING *src, IT_CHANNEL *dstchannel, IT_CHANN
 		free( dst );
 		return NULL;
 	}
-    dst->resampler.fir_resampler_ratio = src->resampler.fir_resampler_ratio;
-    dst->resampler.fir_resampler[0] = lanczos_resampler_dup( src->resampler.fir_resampler[0] );
-    if ( !dst->resampler.fir_resampler[0] )
-    {
-        blip_delete( dst->resampler.blip_buffer[1] );
-        blip_delete( dst->resampler.blip_buffer[0] );
-        free( dst );
-        return NULL;
-    }
-    dst->resampler.fir_resampler[1] = lanczos_resampler_dup( src->resampler.fir_resampler[1] );
-    if ( !dst->resampler.fir_resampler[1] )
-    {
-        lanczos_resampler_delete( dst->resampler.fir_resampler[0] );
-        blip_delete( dst->resampler.blip_buffer[1] );
-        blip_delete( dst->resampler.blip_buffer[0] );
-        free( dst );
-        return NULL;
-    }
+	dst->resampler.fir_resampler_ratio = src->resampler.fir_resampler_ratio;
+	dst->resampler.fir_resampler[0] = lanczos_resampler_dup( src->resampler.fir_resampler[0] );
+	if ( !dst->resampler.fir_resampler[0] ) {
+		blip_delete( dst->resampler.blip_buffer[1] );
+		blip_delete( dst->resampler.blip_buffer[0] );
+		free( dst );
+		return NULL;
+	}
+	dst->resampler.fir_resampler[1] = lanczos_resampler_dup( src->resampler.fir_resampler[1] );
+	if ( !dst->resampler.fir_resampler[1] ) {
+		lanczos_resampler_delete( dst->resampler.fir_resampler[0] );
+		blip_delete( dst->resampler.blip_buffer[1] );
+		blip_delete( dst->resampler.blip_buffer[0] );
+		free( dst );
+		return NULL;
+	}
 	dst->time_lost = src->time_lost;
 
 	//dst->output = src->output;
@@ -700,85 +696,85 @@ static void it_filter_int(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample
 
 static void it_filter_sse(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
 {
-    __m128 data, impulse;
-    __m128 temp1, temp2;
+	__m128 data, impulse;
+	__m128 temp1, temp2;
 
-    sample_t currsample = state->currsample;
-    sample_t prevsample = state->prevsample;
+	sample_t currsample = state->currsample;
+	sample_t prevsample = state->prevsample;
 
-    float imp[4];
+	float imp[4];
 
-    //profiler( filter_sse ); On ClawHammer Athlon64 3200+, ~12000 cycles, ~500 for that x87 setup code (as opposed to ~25500 for the original integer code)
+	//profiler( filter_sse ); On ClawHammer Athlon64 3200+, ~12000 cycles, ~500 for that x87 setup code (as opposed to ~25500 for the original integer code)
 
-    long datasize;
+	long datasize;
 
-    {
-        float inv_angle = (float)(sampfreq * pow(0.5, 0.25 + cutoff*(1.0/(24<<IT_ENVELOPE_SHIFT))) * (1.0/(2*3.14159265358979323846*110.0)));
-        float loss = (float)exp(resonance*(-LOG10*1.2/128.0));
-        float d, e;
+	{
+		float inv_angle = (float)(sampfreq * pow(0.5, 0.25 + cutoff*(1.0/(24<<IT_ENVELOPE_SHIFT))) * (1.0/(2*3.14159265358979323846*110.0)));
+		float loss = (float)exp(resonance*(-LOG10*1.2/128.0));
+		float d, e;
 #if 0
-        loss *= 2; // This is the mistake most players seem to make!
+		loss *= 2; // This is the mistake most players seem to make!
 #endif
 
 #if 1
-        d = (1.0f - loss) / inv_angle;
-        if (d > 2.0f) d = 2.0f;
-        d = (loss - d) * inv_angle;
-        e = inv_angle * inv_angle;
-        imp[0] = 1.0f / (1.0f + d + e);
-        imp[2] = -e * imp[0];
-        imp[1] = 1.0f - imp[0] - imp[2];
+		d = (1.0f - loss) / inv_angle;
+		if (d > 2.0f) d = 2.0f;
+		d = (loss - d) * inv_angle;
+		e = inv_angle * inv_angle;
+		imp[0] = 1.0f / (1.0f + d + e);
+		imp[2] = -e * imp[0];
+		imp[1] = 1.0f - imp[0] - imp[2];
 #else
-        imp[0] = 1.0f / (inv_angle*inv_angle + inv_angle*loss + loss);
-        imp[2] = -(inv_angle*inv_angle) * imp[0];
-        imp[1] = 1.0f - imp[0] - imp[2];
+		imp[0] = 1.0f / (inv_angle*inv_angle + inv_angle*loss + loss);
+		imp[2] = -(inv_angle*inv_angle) * imp[0];
+		imp[1] = 1.0f - imp[0] - imp[2];
 #endif
-        imp[3] = 0;
-    }
+		imp[3] = 0.0f;
+	}
 
-    dst += pos * step;
-    datasize = size * step;
+	dst += pos * step;
+	datasize = size * step;
 
-    {
-        int ai, bi, ci, i;
+	{
+		int ai, bi, ci, i;
 
-        if (cr) {
-            sample_t startstep;
-            ai = (int)(imp[0] * (1 << (16+SCALEB)));
-            bi = (int)(imp[1] * (1 << (16+SCALEB)));
-            ci = (int)(imp[2] * (1 << (16+SCALEB)));
-            startstep = MULSCA(src[0], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
-            dumb_record_click(cr, pos, startstep);
-        }
+		if (cr) {
+			sample_t startstep;
+			ai = (int)(imp[0] * (1 << (16+SCALEB)));
+			bi = (int)(imp[1] * (1 << (16+SCALEB)));
+			ci = (int)(imp[2] * (1 << (16+SCALEB)));
+			startstep = MULSCA(src[0], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
+			dumb_record_click(cr, pos, startstep);
+		}
 
-        data = _mm_cvtsi32_ss( _mm_setzero_ps(), prevsample );
-        data = _mm_cvtsi32_ss( _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 0, 0, 0) ), currsample );
-        impulse = _mm_loadu_ps( (const float *) &imp );
-        temp1 = _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 1, 0, 0) );
+		data = _mm_cvtsi32_ss( _mm_setzero_ps(), prevsample );
+		data = _mm_cvtsi32_ss( _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 0, 0, 0) ), currsample );
+		impulse = _mm_loadu_ps( (const float *) &imp );
+		temp1 = _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 1, 0, 0) );
 
-        for (i = 0; i < datasize; i += step) {
-            data = _mm_cvtsi32_ss( temp1, src [i] );
-            temp1 = _mm_mul_ps( data, impulse );
-            temp2 = _mm_movehl_ps( temp1, temp1 );
-            temp1 = _mm_add_ps( temp1, temp2 );
-            temp2 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 1) );
-            temp1 = _mm_add_ps( temp1, temp2 );
-            temp1 = _mm_shuffle_ps( temp1, data, _MM_SHUFFLE(0, 1, 0, 0) );
-            dst [i] += _mm_cvtss_si32( temp1 );
-        }
+		for (i = 0; i < datasize; i += step) {
+			data = _mm_cvtsi32_ss( temp1, src [i] );
+			temp1 = _mm_mul_ps( data, impulse );
+			temp2 = _mm_movehl_ps( temp1, temp1 );
+			temp1 = _mm_add_ps( temp1, temp2 );
+			temp2 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 1) );
+			temp1 = _mm_add_ps( temp1, temp2 );
+			temp1 = _mm_shuffle_ps( temp1, data, _MM_SHUFFLE(0, 1, 0, 0) );
+			dst [i] += _mm_cvtss_si32( temp1 );
+		}
 
-        currsample = _mm_cvtss_si32( temp1 );
-        temp1 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 2) );
-        prevsample = _mm_cvtss_si32( temp1 );
+		currsample = _mm_cvtss_si32( temp1 );
+		temp1 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 2) );
+		prevsample = _mm_cvtss_si32( temp1 );
 
-        if (cr) {
-            sample_t endstep = MULSCA(src[datasize], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
-            dumb_record_click(cr, pos + size, -endstep);
-        }
-    }
+		if (cr) {
+			sample_t endstep = MULSCA(src[datasize], ai) + MULSCA(currsample, bi) + MULSCA(prevsample, ci);
+			dumb_record_click(cr, pos + size, -endstep);
+		}
+	}
 
-    state->currsample = currsample;
-    state->prevsample = prevsample;
+	state->currsample = currsample;
+	state->prevsample = prevsample;
 }
 #endif
 
@@ -889,7 +885,7 @@ static const signed char it_xm_squarewave[256] = {
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-     64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 	 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
@@ -1027,9 +1023,9 @@ static void it_pickup_stop_at_end(DUMB_RESAMPLER *resampler, void *data)
 
 static void it_pickup_stop_after_reverse(DUMB_RESAMPLER *resampler, void *data)
 {
-    (void)data;
+	(void)data;
 
-    resampler->dir = 0;
+	resampler->dir = 0;
 }
 
 
@@ -1054,13 +1050,13 @@ static void it_playing_update_resamplers(IT_PLAYING *playing)
 			playing->resampler.pickup = &it_pickup_pingpong_loop;
 		else
 			playing->resampler.pickup = &it_pickup_loop;
-    } else if (playing->flags & IT_PLAYING_REVERSE) {
-        playing->resampler.start = 0;
-        playing->resampler.end = playing->sample->length;
-        playing->resampler.dir = -1;
-        playing->resampler.pickup = &it_pickup_stop_after_reverse;
-    } else {
-        if (playing->sample->flags & IT_SAMPLE_SUS_LOOP)
+	} else if (playing->flags & IT_PLAYING_REVERSE) {
+		playing->resampler.start = 0;
+		playing->resampler.end = playing->sample->length;
+		playing->resampler.dir = -1;
+		playing->resampler.pickup = &it_pickup_stop_after_reverse;
+	} else {
+		if (playing->sample->flags & IT_SAMPLE_SUS_LOOP)
 			playing->resampler.start = playing->sample->sus_loop_start;
 		else
 			playing->resampler.start = 0;
@@ -1840,7 +1836,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	if (channel->playing)
 		free_playing(channel->playing);
 
-    channel->playing = new_playing(channel);
+	channel->playing = new_playing();
 
 	if (!channel->playing)
 		return;
@@ -2182,18 +2178,14 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 					/*if (entry->effectvalue == 255)
 						if (sigrenderer->callbacks->xm_speed_zero && (*sigrenderer->callbacks->xm_speed_zero)(sigrenderer->callbacks->xm_speed_zero_data))
 							return 1;*/
-                    if (sigdata->flags & IT_WAS_AN_STM)
-                    {
-                        int n = entry->effectvalue;
-                        if (n >= 32)
-                        {
-                            sigrenderer->tick = sigrenderer->speed = n;
-                        }
-                    }
-                    else
-                    {
-                        sigrenderer->tick = sigrenderer->speed = entry->effectvalue;
-                    }
+					if (sigdata->flags & IT_WAS_AN_STM) {
+						int n = entry->effectvalue;
+						if (n >= 32) {
+							sigrenderer->tick = sigrenderer->speed = n;
+						}
+					} else {
+						sigrenderer->tick = sigrenderer->speed = entry->effectvalue;
+					}
 				}
 				else if ((sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD)) == IT_WAS_AN_XM) {
 #ifdef BIT_ARRAY_BULLSHIT
@@ -2376,11 +2368,11 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 							playing = sigrenderer->playing[i];
 							if (!playing || playing->channel != channel) continue;
 						}
-                        if (playing) {
+						if (playing) {
 							if ((v & 0xF0) == 0xF0)
-                                playing->slide += (v & 15) << 4;
+								playing->slide += (v & 15) << 4;
 							else if ((v & 0xF0) == 0xE0)
-                                playing->slide += (v & 15) << 2;
+								playing->slide += (v & 15) << 2;
 							else if (i < 0 && sigdata->flags & IT_WAS_A_669)
 								channel->portamento += v << 3;
 							else if (i < 0)
@@ -2703,7 +2695,7 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 					}
 				}
 				break;
-            case IT_S:
+			case IT_S:
 				{
 					/* channel->lastS was set in update_pattern_variables(). */
 					unsigned char effectvalue = channel->lastS;
@@ -2863,13 +2855,13 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 								channel->playing->panbrello_depth = 0;
 							break;
 						case IT_S_SET_SURROUND_SOUND:
-                            if ((effectvalue & 15) == 15) {
-                                if (channel->playing && channel->playing->sample &&
-                                    !(channel->playing->sample->flags & (IT_SAMPLE_LOOP | IT_SAMPLE_SUS_LOOP))) {
-                                    channel->playing->flags |= IT_PLAYING_REVERSE;
-                                    it_playing_reset_resamplers( channel->playing, channel->playing->sample->length - 1 );
-                                }
-                            } else if ((effectvalue & 15) == 1) {
+							if ((effectvalue & 15) == 15) {
+								if (channel->playing && channel->playing->sample &&
+									!(channel->playing->sample->flags & (IT_SAMPLE_LOOP | IT_SAMPLE_SUS_LOOP))) {
+									channel->playing->flags |= IT_PLAYING_REVERSE;
+									it_playing_reset_resamplers( channel->playing, channel->playing->sample->length - 1 );
+								}
+							} else if ((effectvalue & 15) == 1) {
 								channel->pan = IT_SURROUND;
 								channel->truepan = channel->pan << IT_ENVELOPE_SHIFT;
 							}
@@ -3483,7 +3475,7 @@ static void process_xm_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *ent
 			channel->destnote = IT_NOTE_OFF;
 
 			if (!channel->playing) {
-                channel->playing = new_playing(channel);
+				channel->playing = new_playing();
 				if (!channel->playing) {
 					if (playing) free_playing(playing);
 					return;
@@ -3851,7 +3843,7 @@ static int update_it_envelope(IT_PLAYING *playing, IT_ENVELOPE *envelope, IT_PLA
 	}
 
 	pe->tick++;
-    while (pe->tick > envelope->node_t[pe->next_node]) {
+	while (pe->tick > envelope->node_t[pe->next_node]) {
 		pe->next_node++;
 		if ((envelope->flags & IT_ENVELOPE_SUSTAIN_LOOP) && !(playing->flags & IT_PLAYING_SUSTAINOFF)) {
 			if (pe->next_node > envelope->sus_loop_end) {
@@ -4447,12 +4439,11 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 			update_effects(sigrenderer);
 		}
 	} else {
-        if ( !(sigdata->flags & IT_WAS_AN_STM) || !(sigrenderer->tick & 15))
-        {
-            speed0:
-            update_effects(sigrenderer);
-            update_tick_counts(sigrenderer);
-        }
+		if ( !(sigdata->flags & IT_WAS_AN_STM) || !(sigrenderer->tick & 15)) {
+			speed0:
+			update_effects(sigrenderer);
+			update_tick_counts(sigrenderer);
+		}
 	}
 
 	if (sigrenderer->globalvolume == 0) {
@@ -4478,12 +4469,11 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 	process_all_playing(sigrenderer);
 
 	{
-        LONG_LONG t = ((LONG_LONG)TICK_TIME_DIVIDEND << 16) / sigrenderer->tempo;
-        if ( sigrenderer->sigdata->flags & IT_WAS_AN_STM )
-        {
-            t /= 16;
-        }
-        t += sigrenderer->sub_time_left;
+		LONG_LONG t = ((LONG_LONG)TICK_TIME_DIVIDEND << 16) / sigrenderer->tempo;
+		if ( sigrenderer->sigdata->flags & IT_WAS_AN_STM ) {
+			t /= 16;
+		}
+		t += sigrenderer->sub_time_left;
 		sigrenderer->time_left += (int)(t >> 16);
 		sigrenderer->sub_time_left = (int)t & 65535;
 	}
@@ -5231,7 +5221,7 @@ static void render_normal(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float 
 		}
 	}
 
-    destroy_sample_buffer(samples_to_filter);
+	destroy_sample_buffer(samples_to_filter);
 
 	for (i = 0; i < DUMB_IT_N_CHANNELS; i++) {
 		if (sigrenderer->channel[i].playing) {
@@ -5399,7 +5389,7 @@ static void render_surround(DUMB_IT_SIGRENDERER *sigrenderer, float volume, floa
 	sigrenderer->n_channels = saved_channels;
 	sigrenderer->click_remover = saved_cr;
 
-    destroy_sample_buffer(samples_to_filter);
+	destroy_sample_buffer(samples_to_filter);
 
 	for (i = 0; i < DUMB_IT_N_CHANNELS; i++) {
 		if (sigrenderer->channel[i].playing) {
@@ -5606,11 +5596,11 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 
 	//sigrenderer->max_output = 0;
 
-    if ( !(sigdata->flags & IT_WAS_PROCESSED) ) {
-        dumb_it_add_lpc( sigdata );
+	if ( !(sigdata->flags & IT_WAS_PROCESSED) ) {
+		dumb_it_add_lpc( sigdata );
 
-        sigdata->flags |= IT_WAS_PROCESSED;
-    }
+		sigdata->flags |= IT_WAS_PROCESSED;
+	}
 
 	return sigrenderer;
 }
