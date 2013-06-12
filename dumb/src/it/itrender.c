@@ -767,7 +767,7 @@ static void it_filter_sse(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample
 		}
 
 		currsample = _mm_cvtss_si32( temp1 );
-		temp1 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 2) );
+		temp1 = _mm_shuffle_ps( temp1, data, _MM_SHUFFLE(0, 0, 0, 2) );
 		prevsample = _mm_cvtss_si32( temp1 );
 
 		if (cr) {
@@ -5427,6 +5427,7 @@ static void render_surround(DUMB_IT_SIGRENDERER *sigrenderer, float volume, floa
 
 static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, long pos, long size, sample_t **samples)
 {
+	if (size == 0) return;
 	if (sigrenderer->n_channels == 1 || sigrenderer->n_channels == 2)
 		render_normal(sigrenderer, volume, delta, pos, size, samples);
 	else if (sigrenderer->n_channels == 3)
