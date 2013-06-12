@@ -6244,7 +6244,8 @@ int dumb_it_scan_for_playable_orders(DUMB_IT_SIGDATA *sigdata, dumb_scan_callbac
 	ba_played = bit_array_create(sigdata->n_orders * 256);
 	if (!ba_played) return -1;
 
-	for (n = 0; n < sigdata->n_orders; n++) {
+	/* Skip the first order, it should always be played */
+	for (n = 1; n < sigdata->n_orders; n++) {
 		if ((sigdata->order[n] >= sigdata->n_patterns) ||
 			(is_pattern_silent(&sigdata->pattern[sigdata->order[n]], n) > 1))
 			bit_array_set(ba_played, n * 256);
