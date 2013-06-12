@@ -747,19 +747,22 @@ static void it_filter_sse(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample
 			dumb_record_click(cr, pos, startstep);
 		}
 
-		data = _mm_cvtsi32_ss( _mm_setzero_ps(), prevsample );
-		data = _mm_cvtsi32_ss( _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 0, 0, 0) ), currsample );
+		temp1 = _mm_setzero_ps();
+		data = _mm_cvtsi32_ss( temp1, currsample );
+		temp2 = _mm_cvtsi32_ss( temp1, prevsample );
 		impulse = _mm_loadu_ps( (const float *) &imp );
-		temp1 = _mm_shuffle_ps( data, data, _MM_SHUFFLE(0, 1, 0, 0) );
+		data = _mm_shuffle_ps( data, temp2, _MM_SHUFFLE(1, 0, 0, 1) );
 
 		for (i = 0; i < datasize; i += step) {
-			data = _mm_cvtsi32_ss( temp1, src [i] );
-			temp1 = _mm_mul_ps( data, impulse );
-			temp2 = _mm_movehl_ps( temp1, temp1 );
+			temp1 = _mm_cvtsi32_ss( data, src [i] );
+			temp1 = _mm_mul_ps( temp1, impulse );
+			temp2 = _mm_movehl_ps( temp2, temp1 );
 			temp1 = _mm_add_ps( temp1, temp2 );
-			temp2 = _mm_shuffle_ps( temp1, temp1, _MM_SHUFFLE(0, 0, 0, 1) );
+			temp2 = temp1;
+			temp2 = _mm_shuffle_ps( temp2, temp1, _MM_SHUFFLE(0, 0, 0, 1) );
 			temp1 = _mm_add_ps( temp1, temp2 );
-			temp1 = _mm_shuffle_ps( temp1, data, _MM_SHUFFLE(0, 1, 0, 0) );
+			temp1 = _mm_shuffle_ps( temp1, data, _MM_SHUFFLE(2, 1, 0, 0) );
+			data = temp1;
 			dst [i] += _mm_cvtss_si32( temp1 );
 		}
 
