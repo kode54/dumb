@@ -210,7 +210,7 @@ struct IT_INSTRUMENT
 struct IT_SAMPLE
 {
 	unsigned char name[35];
-	unsigned char filename[14];
+	unsigned char filename[15];
 	unsigned char flags;
 	unsigned char global_volume;
 	unsigned char default_volume;

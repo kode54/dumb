@@ -81,7 +81,7 @@ static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data,
 		panpos = data[0x43];
 		defvol = data[0x44];
 		samplerate = data[0x49] | (data[0x4A] << 8) | (data[0x4B] << 16) | (data[0x4C] << 24);
-	} else if (version == PSMV_NEW) {
+	} else /*if (version == PSMV_NEW)*/ {
 		memcpy(sample->name, data + 0x11, 34);
 		sample->name[34] = 0;
 
@@ -154,7 +154,7 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 		if (len < 10) return -1;
 		data += 8;
 		len -= 8;
-	} else if (version == PSMV_NEW) {
+	} else /*if (version == PSMV_NEW)*/ {
 		if (len < 14) return -1;
 		data += 12;
 		len -= 12;
@@ -291,7 +291,7 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 				if (version == PSMV_OLD) {
 					if ((data[pos] < 0x80)) entry->note = (data[pos]>>4)*12+(data[pos]&0x0f)+12;
 					else entry->mask &= ~IT_ENTRY_NOTE;
-				} else if (version == PSMV_NEW) {
+				} else /*if (version == PSMV_NEW)*/ {
 					if ((data[pos]) && (data[pos] < 84)) entry->note = data[pos] + 35;
 					else entry->mask &= ~IT_ENTRY_NOTE;
 				}
@@ -315,25 +315,25 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 					case 1:
 						entry->effect = IT_VOLUME_SLIDE;
 						if (version == PSMV_OLD) entry->effectvalue = ((length&0x1e)<<3) | 0xF;
-						else if (version == PSMV_NEW) entry->effectvalue = (length<<4) | 0xF;
+						else /*if (version == PSMV_NEW)*/ entry->effectvalue = (length<<4) | 0xF;
 						break;
 
 					case 2:
 						entry->effect = IT_VOLUME_SLIDE;
 						if (version == PSMV_OLD) entry->effectvalue = (length << 3) & 0xF0;
-						else if (version == PSMV_NEW) entry->effectvalue = (length << 4) & 0xF0;
+						else /*if (version == PSMV_NEW)*/ entry->effectvalue = (length << 4) & 0xF0;
 						break;
 
 					case 3:
 						entry->effect = IT_VOLUME_SLIDE;
 						if (version == PSMV_OLD) entry->effectvalue = (length >> 1) | 0xF0;
-						else if (version == PSMV_NEW) entry->effectvalue = length | 0xF0;
+						else /*if (version == PSMV_NEW)*/ entry->effectvalue = length | 0xF0;
 						break;
 
 					case 4:
 						entry->effect = IT_VOLUME_SLIDE;
 						if (version == PSMV_OLD) entry->effectvalue = (length >> 1) & 0xF;
-						else if (version == PSMV_NEW) entry->effectvalue = length & 0xF;
+						else /*if (version == PSMV_NEW)*/ entry->effectvalue = length & 0xF;
 						break;
 
 					case 12:
@@ -341,7 +341,7 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 						if (version == PSMV_OLD) {
 							if (length < 4) entry->effectvalue = length | 0xF0;
 							else entry->effectvalue = length >> 2;
-						} else if (version == PSMV_NEW) {
+						} else /*if (version == PSMV_NEW)*/ {
 							entry->effectvalue = length;
 						}
 						break;
@@ -351,7 +351,7 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 						if (version == PSMV_OLD) {
 							if (length < 4) entry->effectvalue = length | 0xF0;
 							else entry->effectvalue = length >> 2;
-						} else if (version == PSMV_NEW) {
+						} else /*if (version == PSMV_NEW)*/ {
 							entry->effectvalue = length;
 						}
 						break;
@@ -359,7 +359,7 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 					case 15:
 						entry->effect = IT_TONE_PORTAMENTO;
 						if (version == PSMV_OLD) entry->effectvalue = length >> 2;
-						else if (version == PSMV_NEW) entry->effectvalue = length;
+						else /*if (version == PSMV_NEW)*/ entry->effectvalue = length;
 						break;
 
 					case 0x15:
@@ -692,7 +692,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 							memcpy(event[n_events].data, ptr + 1, 4);
 							ptr += 5;
 							length -= 5;
-						} else if (found == PSMV_NEW) {
+						} else /*if (found == PSMV_NEW)*/ {
 							if (length < 9) goto error_ev;
 							memcpy(event[n_events].data, ptr + 1, 8);
 							ptr += 9;
@@ -812,7 +812,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 							n_patterns++;
 							break;
 						}
-					} else if (found == PSMV_NEW) {
+					} else /*if (found == PSMV_NEW)*/ {
 						if (length < 12) goto error_ev;
 						if (!pattcmp(ptr + 4, e->data, 8)) {
 							if (it_psm_process_pattern(&sigdata->pattern[n_patterns], ptr, length, speed, bpm, pan, vol, found)) goto error_ev;
@@ -1223,8 +1223,8 @@ int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 
 	if ( i < l )
 	{
-		na = strtoul( a + i, &p, 10 );
-		if ( p == a + i ) return 1;
+		na = strtoul( (const char *)a + i, &p, 10 );
+		if ( (const unsigned char *)p == a + i ) return 1;
 	}
 
 	for ( j = 0; j < l; ++j )
@@ -1234,8 +1234,8 @@ int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 
 	if ( j < l )
 	{
-		nb = strtoul( b + j, &p, 10 );
-		if ( p == b + j ) return -1;
+		nb = strtoul( (const char *)b + j, &p, 10 );
+		if ( (const unsigned char *)p == b + j ) return -1;
 	}
 
 	if ( i < j ) return -1;
