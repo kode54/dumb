@@ -307,7 +307,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 
 		case DUMB_ID( 'I', 'N', 'S', 'T' ):
 			{
-				if ( c->size < 0xE1 ) goto error;
+				if ( c->size < 0xE1 ) goto error_sd;
                 if ( dumbfile_seek( f, c->offset + 1, DFS_SEEK_SET ) ) goto error_sd;
                 o = dumbfile_getc( f );
                 if ( o >= sigdata->n_samples ) sigdata->n_samples = o + 1;
