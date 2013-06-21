@@ -500,7 +500,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 		if (n) {
 			ptr = malloc(n);
 			if (!ptr) goto error_fc;
-			if (dumbfile_getnc(ptr, n, f) < n)
+            if (dumbfile_getnc((char *)ptr, n, f) < n)
 			{
 				free(ptr);
 				goto error_fc;
@@ -541,7 +541,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 			break;
 
 		case DUMB_ID('T','I','T','L'):
-			length = min(sizeof(sigdata->name) - 1, c->len);
+            length = min(sizeof(sigdata->name) - 1, (unsigned)c->len);
 			memcpy(sigdata->name, c->data, length);
 			sigdata->name[length] = 0;
 		}
@@ -642,7 +642,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 		found != 940903 &&
 		found != 940914 &&
 		found != 941213 &&
-		found != 800211)   /* WTF?
+        found != 800211)    WTF?
 		goto error_sc;
 	*/
 
@@ -986,6 +986,7 @@ static int it_order_compare(const void *e1, const void *e2) {
 	return 0;
 }
 
+/*
 static int it_optimize_compare(const void *e1, const void *e2) {
 	if (((const IT_ENTRY *)e1)->channel < ((const IT_ENTRY *)e2)->channel)
 		return -1;
@@ -995,6 +996,7 @@ static int it_optimize_compare(const void *e1, const void *e2) {
 
 	return 0;
 }
+*/
 
 static int it_entry_compare(const IT_ENTRY * e1, const IT_ENTRY * e2) {
 	if (IT_IS_END_ROW(e1) && IT_IS_END_ROW(e2)) return 1;
@@ -1080,7 +1082,7 @@ static int it_pattern_compare(const IT_PATTERN * p1, const IT_PATTERN * p2) {
 static void dumb_it_optimize_orders(DUMB_IT_SIGDATA * sigdata) {
 	int n, o, p;
 
-	int last_invalid = (sigdata->flags & IT_WAS_AN_XM) ? 255 : 253;
+    /*int last_invalid = (sigdata->flags & IT_WAS_AN_XM) ? 255 : 253;*/
 
 	unsigned char * order_list;
 	int n_patterns;
@@ -1208,7 +1210,7 @@ int dumb_get_psm_subsong_count(DUMBFILE *f) {
 /* Eww */
 int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 {
-	int i, j, na, nb;
+    size_t i, j, na, nb;
 	char * p;
 
 	i = memcmp( a, b, l );
@@ -1266,7 +1268,7 @@ DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong)
 		char version[16];
 		const char *tag[3][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "PSM";
 		if ( ver )

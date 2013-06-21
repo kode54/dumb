@@ -38,14 +38,14 @@ static int it_mod_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int n_channels,
 	if (n_channels == 0) {
 		/* Read the first four channels, leaving gaps for the rest. */
 		for (pos = 0; pos < 64*8*4; pos += 8*4)
-			dumbfile_getnc(buffer + pos, 4*4, f);
+            dumbfile_getnc((char *)buffer + pos, 4*4, f);
 		/* Read the other channels into the gaps we left. */
 		for (pos = 4*4; pos < 64*8*4; pos += 8*4)
-			dumbfile_getnc(buffer + pos, 4*4, f);
+            dumbfile_getnc((char *)buffer + pos, 4*4, f);
 
 		n_channels = 8;
 	} else
-		dumbfile_getnc(buffer, 64 * n_channels * 4, f);
+        dumbfile_getnc((char *)buffer, 64 * n_channels * 4, f);
 
 	if (dumbfile_error(f))
 		return -1;
@@ -131,7 +131,7 @@ If
 the sample name begins with a '#' character (ASCII $23 (35)) then this is
 assumed not to be an instrument name, and is probably a message.
 */
-	dumbfile_getnc(sample->name, 22, f);
+    dumbfile_getnc((char *)sample->name, 22, f);
 	sample->name[22] = 0;
 
 	sample->filename[0] = 0;
@@ -300,7 +300,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
                              full 20 chars in length, it will be null-
                              terminated.
 	*/
-	if (dumbfile_getnc(sigdata->name, 20, f) < 20) {
+    if (dumbfile_getnc((char *)sigdata->name, 20, f) < 20) {
 		free(sigdata);
         return NULL;
 	}
@@ -435,7 +435,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
 		_dumb_it_unload_sigdata(sigdata);
         return NULL;
 	}
-	if (dumbfile_getnc(sigdata->order, 128, f) < 128) {
+    if (dumbfile_getnc((char *)sigdata->order, 128, f) < 128) {
 		_dumb_it_unload_sigdata(sigdata);
         return NULL;
 	}
@@ -477,7 +477,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
         while (dumbfile_pos(f) > offset && sample_number >= 0) {
             if (sigdata->sample[sample_number].flags & IT_SAMPLE_EXISTS) {
                 if ( dumbfile_seek(f, -((sigdata->sample[sample_number].length + 1) / 2 + 5 + 16), DFS_SEEK_CUR) ||
-                     dumbfile_getnc(buffer, 5, f) < 5 ) {
+                     dumbfile_getnc((char *)buffer, 5, f) < 5 ) {
                     _dumb_it_unload_sigdata(sigdata);
                     return NULL;
                 }
@@ -623,7 +623,7 @@ DUH *dumb_read_mod_quick(DUMBFILE *f, int restrict_)
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "MOD";
 		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);

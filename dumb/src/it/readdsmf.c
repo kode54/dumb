@@ -28,7 +28,7 @@ static int it_riff_dsmf_process_sample( IT_SAMPLE * sample, DUMBFILE * f, int le
 {
 	int flags;
 
-    dumbfile_getnc( sample->filename, 13, f );
+    dumbfile_getnc( (char *) sample->filename, 13, f );
 	sample->filename[ 14 ] = 0;
 	
     flags = dumbfile_igetw( f );
@@ -39,7 +39,7 @@ static int it_riff_dsmf_process_sample( IT_SAMPLE * sample, DUMBFILE * f, int le
     dumbfile_skip( f, 32 - 28 );
     sample->C5_speed = dumbfile_igetw( f ) * 2;
     dumbfile_skip( f, 36 - 34 );
-    dumbfile_getnc( sample->name, 28, f );
+    dumbfile_getnc( (char *) sample->name, 28, f );
 	sample->name[ 28 ] = 0;
 
 	/*if ( data[ 0x38 ] || data[ 0x39 ] || data[ 0x3A ] || data[ 0x3B ] )
@@ -229,7 +229,7 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( DUMBFILE * f, struct riff * s
 
 	found = 0;
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch( c->type )
@@ -278,14 +278,14 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( DUMBFILE * f, struct riff * s
 		sigdata->channel_pan[n+3] = 16;
 	}
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch ( c->type )
 		{
 		case DUMB_ID( 'S', 'O', 'N', 'G' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_usd;
-            dumbfile_getnc( sigdata->name, 28, f );
+            dumbfile_getnc( (char *) sigdata->name, 28, f );
 			sigdata->name[ 28 ] = 0;
 			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX;
             dumbfile_skip( f, 36 - 28 );
@@ -306,7 +306,7 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( DUMBFILE * f, struct riff * s
 
 			sigdata->order = malloc( 128 );
 			if ( ! sigdata->order ) goto error_usd;
-            dumbfile_getnc( sigdata->order, 128, f );
+            dumbfile_getnc( (char *) sigdata->order, 128, f );
 
 			break;
 		}
@@ -328,7 +328,7 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata( DUMBFILE * f, struct riff * s
 	sigdata->n_samples = 0;
 	sigdata->n_patterns = 0;
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch ( c->type )
@@ -374,7 +374,7 @@ DUH *dumb_read_riff_dsmf( DUMBFILE * f, struct riff * stream )
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "RIFF DSMF";
 		return make_duh( -1, 2, ( const char * const (*) [ 2 ] ) tag, 1, & descptr, & sigdata );

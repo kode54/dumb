@@ -59,7 +59,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 
 	done = 0;
 	dt = (int)(delta * 65536.0 + 0.5);
-	if (dt == 0 || dt == 0x80000000) return 0;
+        if (dt == 0 || dt == (int)-0x80000000) return 0;
         inv_dt = (int)(1.0 / delta * 65536.0 + 0.5);
 	SET_VOLUME_VARIABLES;
 

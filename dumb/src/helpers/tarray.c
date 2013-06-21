@@ -42,17 +42,17 @@ void * timekeeping_array_create(size_t size)
 
 void timekeeping_array_destroy(void * array)
 {
+#ifdef FULL_TIMEKEEPING
 	size_t i;
 	size_t * size = (size_t *) array;
 	DUMB_IT_ROW_TIME * s = (DUMB_IT_ROW_TIME *)(size + 1);
 
-#ifdef FULL_TIMEKEEPING
 	for (i = 0; i < *size; i++) {
 		if (s[i].times) free(s[i].times);
 	}
 #endif
 
-	free(size);
+    free(array);
 }
 
 void * timekeeping_array_dup(void * array)
@@ -119,10 +119,12 @@ void timekeeping_array_reset(void * array, size_t loop_start)
 
 void timekeeping_array_push(void * array, size_t index, LONG_LONG time)
 {
+#ifdef FULL_TIMEKEEPING
 	size_t i;
-	size_t * size = (size_t *) array;
+    size_t time_count;
+#endif
+    size_t * size = (size_t *) array;
 	DUMB_IT_ROW_TIME * s = (DUMB_IT_ROW_TIME *)(size + 1);
-	size_t time_count;
 
 	if (index >= *size) return;
 
@@ -140,7 +142,6 @@ void timekeeping_array_push(void * array, size_t index, LONG_LONG time)
 
 void timekeeping_array_bump(void * array, size_t index)
 {
-	size_t i;
 	size_t * size = (size_t *) array;
 	DUMB_IT_ROW_TIME * s = (DUMB_IT_ROW_TIME *)(size + 1);
 
@@ -151,7 +152,6 @@ void timekeeping_array_bump(void * array, size_t index)
 
 unsigned int timekeeping_array_get_count(void * array, size_t index)
 {
-	size_t i;
 	size_t * size = (size_t *) array;
 	DUMB_IT_ROW_TIME * s = (DUMB_IT_ROW_TIME *)(size + 1);
 
@@ -162,7 +162,6 @@ unsigned int timekeeping_array_get_count(void * array, size_t index)
 
 LONG_LONG timekeeping_array_get_item(void * array, size_t index)
 {
-	size_t i;
 	size_t * size = (size_t *) array;
 	DUMB_IT_ROW_TIME * s = (DUMB_IT_ROW_TIME *)(size + 1);
 

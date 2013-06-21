@@ -31,13 +31,13 @@ static int it_s3m_read_sample_header(IT_SAMPLE *sample, long *offset, unsigned c
 
 	type = dumbfile_getc(f);
 
-	dumbfile_getnc(sample->filename, 12, f);
+    dumbfile_getnc((char *)sample->filename, 12, f);
 	sample->filename[12] = 0;
 
 	if (type > 1) {
 		/** WARNING: no adlib support */
 		dumbfile_skip(f, 3 + 12 + 1 + 1 + 2 + 2 + 2 + 12);
-		dumbfile_getnc(sample->name, 28, f);
+        dumbfile_getnc((char *)sample->name, 28, f);
 		sample->name[28] = 0;
 		dumbfile_skip(f, 4);
 		sample->flags &= ~IT_SAMPLE_EXISTS;
@@ -72,7 +72,7 @@ static int it_s3m_read_sample_header(IT_SAMPLE *sample, long *offset, unsigned c
 	/* Skip four unused bytes and three internal variables. */
 	dumbfile_skip(f, 4+2+2+4);
 
-	dumbfile_getnc(sample->name, 28, f);
+    dumbfile_getnc((char *)sample->name, 28, f);
 	sample->name[28] = 0;
 
 	if (type == 0 || sample->length <= 0) {
@@ -253,7 +253,7 @@ static int it_s3m_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *
 		if (b) {
 			if (buflen + used[b] >= 65536) return -1;
 			if (buflen + used[b] <= length)
-				dumbfile_getnc(buffer + buflen, used[b], f);
+                dumbfile_getnc((char *)buffer + buflen, used[b], f);
 			else
 				memset(buffer + buflen, 0, used[b]);
 			buflen += used[b];
@@ -453,7 +453,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 	sigdata = malloc(sizeof(*sigdata));
 	if (!sigdata) return NULL;
 
-	dumbfile_getnc(sigdata->name, 28, f);
+    dumbfile_getnc((char *)sigdata->name, 28, f);
 	sigdata->name[28] = 0;
 
 	n = dumbfile_getc(f);
@@ -573,7 +573,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 	}
 
 	/* Orders, byte each, length = sigdata->n_orders (should be even) */
-	dumbfile_getnc(sigdata->order, sigdata->n_orders, f);
+    dumbfile_getnc((char *)sigdata->order, sigdata->n_orders, f);
 	sigdata->restart_position = 0;
 
 	component = malloc(768*sizeof(*component));
@@ -749,7 +749,7 @@ DUH *dumb_read_s3m_quick(DUMBFILE *f)
 		char version[8];
 		const char *tag[3][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "S3M";
 		tag[2][0] = "TRACKERVERSION";

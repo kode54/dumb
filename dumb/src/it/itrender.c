@@ -1268,7 +1268,7 @@ static void update_playing_effects(IT_PLAYING *playing)
 
 static void update_effects(DUMB_IT_SIGRENDERER *sigrenderer)
 {
-	int i, j;
+    int i;
 
 	if (sigrenderer->globalvolslide) {
 		sigrenderer->globalvolume += sigrenderer->globalvolslide;
@@ -4231,7 +4231,7 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 							return 1;
 						bit_array_reset(sigrenderer->played);
 						if (sigrenderer->speed == 0)
-							goto speed0; /* I love goto *
+                            goto speed0; I love goto
 					}
 				}
 				*/
@@ -4257,7 +4257,7 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 							{
 								if ((sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD)) == IT_WAS_AN_XM)
 								{
-									/* joy, was XM, pattern loop bug triggered break to row in same order 
+                                    joy, was XM, pattern loop bug triggered break to row in same order
 									bit_array_mask(sigrenderer->played, channel->played_patjump, sigrenderer->order * 256);
 								}
 								bit_array_destroy(channel->played_patjump);
@@ -4641,6 +4641,7 @@ static int apply_pan_envelope(IT_PLAYING *playing)
 /* Note: if a click remover is provided, and store_end_sample is set, then
  * the end point will be computed twice. This situation should not arise.
  */
+#if 0
 static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing, float volume, float main_delta, float delta, long pos, long size, sample_t **samples, int store_end_sample, int *left_to_mix, int cr_record_which)
 {
 	int bits;
@@ -4762,6 +4763,7 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 
 	return size_rendered;
 }
+#endif
 
 #ifdef END_RAMPING
 #if 1

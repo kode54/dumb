@@ -44,7 +44,7 @@ static int it_old_psm_read_samples(IT_SAMPLE ** sample, DUMBFILE * f, int * num)
 	buffer = malloc(count * 64);
 	if (!buffer) goto error;
 
-	if (dumbfile_getnc(buffer, count * 64, f) < count * 64) goto error_fb;
+    if (dumbfile_getnc((char *)buffer, count * 64, f) < count * 64) goto error_fb;
 
 	true_num = 0;
 
@@ -192,7 +192,7 @@ error:
 	return -1;
 }
 
-static int it_old_psm_read_patterns(IT_PATTERN * pattern, DUMBFILE * f, int num, int size, int pchans, int sflags)
+static int it_old_psm_read_patterns(IT_PATTERN * pattern, DUMBFILE * f, int num, int size, int pchans)
 {
 	int n, offset, psize, rows, chans, row, flags, channel;
 
@@ -203,7 +203,7 @@ static int it_old_psm_read_patterns(IT_PATTERN * pattern, DUMBFILE * f, int num,
 	buffer = malloc(size);
 	if (!buffer) goto error;
 
-	if (dumbfile_getnc(buffer, size, f) < size) goto error_fb;
+    if (dumbfile_getnc((char *)buffer, size, f) < size) goto error_fb;
 
 	offset = 0;
 
@@ -511,7 +511,7 @@ static DUMB_IT_SIGDATA *it_old_psm_load_sigdata(DUMBFILE *f)
 	sigdata = malloc(sizeof(*sigdata));
 	if (!sigdata) goto error;
 
-	if (dumbfile_getnc(sigdata->name, 60, f) < 60 ||
+    if (dumbfile_getnc((char *)sigdata->name, 60, f) < 60 ||
 		sigdata->name[59] != 0x1A) goto error_sd;
 	sigdata->name[59] = 0;
 
@@ -613,7 +613,7 @@ static DUMB_IT_SIGDATA *it_old_psm_load_sigdata(DUMBFILE *f)
 		switch (component[n].type) {
 
 			case PSM_COMPONENT_ORDERS:
-                if (dumbfile_getnc(sigdata->order, sigdata->n_orders, f) < sigdata->n_orders) goto error_fc;
+                if (dumbfile_getnc((char *)sigdata->order, sigdata->n_orders, f) < sigdata->n_orders) goto error_fc;
 				if (n_orders > sigdata->n_orders)
 					if (dumbfile_skip(f, n_orders - sigdata->n_orders))
                         goto error_fc;
@@ -621,7 +621,7 @@ static DUMB_IT_SIGDATA *it_old_psm_load_sigdata(DUMBFILE *f)
 				break;
 
 			case PSM_COMPONENT_PANPOS:
-                if (dumbfile_getnc(sigdata->channel_pan, sigdata->n_pchannels, f) < sigdata->n_pchannels) goto error_fc;
+                if (dumbfile_getnc((char *)sigdata->channel_pan, sigdata->n_pchannels, f) < sigdata->n_pchannels) goto error_fc;
 				for (o = 0; o < sigdata->n_pchannels; o++) {
 					sigdata->channel_pan[o] -= (sigdata->channel_pan[o] & 8) >> 3;
 					sigdata->channel_pan[o] = ((int)sigdata->channel_pan[o] << 5) / 7;
@@ -629,7 +629,7 @@ static DUMB_IT_SIGDATA *it_old_psm_load_sigdata(DUMBFILE *f)
 				break;
 
 			case PSM_COMPONENT_PATTERNS:
-                if (it_old_psm_read_patterns(sigdata->pattern, f, sigdata->n_patterns, total_pattern_size, sigdata->n_pchannels, flags)) goto error_fc;
+                if (it_old_psm_read_patterns(sigdata->pattern, f, sigdata->n_patterns, total_pattern_size, sigdata->n_pchannels)) goto error_fc;
 				break;
 
 			case PSM_COMPONENT_SAMPLE_HEADERS:
@@ -641,7 +641,7 @@ static DUMB_IT_SIGDATA *it_old_psm_load_sigdata(DUMBFILE *f)
 					o = dumbfile_igetw(f);
 					if (o > 0) {
 						sigdata->song_message = malloc(o + 1);
-                        if (dumbfile_getnc(sigdata->song_message, o, f) < o) goto error_fc;
+                        if (dumbfile_getnc((char *)sigdata->song_message, o, f) < o) goto error_fc;
 						sigdata->song_message[o] = 0;
 					}
 				}
@@ -680,7 +680,7 @@ DUH *dumb_read_old_psm_quick(DUMBFILE *f)
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "PSM (old)";
 		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);

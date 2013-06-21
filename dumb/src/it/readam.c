@@ -45,7 +45,7 @@ static int it_riff_am_process_sample( IT_SAMPLE * sample, DUMBFILE * f, int len,
 
 		header_length = 0x38;
 
-        dumbfile_getnc( sample->name, 28, f );
+        dumbfile_getnc( (char *) sample->name, 28, f );
 		sample->name[ 28 ] = 0;
 
         default_pan = dumbfile_getc( f );
@@ -69,7 +69,7 @@ static int it_riff_am_process_sample( IT_SAMPLE * sample, DUMBFILE * f, int len,
         start += 4;
 		len -= 4;
 
-        dumbfile_getnc( sample->name, 32, f );
+        dumbfile_getnc( (char *) sample->name, 32, f );
 
         default_pan = dumbfile_igetw( f );
         default_volume = dumbfile_igetw( f );
@@ -281,7 +281,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 
 	found = 0;
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch( c->type )
@@ -302,7 +302,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
             o = dumbfile_getc( f );
             if ( o >= sigdata->n_patterns ) sigdata->n_patterns = o + 1;
             o = dumbfile_igetl( f );
-			if ( o + 5 > c->size ) goto error_sd;
+            if ( (unsigned)o + 5 > c->size ) goto error_sd;
 			break;
 
 		case DUMB_ID( 'I', 'N', 'S', 'T' ):
@@ -353,14 +353,14 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 		sigdata->channel_pan[n+3] = 16;
 	}
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch ( c->type )
 		{
 		case DUMB_ID( 'M', 'A', 'I', 'N' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_usd;
-            dumbfile_getnc( sigdata->name, 64, f );
+            dumbfile_getnc( (char *) sigdata->name, 64, f );
 			sigdata->name[ 64 ] = 0;
 			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_WAS_AN_S3M;
             o = dumbfile_getc( f );
@@ -374,7 +374,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 
             sigdata->global_volume = dumbfile_getc( f );
 
-			if ( c->size < 0x48 + sigdata->n_pchannels ) goto error_usd;
+            if ( c->size < 0x48 + (unsigned)sigdata->n_pchannels ) goto error_usd;
 
 			for ( o = 0; o < sigdata->n_pchannels; ++o )
 			{
@@ -404,7 +404,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 		sample->name[ 0 ] = 0;
 	}
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch ( c->type )
@@ -412,10 +412,10 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 		case DUMB_ID( 'O', 'R', 'D', 'R' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_usd;
             sigdata->n_orders = dumbfile_getc( f ) + 1;
-			if ( sigdata->n_orders + 1 > c->size ) goto error_usd;
+            if ( (unsigned)sigdata->n_orders + 1 > c->size ) goto error_usd;
 			sigdata->order = malloc( sigdata->n_orders );
 			if ( ! sigdata->order ) goto error_usd;
-            dumbfile_getnc( sigdata->order, sigdata->n_orders, f );
+            dumbfile_getnc( (char *) sigdata->order, sigdata->n_orders, f );
 			break;
 
 		case DUMB_ID( 'P', 'A', 'T', 'T' ):
@@ -441,7 +441,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
                     }
 				}
                 dumbfile_seek( f, c->offset + 2, DFS_SEEK_SET );
-                dumbfile_getnc( sample->name, 28, f );
+                dumbfile_getnc( (char *) sample->name, 28, f );
                 sample->name[ 28 ] = 0;
             }
 			break;
@@ -480,7 +480,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 
 	found = 0;
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch( c->type )
@@ -501,7 +501,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
             o = dumbfile_getc( f );
             if ( o >= sigdata->n_patterns ) sigdata->n_patterns = o + 1;
             o = dumbfile_igetl( f );
-			if ( o + 5 > c->size ) goto error_sd;
+            if ( (unsigned)o + 5 > c->size ) goto error_sd;
 			break;
 
 		case DUMB_ID( 'R', 'I', 'F', 'F' ):
@@ -510,7 +510,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 				switch ( str->type )
 				{
 				case DUMB_ID( 'A', 'I', ' ', ' ' ):
-					for ( o = 0; o < str->chunk_count; ++o )
+                    for ( o = 0; (unsigned)o < str->chunk_count; ++o )
 					{
 						struct riff_chunk * chk = str->chunks + o;
 						switch( chk->type )
@@ -532,7 +532,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 								{
 									if ( temp->type == DUMB_ID( 'A', 'S', ' ', ' ' ) )
 									{
-										for ( p = 0; p < temp->chunk_count; ++p )
+                                        for ( p = 0; (unsigned)p < temp->chunk_count; ++p )
 										{
 											if ( temp->chunks[ p ].type == DUMB_ID( 'S', 'A', 'M', 'P' ) )
 											{
@@ -584,14 +584,14 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 		sigdata->channel_pan[n+3] = 16;
 	}
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch ( c->type )
 		{
 		case DUMB_ID( 'I', 'N', 'I', 'T' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_usd;
-            dumbfile_getnc( sigdata->name, 64, f );
+            dumbfile_getnc( (char *) sigdata->name, 64, f );
 			sigdata->name[ 64 ] = 0;
 			sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX | IT_WAS_AN_S3M;
             o = dumbfile_getc( f );
@@ -605,7 +605,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 
             sigdata->global_volume = dumbfile_getc( f );
 
-			if ( c->size < 0x48 + sigdata->n_pchannels ) goto error_usd;
+            if ( c->size < 0x48 + (unsigned)sigdata->n_pchannels ) goto error_usd;
 
 			for ( o = 0; o < sigdata->n_pchannels; ++o )
 			{
@@ -638,7 +638,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 		sample->name[ 0 ] = 0;
 	}
 
-	for ( n = 0; n < stream->chunk_count; ++n )
+    for ( n = 0; (unsigned)n < stream->chunk_count; ++n )
 	{
 		struct riff_chunk * c = stream->chunks + n;
 		switch ( c->type )
@@ -646,10 +646,10 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 		case DUMB_ID( 'O', 'R', 'D', 'R' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_usd;
             sigdata->n_orders = dumbfile_getc( f ) + 1;
-			if ( sigdata->n_orders + 1 > c->size ) goto error_usd;
+            if ( (unsigned)sigdata->n_orders + 1 > c->size ) goto error_usd;
 			sigdata->order = malloc( sigdata->n_orders );
 			if ( ! sigdata->order ) goto error_usd;
-            dumbfile_getnc( sigdata->order, sigdata->n_orders, f );
+            dumbfile_getnc( (char *) sigdata->order, sigdata->n_orders, f );
 			break;
 
 		case DUMB_ID( 'P', 'A', 'T', 'T' ):
@@ -665,7 +665,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 				switch ( str->type )
 				{
 				case DUMB_ID('A', 'I', ' ', ' '):
-					for ( o = 0; o < str->chunk_count; ++o )
+                    for ( o = 0; (unsigned)o < str->chunk_count; ++o )
 					{
 						struct riff_chunk * chk = str->chunks + o;
 						switch( chk->type )
@@ -687,7 +687,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 								{
 									if ( temp->type == DUMB_ID( 'A', 'S', ' ', ' ' ) )
 									{
-										for ( p = 0; p < temp->chunk_count; ++p )
+                                        for ( p = 0; (unsigned)p < temp->chunk_count; ++p )
 										{
 											struct riff_chunk * c = temp->chunks + p;
 											if ( c->type == DUMB_ID( 'S', 'A', 'M', 'P' ) )
@@ -716,7 +716,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 								if ( ! sample_found )
 								{
                                     dumbfile_seek( f, chk->offset + 6, DFS_SEEK_SET );
-                                    dumbfile_getnc( sample->name, 32, f );
+                                    dumbfile_getnc( (char *) sample->name, 32, f );
 									sample->name[ 32 ] = 0;
 								}
 							}
@@ -758,7 +758,7 @@ DUH *dumb_read_riff_amff( DUMBFILE * f, struct riff * stream )
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "RIFF AMFF";
 		return make_duh( length, 2, ( const char * const (*) [ 2 ] ) tag, 1, & descptr, & sigdata );
@@ -779,7 +779,7 @@ DUH *dumb_read_riff_am( DUMBFILE * f, struct riff * stream )
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "RIFF AM";
 		return make_duh( -1, 2, ( const char * const (*) [ 2 ] ) tag, 1, & descptr, & sigdata );

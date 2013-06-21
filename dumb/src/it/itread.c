@@ -323,7 +323,7 @@ static int it_read_old_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f)
 	// XXX
 	dumbfile_skip(f, 4);
 
-	dumbfile_getnc(instrument->filename, 13, f);
+    dumbfile_getnc((char *)instrument->filename, 13, f);
 	instrument->filename[13] = 0;
 
 	instrument->volume_envelope.flags = dumbfile_getc(f);
@@ -352,7 +352,7 @@ static int it_read_old_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f)
 	 */
 	dumbfile_skip(f, 4);
 
-	dumbfile_getnc(instrument->name, 26, f);
+    dumbfile_getnc((char *)instrument->name, 26, f);
 	instrument->name[26] = 0;
 
 	/* Skip unused bytes following the Instrument Name. */
@@ -438,7 +438,7 @@ static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f, int maxlen
 
 	dumbfile_skip(f, 4);
 
-	dumbfile_getnc(instrument->filename, 13, f);
+    dumbfile_getnc((char *)instrument->filename, 13, f);
 	instrument->filename[13] = 0;
 
 	instrument->new_note_action = dumbfile_getc(f);
@@ -457,7 +457,7 @@ static int it_read_instrument(IT_INSTRUMENT *instrument, DUMBFILE *f, int maxlen
 	 */
 	dumbfile_skip(f, 4);
 
-	dumbfile_getnc(instrument->name, 26, f);
+    dumbfile_getnc((char *)instrument->name, 26, f);
 	instrument->name[26] = 0;
 
 	instrument->filter_cutoff = dumbfile_getc(f);
@@ -541,14 +541,14 @@ static int it_read_sample_header(IT_SAMPLE *sample, unsigned char *convert, long
 		}
 	}
 
-	dumbfile_getnc(sample->filename, 13, f);
+    dumbfile_getnc((char *)sample->filename, 13, f);
 	sample->filename[13] = 0;
 
 	sample->global_volume = dumbfile_getc(f);
 	sample->flags = dumbfile_getc(f);
 	sample->default_volume = dumbfile_getc(f);
 
-	dumbfile_getnc(sample->name, 26, f);
+    dumbfile_getnc((char *)sample->name, 26, f);
 	sample->name[26] = 0;
 
 	*convert = dumbfile_getc(f);
@@ -618,7 +618,7 @@ long _dumb_it_read_sample_data_adpcm4(IT_SAMPLE *sample, DUMBFILE *f)
 	long n, len, delta;
 	signed char * ptr, * end;
 	signed char compression_table[16];
-	if (dumbfile_getnc(compression_table, 16, f) != 16)
+    if (dumbfile_getnc((char *)compression_table, 16, f) != 16)
         return -1;
 	ptr = (signed char *) sample->data;
 	delta = 0;
@@ -777,7 +777,7 @@ static int it_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buff
 		return -1;
 
 	/* Read in the pattern data. */
-	dumbfile_getnc(buffer, buflen, f);
+    dumbfile_getnc((char *)buffer, buflen, f);
 
 	if (dumbfile_error(f))
 		return -1;
@@ -966,7 +966,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	sigdata->midi = NULL;
 	sigdata->checkpoint = NULL;
 
-	dumbfile_getnc(sigdata->name, 26, f);
+    dumbfile_getnc((char *)sigdata->name, 26, f);
 	sigdata->name[26] = 0;
 
 	/* Skip pattern row highlight info. */
@@ -999,8 +999,8 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	/* Skip Reserved. */
 	dumbfile_skip(f, 4);
 
-	dumbfile_getnc(sigdata->channel_pan, DUMB_IT_N_CHANNELS, f);
-	dumbfile_getnc(sigdata->channel_volume, DUMB_IT_N_CHANNELS, f);
+    dumbfile_getnc((char *)sigdata->channel_pan, DUMB_IT_N_CHANNELS, f);
+    dumbfile_getnc((char *)sigdata->channel_volume, DUMB_IT_N_CHANNELS, f);
 
 	// XXX sample count
 	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_instruments > 256 || sigdata->n_samples > 4000 || sigdata->n_patterns > 256) {
@@ -1042,7 +1042,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 			sigdata->pattern[n].entry = NULL;
 	}
 
-	dumbfile_getnc(sigdata->order, sigdata->n_orders, f);
+    dumbfile_getnc((char *)sigdata->order, sigdata->n_orders, f);
 	sigdata->restart_position = 0;
 
 	component = malloc(769 * sizeof(*component));
@@ -1132,7 +1132,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		for (i = 0; i < 16; i++) {
 			unsigned char len = 0;
 			int j, leftdigit = -1;
-			if (dumbfile_getnc(mididata, 32, f) < 32) {
+            if (dumbfile_getnc((char *)mididata, 32, f) < 32) {
 				free(component);
 				_dumb_it_unload_sigdata(sigdata);
 				return NULL;
@@ -1164,7 +1164,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 		for (i = 0; i < 128; i++) {
 			unsigned char len = 0;
 			int j, leftdigit = -1;
-			dumbfile_getnc(mididata, 32, f);
+            dumbfile_getnc((char *)mididata, 32, f);
 			for (j = 0; j < 32; j++) {
 				if (leftdigit >= 0) {
 					if (mididata[j] == 0) {
@@ -1239,7 +1239,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 				}
 				sigdata->song_message = malloc(message_length + 1);
 				if (sigdata->song_message) {
-					if (dumbfile_getnc(sigdata->song_message, message_length, f) < message_length) {
+                    if (dumbfile_getnc((char *)sigdata->song_message, message_length, f) < message_length) {
 						free(buffer);
 						free(component);
 						_dumb_it_unload_sigdata(sigdata);
@@ -1403,7 +1403,7 @@ DUH *dumb_read_it_quick(DUMBFILE *f)
 	{
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		tag[1][1] = "IT";
 		return make_duh(-1, 2, (const char *const (*)[2])tag, 1, &descptr, &sigdata);

@@ -33,7 +33,7 @@
 
 static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f, unsigned short *offset )
 {
-	dumbfile_getnc( sample->filename, 12, f );
+    dumbfile_getnc( (char *) sample->filename, 12, f );
 	sample->filename[12] = 0;
 
 	memcpy( sample->name, sample->filename, 13 );
@@ -105,7 +105,7 @@ static int it_stm_read_pattern( IT_PATTERN *pattern, DUMBFILE *f, unsigned char 
 
 	pattern->n_rows = 64;
 
-	if ( dumbfile_getnc( buffer, 64 * 4 * 4, f ) != 64 * 4 * 4 )
+    if ( dumbfile_getnc( (char *) buffer, 64 * 4 * 4, f ) != 64 * 4 * 4 )
 		return -1;
 
 	pattern->n_entries = 64;
@@ -198,7 +198,7 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 	if (!sigdata) return NULL;
 
 	/* Skip song name. */
-	dumbfile_getnc(sigdata->name, 20, f);
+    dumbfile_getnc((char *)sigdata->name, 20, f);
 	sigdata->name[20] = 0;
 
 	dumbfile_getnc(tracker_name, 8, f);
@@ -294,7 +294,7 @@ static DUMB_IT_SIGDATA *it_stm_load_sigdata(DUMBFILE *f, int * version)
 	}
 
 	/* Orders, byte each, length = sigdata->n_orders (should be even) */
-	dumbfile_getnc( sigdata->order, *version >= 0x200 ? 128 : 64, f );
+    dumbfile_getnc( (char *) sigdata->order, *version >= 0x200 ? 128 : 64, f );
 	if (*version < 0x200) memset( sigdata->order + 64, 0xFF, 64 );
 	sigdata->restart_position = 0;
 
@@ -364,7 +364,7 @@ DUH *dumb_read_stm_quick(DUMBFILE *f)
 		char version[16];
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		version[0] = 'S';
 		version[1] = 'T';

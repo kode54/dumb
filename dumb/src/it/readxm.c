@@ -221,7 +221,7 @@ static int it_xm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, int n_channels, 
 		return -1;
 	}
 
-	if (dumbfile_getnc(buffer, size, f) < size)
+    if (dumbfile_getnc((char *)buffer, size, f) < size)
 		return -1;
 
 	/* compute number of entries */
@@ -386,7 +386,7 @@ static int limit_xm_resize(void *f, long n)
 			memset( buffered + lx->allocated, 0, n - lx->allocated );
 			lx->allocated = n;
 		}
-		if ( dumbfile_getnc( lx->buffered, n, lx->remaining ) < n ) return -1;
+        if ( dumbfile_getnc( (char *)lx->buffered, n, lx->remaining ) < n ) return -1;
 	} else if (!n) {
 		if ( lx->buffered ) free( lx->buffered );
 		lx->buffered = NULL;
@@ -457,6 +457,8 @@ static void limit_xm_close(void *f)
 /* These two can be stubs since this implementation doesn't use seeking */
 static int limit_xm_seek(void *f, long n)
 {
+    (void)f;
+    (void)n;
     return 1;
 }
 
@@ -464,6 +466,7 @@ static int limit_xm_seek(void *f, long n)
 
 static long limit_xm_get_size(void *f)
 {
+    (void)f;
     return 0;
 }
 
@@ -517,9 +520,9 @@ static int it_xm_read_instrument(IT_INSTRUMENT *instrument, XM_INSTRUMENT_EXTRA 
 
 	if ( limit_xm_resize( f, size - 4 ) < 0 ) return -1;
 
-	dumbfile_getnc(instrument->name, 22, f);
+    dumbfile_getnc((char *)instrument->name, 22, f);
 	instrument->name[22] = 0;
-	trim_whitespace(instrument->name, 22);
+    trim_whitespace((char *)instrument->name, 22);
 	instrument->filename[0] = 0;
 	dumbfile_skip(f, 1);  /* Instrument type. Should be 0, but seems random. */
 	extra->n_samples = dumbfile_igetw(f);
@@ -675,12 +678,11 @@ static int it_xm_read_sample_header(IT_SAMPLE *sample, DUMBFILE *f)
 	sample->default_pan    = dumbfile_getc(f); /* 0-255 */
 	relative_note_number   = (signed char)dumbfile_getc(f);
 
-	/*dumbfile_skip(f, 1);  /* reserved */
 	reserved = dumbfile_getc(f);
 
-	dumbfile_getnc(sample->name, 22, f);
+    dumbfile_getnc((char *)sample->name, 22, f);
 	sample->name[22] = 0;
-	trim_whitespace(sample->name, 22);
+    trim_whitespace((char *)sample->name, 22);
 
 	sample->filename[0] = 0;
 
@@ -841,12 +843,12 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 		return NULL;
 
 	/* song name */
-	if (dumbfile_getnc(sigdata->name, 20, f) < 20) {
+    if (dumbfile_getnc((char *)sigdata->name, 20, f) < 20) {
 		free(sigdata);
 		return NULL;
 	}
 	sigdata->name[20] = 0;
-	trim_whitespace(sigdata->name, 20);
+    trim_whitespace((char *)sigdata->name, 20);
 
 	if (dumbfile_getc(f) != 0x1A) {
 		TRACE("XM error: 0x1A not found\n");
@@ -919,7 +921,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
 	}
-	dumbfile_getnc(sigdata->order, sigdata->n_orders, f);
+    dumbfile_getnc((char *)sigdata->order, sigdata->n_orders, f);
 	dumbfile_skip(f, i - sigdata->n_orders);
 
 	if (dumbfile_error(f)) {
@@ -1405,7 +1407,7 @@ DUH *dumb_read_xm_quick(DUMBFILE *f)
 		char version[16];
 		const char *tag[2][2];
 		tag[0][0] = "TITLE";
-		tag[0][1] = ((DUMB_IT_SIGDATA *)sigdata)->name;
+        tag[0][1] = (const char *)(((DUMB_IT_SIGDATA *)sigdata)->name);
 		tag[1][0] = "FORMAT";
 		version[0] = 'X';
 		version[1] = 'M';
