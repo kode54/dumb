@@ -115,7 +115,8 @@ HEADERS += \
     ../../include/internal/aldumb.h \
     ../../include/internal/lanczos_resampler.h \
     ../../include/internal/stack_alloc.h \
-    ../../include/internal/lpc.h
+    ../../include/internal/lpc.h \
+    ../../include/internal/dumbfile.h
 unix:!symbian {
     maemo5 {
         target.path = /opt/usr/lib

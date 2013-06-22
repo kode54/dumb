@@ -1976,6 +1976,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\include\internal\dumbfile.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\include\internal\it.h"
 					>
 				</File>

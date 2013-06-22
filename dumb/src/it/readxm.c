@@ -23,6 +23,7 @@
 
 #include "dumb.h"
 #include "internal/it.h"
+#include "internal/dumbfile.h"
 
 
 
@@ -364,14 +365,6 @@ struct LIMITED_XM
 	unsigned char *buffered;
 	long ptr, limit, allocated;
 	DUMBFILE *remaining;
-};
-
-/* XXX */
-struct DUMBFILE
-{
-	DUMBFILE_SYSTEM *dfs;
-	void *file;
-	long pos;
 };
 
 static int limit_xm_resize(void *f, long n)

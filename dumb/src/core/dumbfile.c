@@ -40,12 +40,7 @@ void register_dumbfile_system(const DUMBFILE_SYSTEM *dfs)
 
 
 
-struct DUMBFILE
-{
-	const DUMBFILE_SYSTEM *dfs;
-	void *file;
-	long pos;
-};
+#include "internal/dumbfile.h"
 
 
 
