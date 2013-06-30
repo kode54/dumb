@@ -141,7 +141,9 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		if ( volr == volt ) volume = NULL; \
 	} else { \
 		vol = 0; \
+		vold = 0; \
 		volt = 0; \
+		volm = 0; \
 	} \
 }
 #define RETURN_MONO_DEST_VOLUME_VARIABLES if ( volume ) volume->volume = (float)volr / 16777216.0f
@@ -258,7 +260,9 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
 		lvol = 0; \
+		lvold = 0; \
 		lvolt = 0; \
+		lvolm = 0; \
 	} \
 	if ( volume_right ) { \
 		rvolr = (int)(volume_right->volume * 16777216.0); \
@@ -269,7 +273,9 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
 		rvol = 0; \
+		rvold = 0; \
 		rvolt = 0; \
+		rvolm = 0; \
 	} \
 }
 #define RETURN_MONO_DEST_VOLUME_VARIABLES { \

@@ -390,7 +390,7 @@ static DUMB_IT_SIGDATA *it_amf_load_sigdata(DUMBFILE *f, int * version)
 		goto error_ott;
 	}
 
-	if ( dumbfile_getnc( ( char * ) trackmap, ntracks * sizeof( unsigned short ), f ) != ntracks * sizeof( unsigned short ) ) {
+	if ( dumbfile_getnc( ( char * ) trackmap, ntracks * sizeof( unsigned short ), f ) != (long)(ntracks * sizeof( unsigned short )) ) {
 		goto error_tm;
 	}
 

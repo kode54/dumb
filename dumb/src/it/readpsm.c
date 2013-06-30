@@ -464,7 +464,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 	PSMCHUNK *songchunk;
 	int n_song_chunks = 0;
 
-	PSMEVENT *event;
+	PSMEVENT *event = 0;
 	int n_events = 0;
 
 	unsigned char * ptr;
@@ -1212,6 +1212,8 @@ int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 {
     size_t i, j, na, nb;
 	char * p;
+
+	na = nb = 0;
 
 	i = memcmp( a, b, l );
 	if ( !i ) return i;

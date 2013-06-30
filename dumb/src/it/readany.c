@@ -23,9 +23,12 @@
 #include "dumb.h"
 
 #ifdef _MSC_VER
-#define strnicmp _strnicmp
+	#define strnicmp _strnicmp
 #else
-#define strnicmp strncasecmp
+	#if defined(unix) || defined(__unix__) || defined(__unix)
+		#include <strings.h>
+	#endif
+	#define strnicmp strncasecmp
 #endif
 
 enum { maximum_signature_size = 0x30 };

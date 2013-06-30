@@ -26,9 +26,12 @@
 #include "internal/it.h"
 
 #ifdef _MSC_VER
-#define strnicmp _strnicmp
+	#define strnicmp _strnicmp
 #else
-#define strnicmp strncasecmp
+	#if defined(unix) || defined(__unix__) || defined(__unix)
+		#include <strings.h>
+	#endif
+	#define strnicmp strncasecmp
 #endif
 
 static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f, unsigned short *offset )

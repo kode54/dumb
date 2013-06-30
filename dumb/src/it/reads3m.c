@@ -651,6 +651,7 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int * cwtv)
 		long offset;
 		int m;
 
+		offset = 0;
         if (dumbfile_seek(f, component[n].offset, DFS_SEEK_SET)) {
 			free(buffer);
 			free(component);

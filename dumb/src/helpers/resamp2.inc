@@ -117,7 +117,9 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
 		lvol = 0; \
+		lvold = 0; \
 		lvolt = 0; \
+		lvolm = 0; \
 	} \
 	if ( volume_right ) { \
 		rvolr = (int)(volume_right->volume * 16777216.0); \
@@ -128,7 +130,9 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
 		rvol = 0; \
+		rvold = 0; \
 		rvolt = 0; \
+		rvolm = 0; \
 	} \
 }
 #define RETURN_VOLUME_VARIABLES { \
