@@ -1626,7 +1626,7 @@ static void it_compatible_gxx_retrigger(DUMB_IT_SIGDATA *sigdata, IT_CHANNEL *ch
 	int flags = 0;
 	if (channel->sample) {
 		if (sigdata->flags & IT_USE_INSTRUMENTS) {
-			if (channel->playing->env_instrument == &sigdata->instrument[channel->instrument-1]) {
+			if (!(channel->playing->flags & IT_PLAYING_SUSTAINOFF)) {
 				if (channel->playing->env_instrument->volume_envelope.flags & IT_ENVELOPE_CARRY)
 					flags |= 1;
 				if (channel->playing->env_instrument->pan_envelope.flags & IT_ENVELOPE_CARRY)
@@ -1751,10 +1751,13 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 			nna = channel->playing->instrument->new_note_action;
 #endif
 
-		vol_env_tick = channel->playing->volume_envelope.tick;
-		pan_env_tick = channel->playing->pan_envelope.tick;
-		pitch_env_tick = channel->playing->pitch_envelope.tick;
-		envelopes_copied = 1;
+		if (!(channel->playing->flags & IT_PLAYING_SUSTAINOFF))
+		{
+			vol_env_tick = channel->playing->volume_envelope.tick;
+			pan_env_tick = channel->playing->pan_envelope.tick;
+			pitch_env_tick = channel->playing->pitch_envelope.tick;
+			envelopes_copied = 1;
+		}
 
 		switch (nna) {
 			case NNA_NOTE_CUT:
@@ -1861,9 +1864,11 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 		for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
 			IT_PLAYING * playing = sigrenderer->playing[i];
 			if (!playing || playing->channel != channel) continue;
+			if (playing->flags & IT_PLAYING_SUSTAINOFF) continue;
 			vol_env_tick = playing->volume_envelope.tick;
 			pan_env_tick = playing->pan_envelope.tick;
 			pitch_env_tick = playing->pitch_envelope.tick;
+			envelopes_copied = 1;
 			break;
 		}
 	}				
@@ -1924,17 +1929,17 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	channel->playing->slide = 0;
 	channel->playing->finetune = channel->playing->sample->finetune;
 
-	if (channel->playing->env_instrument->volume_envelope.flags & IT_ENVELOPE_CARRY) {
+	if (envelopes_copied && channel->playing->env_instrument->volume_envelope.flags & IT_ENVELOPE_CARRY) {
 		channel->playing->volume_envelope.tick = vol_env_tick;
 	} else {
 		channel->playing->volume_envelope.tick = 0;
 	}
-	if (channel->playing->env_instrument->pan_envelope.flags & IT_ENVELOPE_CARRY) {
+	if (envelopes_copied && channel->playing->env_instrument->pan_envelope.flags & IT_ENVELOPE_CARRY) {
 		channel->playing->pan_envelope.tick = pan_env_tick;
 	} else {
 		channel->playing->pan_envelope.tick = 0;
 	}
-	if (channel->playing->env_instrument->pitch_envelope.flags & IT_ENVELOPE_CARRY) {
+	if (envelopes_copied && channel->playing->env_instrument->pitch_envelope.flags & IT_ENVELOPE_CARRY) {
 		channel->playing->pitch_envelope.tick = pitch_env_tick;
 	} else {
 		channel->playing->pitch_envelope.tick = 0;
