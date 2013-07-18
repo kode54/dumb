@@ -3845,26 +3845,27 @@ static int update_it_envelope(IT_PLAYING *playing, IT_ENVELOPE *envelope, IT_PLA
 	}
 
 	pe->tick++;
-	while (pe->tick > envelope->node_t[pe->next_node]) {
-		pe->next_node++;
-		if ((envelope->flags & IT_ENVELOPE_SUSTAIN_LOOP) && !(playing->flags & IT_PLAYING_SUSTAINOFF)) {
-			if (pe->next_node > envelope->sus_loop_end) {
-				pe->next_node = envelope->sus_loop_start;
-				ASSERT(pe->next_node < envelope->n_nodes);
-				pe->tick = envelope->node_t[envelope->sus_loop_start];
-				return 0;
-			}
-		} else if (envelope->flags & IT_ENVELOPE_LOOP_ON) {
-			if (pe->next_node > envelope->loop_end) {
-				pe->next_node = envelope->loop_start;
-				ASSERT(pe->next_node < envelope->n_nodes);
-				pe->tick = envelope->node_t[envelope->loop_start];
-				return 0;
-			}
-		}
-		if (pe->next_node >= envelope->n_nodes)
+
+	recalculate_it_envelope_node(pe, envelope);
+
+	if ((envelope->flags & IT_ENVELOPE_SUSTAIN_LOOP) && !(playing->flags & IT_PLAYING_SUSTAINOFF)) {
+		if (pe->tick >= envelope->node_t[envelope->sus_loop_end]) {
+			pe->next_node = envelope->sus_loop_start;
+			ASSERT(pe->next_node < envelope->n_nodes);
+			pe->tick = envelope->node_t[envelope->sus_loop_start];
 			return 0;
+		}
+	} else if (envelope->flags & IT_ENVELOPE_LOOP_ON) {
+		if (pe->tick >= envelope->node_t[envelope->loop_end]) {
+			pe->next_node = envelope->loop_start;
+			ASSERT(pe->next_node < envelope->n_nodes);
+			pe->tick = envelope->node_t[envelope->loop_start];
+			return 0;
+		}
 	}
+	else if (pe->tick >= envelope->node_t[envelope->n_nodes - 1])
+		return 1;
+
 	return 0;
 }
 
