@@ -1689,15 +1689,40 @@ static void xm_note_off(DUMB_IT_SIGDATA *sigdata, IT_CHANNEL *channel)
 }
 
 
+static void recalculate_it_envelope_node(IT_PLAYING_ENVELOPE *pe, IT_ENVELOPE *e)
+{
+	int envpos = pe->tick;
+	unsigned int pt = e->n_nodes - 1;
+	unsigned int i;
+	for (i = 0; i < (unsigned int)(e->n_nodes - 1); ++i)
+	{
+		if (envpos <= e->node_t[i])
+		{
+			pt = i;
+			break;
+		}
+	}
+	pe->next_node = pt;
+}
+
+
+static void recalculate_it_envelope_nodes(IT_PLAYING *playing)
+{
+	recalculate_it_envelope_node(&playing->volume_envelope, &playing->env_instrument->volume_envelope);
+	recalculate_it_envelope_node(&playing->pan_envelope, &playing->env_instrument->pitch_envelope);
+	recalculate_it_envelope_node(&playing->pitch_envelope, &playing->env_instrument->pitch_envelope);
+}
+
+
 static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *channel)
 {
-	IT_PLAYING_ENVELOPE volume_envelope;
-	IT_PLAYING_ENVELOPE pan_envelope;
-	IT_PLAYING_ENVELOPE pitch_envelope;
+	int vol_env_tick = 0;
+	int pan_env_tick = 0;
+	int pitch_env_tick = 0;
 
 	DUMB_IT_SIGDATA *sigdata = sigrenderer->sigdata;
 	unsigned char nna;
-	int i, flags = 0;
+	int i, envelopes_copied = 0;
 
 	if (channel->playing) {
 #ifdef INVALID_NOTES_CAUSE_NOTE_CUT
@@ -1726,22 +1751,10 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 			nna = channel->playing->instrument->new_note_action;
 #endif
 
-		if (!(channel->playing->flags & IT_PLAYING_DEAD) && (sigdata->flags & IT_USE_INSTRUMENTS) && (channel->playing->enabled_envelopes) && channel->playing->instnum == channel->instrument) {
-			IT_PLAYING * playing = channel->playing;
-			IT_INSTRUMENT * inst = &sigdata->instrument[channel->instrument-1];
-			if ((playing->enabled_envelopes & IT_ENV_VOLUME) && (inst->volume_envelope.flags & IT_ENVELOPE_CARRY)) {
-				flags |= 1;
-				volume_envelope = playing->volume_envelope;
-			}
-			if ((playing->enabled_envelopes & IT_ENV_PANNING) && (inst->pan_envelope.flags & IT_ENVELOPE_CARRY)) {
-				flags |= 2;
-				pan_envelope = playing->pan_envelope;
-			}
-			if ((playing->enabled_envelopes & IT_ENV_PITCH) && (inst->pitch_envelope.flags & IT_ENVELOPE_CARRY)) {
-				flags |= 4;
-				pitch_envelope = playing->pitch_envelope;
-			}
-		}
+		vol_env_tick = channel->playing->volume_envelope.tick;
+		pan_env_tick = channel->playing->pan_envelope.tick;
+		pitch_env_tick = channel->playing->pitch_envelope.tick;
+		envelopes_copied = 1;
 
 		switch (nna) {
 			case NNA_NOTE_CUT:
@@ -1844,26 +1857,14 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	if (!channel->playing)
 		return;
 
-	if (!flags && sigdata->flags & IT_USE_INSTRUMENTS) {
+	if (!envelopes_copied && sigdata->flags & IT_USE_INSTRUMENTS) {
 		for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
 			IT_PLAYING * playing = sigrenderer->playing[i];
 			if (!playing || playing->channel != channel) continue;
-			if (playing->enabled_envelopes && playing->instnum == channel->instrument) {
-				IT_INSTRUMENT * inst = &sigdata->instrument[channel->instrument-1];
-				if ((playing->enabled_envelopes & IT_ENV_VOLUME) && (inst->volume_envelope.flags & IT_ENVELOPE_CARRY)) {
-					flags |= 1;
-					volume_envelope = playing->volume_envelope;
-				}
-				if ((playing->enabled_envelopes & IT_ENV_PANNING) && (inst->pan_envelope.flags & IT_ENVELOPE_CARRY)) {
-					flags |= 2;
-					pan_envelope = playing->pan_envelope;
-				}
-				if ((playing->enabled_envelopes & IT_ENV_PITCH) && (inst->pitch_envelope.flags & IT_ENVELOPE_CARRY)) {
-					flags |= 4;
-					pitch_envelope = playing->pitch_envelope;
-				}
-				break;
-			}
+			vol_env_tick = playing->volume_envelope.tick;
+			pan_env_tick = playing->pan_envelope.tick;
+			pitch_env_tick = playing->pitch_envelope.tick;
+			break;
 		}
 	}				
 
@@ -1923,24 +1924,22 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	channel->playing->slide = 0;
 	channel->playing->finetune = channel->playing->sample->finetune;
 
-	if (flags & 1) {
-		channel->playing->volume_envelope = volume_envelope;
+	if (channel->playing->env_instrument->volume_envelope.flags & IT_ENVELOPE_CARRY) {
+		channel->playing->volume_envelope.tick = vol_env_tick;
 	} else {
-		channel->playing->volume_envelope.next_node = 0;
 		channel->playing->volume_envelope.tick = 0;
 	}
-	if (flags & 2) {
-		channel->playing->pan_envelope = pan_envelope;
+	if (channel->playing->env_instrument->pan_envelope.flags & IT_ENVELOPE_CARRY) {
+		channel->playing->pan_envelope.tick = pan_env_tick;
 	} else {
-		channel->playing->pan_envelope.next_node = 0;
 		channel->playing->pan_envelope.tick = 0;
 	}
-	if (flags & 4) {
-		channel->playing->pitch_envelope = pitch_envelope;
+	if (channel->playing->env_instrument->pitch_envelope.flags & IT_ENVELOPE_CARRY) {
+		channel->playing->pitch_envelope.tick = pitch_env_tick;
 	} else {
-		channel->playing->pitch_envelope.next_node = 0;
 		channel->playing->pitch_envelope.tick = 0;
 	}
+	recalculate_it_envelope_nodes(channel->playing);
 	channel->playing->fadeoutcount = 1024;
 	it_reset_filter_state(&channel->playing->filter_state[0]);
 	it_reset_filter_state(&channel->playing->filter_state[1]);
