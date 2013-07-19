@@ -1929,22 +1929,25 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	channel->playing->slide = 0;
 	channel->playing->finetune = channel->playing->sample->finetune;
 
-	if (envelopes_copied && channel->playing->env_instrument->volume_envelope.flags & IT_ENVELOPE_CARRY) {
-		channel->playing->volume_envelope.tick = vol_env_tick;
-	} else {
-		channel->playing->volume_envelope.tick = 0;
+	if (sigdata->flags & IT_USE_INSTRUMENTS)
+	{
+		if (envelopes_copied && channel->playing->env_instrument->volume_envelope.flags & IT_ENVELOPE_CARRY) {
+			channel->playing->volume_envelope.tick = vol_env_tick;
+		} else {
+			channel->playing->volume_envelope.tick = 0;
+		}
+		if (envelopes_copied && channel->playing->env_instrument->pan_envelope.flags & IT_ENVELOPE_CARRY) {
+			channel->playing->pan_envelope.tick = pan_env_tick;
+		} else {
+			channel->playing->pan_envelope.tick = 0;
+		}
+		if (envelopes_copied && channel->playing->env_instrument->pitch_envelope.flags & IT_ENVELOPE_CARRY) {
+			channel->playing->pitch_envelope.tick = pitch_env_tick;
+		} else {
+			channel->playing->pitch_envelope.tick = 0;
+		}
+		recalculate_it_envelope_nodes(channel->playing);
 	}
-	if (envelopes_copied && channel->playing->env_instrument->pan_envelope.flags & IT_ENVELOPE_CARRY) {
-		channel->playing->pan_envelope.tick = pan_env_tick;
-	} else {
-		channel->playing->pan_envelope.tick = 0;
-	}
-	if (envelopes_copied && channel->playing->env_instrument->pitch_envelope.flags & IT_ENVELOPE_CARRY) {
-		channel->playing->pitch_envelope.tick = pitch_env_tick;
-	} else {
-		channel->playing->pitch_envelope.tick = 0;
-	}
-	recalculate_it_envelope_nodes(channel->playing);
 	channel->playing->fadeoutcount = 1024;
 	it_reset_filter_state(&channel->playing->filter_state[0]);
 	it_reset_filter_state(&channel->playing->filter_state[1]);
