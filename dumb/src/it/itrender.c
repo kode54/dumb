@@ -3832,9 +3832,9 @@ static int update_it_envelope(IT_PLAYING *playing, IT_ENVELOPE *envelope, IT_PLA
 
 	ASSERT(envelope->n_nodes > 0);
 
-	if (pe->next_node <= 0)
+	if (pe->tick <= 0)
 		pe->value = envelope->node_y[0] << IT_ENVELOPE_SHIFT;
-	else if (pe->next_node >= envelope->n_nodes) {
+	else if (pe->tick >= envelope->node_t[envelope->n_nodes-1]) {
 		pe->value = envelope->node_y[envelope->n_nodes-1] << IT_ENVELOPE_SHIFT;
 		return 1;
 	} else {
