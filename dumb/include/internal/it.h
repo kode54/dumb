@@ -603,7 +603,9 @@ struct IT_CHANNEL
 
 	unsigned char new_note_action;
 
-	unsigned int arpeggio;
+	unsigned char const* arpeggio_table;
+	signed char arpeggio_offsets[3];
+
 	int arpeggio_shift;
 	unsigned char retrig;
 	unsigned char xm_retrig;

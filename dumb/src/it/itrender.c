@@ -236,8 +236,8 @@ static void dup_channel(IT_CHANNEL *dst, IT_CHANNEL *src)
 
 	dst->new_note_action = src->new_note_action;
 
-	dst->arpeggio = src->arpeggio;
-	dst->arpeggio_shift = src->arpeggio_shift;
+	dst->arpeggio_table = src->arpeggio_table;
+	memcpy(dst->arpeggio_offsets, src->arpeggio_offsets, sizeof(dst->arpeggio_offsets));
 	dst->retrig = src->retrig;
 	dst->xm_retrig = src->xm_retrig;
 	dst->retrig_tick = src->retrig_tick;
@@ -921,14 +921,22 @@ static void reset_tick_counts(DUMB_IT_SIGRENDERER *sigrenderer)
 
 
 
+static const unsigned char arpeggio_mod[32] = {0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1};
+static const unsigned char arpeggio_xm[32] = {0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+static const unsigned char arpeggio_okt_3[32] = {1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0};
+static const unsigned char arpeggio_okt_4[32] = {0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1};
+static const unsigned char arpeggio_okt_5[32] = {2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 2, 2};
+
+
+
 static void reset_channel_effects(IT_CHANNEL *channel)
 {
 	channel->volslide = 0;
 	channel->xm_volslide = 0;
 	channel->panslide = 0;
 	channel->channelvolslide = 0;
-	channel->arpeggio = 0;
-	channel->arpeggio_shift = 0;
+	channel->arpeggio_table = &arpeggio_mod;
+	memset(channel->arpeggio_offsets, 0, sizeof(channel->arpeggio_offsets));
 	channel->retrig = 0;
 	if (channel->xm_retrig) {
 		channel->xm_retrig = 0;
@@ -1353,8 +1361,6 @@ static void update_effects(DUMB_IT_SIGRENDERER *sigrenderer)
 		}
 
 		update_tremor(channel);
-
-		if (channel->arpeggio_shift) channel->arpeggio = (channel->arpeggio << 8) | (channel->arpeggio >> channel->arpeggio_shift);
 
 		update_retrig(sigrenderer, channel);
 
@@ -2489,8 +2495,10 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 							channel->lastJ = v;
 						}
 					}
-					channel->arpeggio = ((v & 0xF0) << 4) | (v & 0x0F);
-					channel->arpeggio_shift = 16;
+					channel->arpeggio_offsets[0] = 0;
+					channel->arpeggio_offsets[1] = (v & 0xF0) >> 4;
+					channel->arpeggio_offsets[2] = (v & 0x0F);
+					channel->arpeggio_table = ((sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD))==IT_WAS_AN_XM) ? &arpeggio_xm : &arpeggio_mod;
 				}
 				break;
 			case IT_SET_CHANNEL_VOLUME:
@@ -3134,24 +3142,22 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 			case IT_OKT_ARPEGGIO_4:
 			case IT_OKT_ARPEGGIO_5:
 				{
-					unsigned char low  = -(entry->effectvalue >> 4);
-					unsigned char high = entry->effectvalue & 0x0F;
+					channel->arpeggio_offsets[0] = 0;
+					channel->arpeggio_offsets[1] = -(entry->effectvalue >> 4);
+					channel->arpeggio_offsets[2] = entry->effectvalue & 0x0F;
 
 					switch (entry->effect)
 					{
 					case IT_OKT_ARPEGGIO_3:
-						channel->arpeggio = (low << 16) | high;
-						channel->arpeggio_shift = 16;
+						channel->arpeggio_table = &arpeggio_okt_3;
 						break;
 
 					case IT_OKT_ARPEGGIO_4:
-						channel->arpeggio = (high << 16) | low;
-						channel->arpeggio_shift = 24;
+						channel->arpeggio_table = &arpeggio_okt_4;
 						break;
 
 					case IT_OKT_ARPEGGIO_5:
-						channel->arpeggio = (high << 16) | (high << 8);
-						channel->arpeggio_shift = 16;
+						channel->arpeggio_table = &arpeggio_okt_5;
 						break;
 					}
 				}
@@ -4178,7 +4184,14 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 					if ( channel->arpeggio > 0xFF )
 						playing->delta = playing->sample->C5_speed * (1.f / 65536.f);
 				}
-				else*/ playing->delta *= (float)pow(DUMB_SEMITONE_BASE, (signed char)(channel->arpeggio >> channel->arpeggio_shift));/*
+				else*/
+				{
+					int tick = sigrenderer->tick;
+					if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD))==IT_WAS_AN_XM)
+						tick = sigrenderer->speed - tick - 1;
+					playing->delta *= (float)pow(DUMB_SEMITONE_BASE, channel->arpeggio_offsets[channel->arpeggio_table[tick]]);
+				}
+			/*
 			}*/
 
 			playing->filter_cutoff = channel->filter_cutoff;
