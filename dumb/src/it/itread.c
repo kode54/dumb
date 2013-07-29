@@ -639,7 +639,7 @@ long _dumb_it_read_sample_data_adpcm4(IT_SAMPLE *sample, DUMBFILE *f)
 }
 
 
-static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char convert, DUMBFILE *f)
+static long it_read_sample_data(IT_SAMPLE *sample, unsigned char convert, DUMBFILE *f)
 {
 	long n;
 
@@ -660,17 +660,17 @@ static long it_read_sample_data(int cmwt, IT_SAMPLE *sample, unsigned char conve
 
 		if (sample->flags & IT_SAMPLE_STEREO) {
 			if (sample->flags & IT_SAMPLE_16BIT) {
-				decompress16(f, (short *) sample->data, datasize >> 1, ((cmwt >= 0x215) && (convert & 4)), 1);
-				decompress16(f, (short *) sample->data + 1, datasize >> 1, ((cmwt >= 0x215) && (convert & 4)), 1);
+				decompress16(f, (short *) sample->data, datasize >> 1, convert & 4, 1);
+				decompress16(f, (short *) sample->data + 1, datasize >> 1, convert & 4, 1);
 			} else {
-				decompress8(f, (signed char *) sample->data, datasize >> 1, ((cmwt >= 0x215) && (convert & 4)), 1);
-				decompress8(f, (signed char *) sample->data + 1, datasize >> 1, ((cmwt >= 0x215) && (convert & 4)), 1);
+				decompress8(f, (signed char *) sample->data, datasize >> 1, convert & 4, 1);
+				decompress8(f, (signed char *) sample->data + 1, datasize >> 1, convert & 4, 1);
 			}
 		} else {
 			if (sample->flags & IT_SAMPLE_16BIT)
-				decompress16(f, (short *) sample->data, datasize, ((cmwt >= 0x215) && (convert & 4)), 0);
+				decompress16(f, (short *) sample->data, datasize, convert & 4, 0);
 			else
-				decompress8(f, (signed char *) sample->data, datasize, ((cmwt >= 0x215) && (convert & 4)), 0);
+				decompress8(f, (signed char *) sample->data, datasize, convert & 4, 0);
 		}
  	} else if (sample->flags & IT_SAMPLE_16BIT) {
 		if (sample->flags & IT_SAMPLE_STEREO) {
@@ -1310,7 +1310,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 				return NULL;
 			}
 
-			if (it_read_sample_data(cmwt, &sigdata->sample[component[m].n], sample_convert[component[m].n], f)) {
+			if (it_read_sample_data(&sigdata->sample[component[m].n], sample_convert[component[m].n], f)) {
 				free(buffer);
 				free(component);
 				_dumb_it_unload_sigdata(sigdata);
