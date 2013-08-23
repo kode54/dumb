@@ -4189,6 +4189,10 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 					int tick = sigrenderer->tick - 1;
 					if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD))!=IT_WAS_AN_XM)
 						tick = sigrenderer->speed - tick - 1;
+					else if (tick == sigrenderer->speed - 1)
+						tick = 0;
+					else
+						++tick;
 					playing->delta *= (float)pow(DUMB_SEMITONE_BASE, channel->arpeggio_offsets[channel->arpeggio_table[tick&31]]);
 				}
 			/*
