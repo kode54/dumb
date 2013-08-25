@@ -4182,6 +4182,10 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 					int tick = sigrenderer->tick - 1;
 					if ((sigrenderer->sigdata->flags & (IT_WAS_AN_XM|IT_WAS_A_MOD))!=IT_WAS_AN_XM)
 						tick = sigrenderer->speed - tick - 1;
+					else if (tick == sigrenderer->speed - 1)
+						tick = 0;
+					else
+						++tick;
 					playing->delta *= (float)pow(DUMB_SEMITONE_BASE, channel->arpeggio_offsets[channel->arpeggio_table[tick&31]]);
 				}
 			/*
@@ -4342,6 +4346,15 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 					{
 						sigrenderer->processorder = sigrenderer->restart_position - 1;
 					}
+
+#ifdef BIT_ARRAY_BULLSHIT
+					/* Fix play tracking and timekeeping for orders containing skip commands */
+					for (n = 0; n < 256; n++) {
+						bit_array_set(sigrenderer->played, sigrenderer->processorder * 256 + n);
+						timekeeping_array_push(sigrenderer->row_timekeeper, sigrenderer->processorder * 256 + n, sigrenderer->time_played);
+						timekeeping_array_bump(sigrenderer->row_timekeeper, sigrenderer->processorder * 256 + n);
+					}
+#endif
 				}
 
 				pattern = &sigdata->pattern[n];
@@ -5581,6 +5594,14 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 	sigrenderer->processorder = startorder - 1;
 	sigrenderer->tick = 1;
 
+#ifdef BIT_ARRAY_BULLSHIT
+	sigrenderer->played = bit_array_create(sigdata->n_orders * 256);
+
+	sigrenderer->looped = 0;
+	sigrenderer->time_played = 0;
+	sigrenderer->row_timekeeper = timekeeping_array_create(sigdata->n_orders * 256);
+#endif
+
 	{
 		int order;
 		for (order = 0; order < sigdata->n_orders; order++) {
@@ -5592,6 +5613,15 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 			if (n == IT_ORDER_END)
 #endif
 				break;
+
+#ifdef BIT_ARRAY_BULLSHIT
+			/* Fix for played order detection for songs which have skips at the start of the orders list */
+			for (n = 0; n < 256; n++) {
+				bit_array_set(sigrenderer->played, order * 256 + n);
+				timekeeping_array_push(sigrenderer->row_timekeeper, order * 256 + n, 0);
+				timekeeping_array_bump(sigrenderer->row_timekeeper, order * 256 + n);
+			}
+#endif
 		}
 		/* If we get here, there were no valid orders in the song. */
 		_dumb_it_end_sigrenderer(sigrenderer);
@@ -5601,14 +5631,6 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 
 	sigrenderer->time_left = 0;
 	sigrenderer->sub_time_left = 0;
-
-#ifdef BIT_ARRAY_BULLSHIT
-	sigrenderer->played = bit_array_create(sigdata->n_orders * 256);
-
-	sigrenderer->looped = 0;
-	sigrenderer->time_played = 0;
-	sigrenderer->row_timekeeper = timekeeping_array_create(sigdata->n_orders * 256);
-#endif
 
 	sigrenderer->gvz_time = 0;
 	sigrenderer->gvz_sub_time = 0;
