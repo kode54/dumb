@@ -2532,15 +2532,8 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 							if (channel->channelvolume > 64) channel->channelvolume = 0;
 						} else
 							break;
-						for (i = -1; i < DUMB_IT_N_NNA_CHANNELS; i++) {
-							if (i < 0) playing = channel->playing;
-							else {
-								playing = sigrenderer->playing[i];
-								if (!playing || playing->channel != channel) continue;
-							}
-							if (playing)
-								playing->channel_volume = channel->channelvolume;
-						}
+						if (channel->playing)
+							channel->playing->channel_volume = channel->channelvolume;
 					}
 				}
 				break;
