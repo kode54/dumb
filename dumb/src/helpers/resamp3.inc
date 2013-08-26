@@ -204,7 +204,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
                                                     pos--;
                                                     x -= SRC_CHANNELS;
                                             }
-                                            if ( !lanczos_resampler_ready( resampler->fir_resampler[0] ) ) break;
+                                            if ( !lanczos_resampler_get_sample_count( resampler->fir_resampler[0] ) ) break;
                                             MIX_FIR;
                                             ADVANCE_FIR;
                                             --todo;
@@ -330,7 +330,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
                                                     pos++;
                                                     x += SRC_CHANNELS;
                                             }
-                                            if ( !lanczos_resampler_ready( resampler->fir_resampler[0] ) ) break;
+                                            if ( !lanczos_resampler_get_sample_count( resampler->fir_resampler[0] ) ) break;
                                             MIX_FIR;
                                             ADVANCE_FIR;
                                             --todo;
