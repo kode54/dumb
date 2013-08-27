@@ -1731,22 +1731,10 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	int i, envelopes_copied = 0;
 
 	if (channel->playing) {
-#ifdef INVALID_NOTES_CAUSE_NOTE_CUT
-		if (channel->note == IT_NOTE_OFF)
-			nna = NNA_NOTE_OFF;
-		else if (channel->note >= 120 || !channel->playing->instrument || (channel->playing->flags & IT_PLAYING_DEAD))
-			nna = NNA_NOTE_CUT;
-		else if (channel->new_note_action != 0xFF)
-		{
-			nna = channel->new_note_action;
-		}
-		else
-			nna = channel->playing->instrument->new_note_action;
-#else
 		if (channel->note == IT_NOTE_CUT)
 			nna = NNA_NOTE_CUT;
-		if (channel->note >= 120)
-			nna = NNA_NOTE_OFF;
+		if (channel->note > 120)
+			nna = NNA_NOTE_FADE;
 		else if (!channel->playing->instrument || (channel->playing->flags & IT_PLAYING_DEAD))
 			nna = NNA_NOTE_CUT;
 		else if (channel->new_note_action != 0xFF)
@@ -1755,7 +1743,6 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 		}
 		else
 			nna = channel->playing->instrument->new_note_action;
-#endif
 
 		if (!(channel->playing->flags & IT_PLAYING_SUSTAINOFF))
 		{
@@ -1785,7 +1772,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 
 	channel->new_note_action = 0xFF;
 
-	if (channel->sample == 0 || channel->note >= 120)
+	if (channel->sample == 0 || channel->note > 120)
 		return;
 
 	channel->destnote = IT_NOTE_OFF;
@@ -3197,7 +3184,7 @@ static int process_it_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *entr
 		if (entry->mask & IT_ENTRY_INSTRUMENT)
 			channel->instrument = entry->instrument;
 		instrument_to_sample(sigdata, channel);
-		if (channel->note < 120) {
+		if (channel->note <= 120) {
 			if ((sigdata->flags & IT_USE_INSTRUMENTS) && channel->sample == 0)
 				it_retrigger_note(sigrenderer, channel); /* Stop the note */ /*return 1;*/
 			if (entry->mask & IT_ENTRY_INSTRUMENT)
@@ -3242,7 +3229,7 @@ static int process_it_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *entr
 				channel->lastEF = v;
 			}
 			if ((entry->mask & IT_ENTRY_NOTE) || ((sigdata->flags & IT_COMPATIBLE_GXX) && (entry->mask & IT_ENTRY_INSTRUMENT))) {
-				if (channel->note < 120) {
+				if (channel->note <= 120) {
 					if (channel->sample)
 						channel->destnote = channel->truenote;
 					else
@@ -3267,7 +3254,7 @@ static int process_it_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *entr
 				channel->lastEF = v;
 			}
 			if ((entry->mask & IT_ENTRY_NOTE) || ((sigdata->flags & IT_COMPATIBLE_GXX) && (entry->mask & IT_ENTRY_INSTRUMENT))) {
-				if (channel->note < 120) {
+				if (channel->note <= 120) {
 					if (channel->sample)
 						channel->destnote = channel->truenote;
 					else
@@ -3282,7 +3269,7 @@ static int process_it_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *entr
 	if ((entry->mask & IT_ENTRY_NOTE) ||
 		((entry->mask & IT_ENTRY_INSTRUMENT) && (!channel->playing || entry->instrument != channel->playing->instnum)))
 	{
-		if (channel->note < 120) {
+		if (channel->note <= 120) {
 			get_true_pan(sigdata, channel);
 			if ((entry->mask & IT_ENTRY_NOTE) || !(sigdata->flags & (IT_WAS_AN_S3M|IT_WAS_A_PTM)))
 				it_retrigger_note(sigrenderer, channel);
