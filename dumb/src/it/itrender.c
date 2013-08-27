@@ -1733,7 +1733,9 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	if (channel->playing) {
 		if (channel->note == IT_NOTE_CUT)
 			nna = NNA_NOTE_CUT;
-		if (channel->note > 120)
+		else if (channel->note == IT_NOTE_OFF)
+			nna = NNA_NOTE_OFF;
+		else if (channel->note > 120)
 			nna = NNA_NOTE_FADE;
 		else if (!channel->playing->instrument || (channel->playing->flags & IT_PLAYING_DEAD))
 			nna = NNA_NOTE_CUT;
