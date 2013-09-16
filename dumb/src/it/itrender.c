@@ -2958,10 +2958,7 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 				break;
 			case IT_SET_PANNING:
 				if (sigdata->flags & IT_WAS_AN_XM) {
-					if (sigdata->flags & IT_WAS_A_MOD)
-						channel->truepan = entry->effectvalue*128;
-					else
-						channel->truepan = 32 + entry->effectvalue*64;
+					channel->truepan = 32 + entry->effectvalue*64;
 				} else {
 					if (sigdata->flags & IT_WAS_AN_S3M)
 						channel->pan = (entry->effectvalue + 1) >> 1;
