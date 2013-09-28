@@ -25,6 +25,9 @@
 #include "internal/it.h"
 #include "internal/lpc.h"
 
+#include "internal/blip_buf.h"
+#include "internal/lanczos_resampler.h"
+
 // #define BIT_ARRAY_BULLSHIT
 
 #define END_RAMPING

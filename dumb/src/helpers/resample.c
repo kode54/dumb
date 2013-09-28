@@ -45,6 +45,9 @@
 #include <math.h>
 #include "dumb.h"
 
+#include "internal/blip_buf.h"
+#include "internal/lanczos_resampler.h"
+
 
 
 /* Compile with -DHEAVYDEBUG if you want to make sure the pick-up function is
