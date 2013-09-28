@@ -3838,14 +3838,14 @@ static int update_it_envelope(IT_PLAYING *playing, IT_ENVELOPE *envelope, IT_PLA
 
 	if ((envelope->flags & IT_ENVELOPE_SUSTAIN_LOOP) && !(playing->flags & IT_PLAYING_SUSTAINOFF)) {
 		if (pe->tick > envelope->node_t[envelope->sus_loop_end]) {
-			pe->next_node = envelope->sus_loop_start;
+			pe->next_node = envelope->sus_loop_start + 1;
 			ASSERT(pe->next_node < envelope->n_nodes);
 			pe->tick = envelope->node_t[envelope->sus_loop_start];
 			return 0;
 		}
 	} else if (envelope->flags & IT_ENVELOPE_LOOP_ON) {
 		if (pe->tick > envelope->node_t[envelope->loop_end]) {
-			pe->next_node = envelope->loop_start;
+			pe->next_node = envelope->loop_start + 1;
 			ASSERT(pe->next_node < envelope->n_nodes);
 			pe->tick = envelope->node_t[envelope->loop_start];
 			return 0;
