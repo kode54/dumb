@@ -1730,7 +1730,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	int pitch_env_tick = 0;
 
 	DUMB_IT_SIGDATA *sigdata = sigrenderer->sigdata;
-	unsigned char nna;
+	unsigned char nna = ~0;
 	int i, envelopes_copied = 0;
 
 	if (channel->playing) {
@@ -1749,7 +1749,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 		else
 			nna = channel->playing->instrument->new_note_action;
 
-		if (!(channel->playing->flags & IT_PLAYING_SUSTAINOFF))
+		if (!(channel->playing->flags & IT_PLAYING_SUSTAINOFF) && nna != NNA_NOTE_CUT)
 		{
 			vol_env_tick = channel->playing->volume_envelope.tick;
 			pan_env_tick = channel->playing->pan_envelope.tick;
@@ -1858,7 +1858,7 @@ static void it_retrigger_note(DUMB_IT_SIGRENDERER *sigrenderer, IT_CHANNEL *chan
 	if (!channel->playing)
 		return;
 
-	if (!envelopes_copied && sigdata->flags & IT_USE_INSTRUMENTS) {
+	if (!envelopes_copied && sigdata->flags & IT_USE_INSTRUMENTS && nna != NNA_NOTE_CUT) {
 		for (i = 0; i < DUMB_IT_N_NNA_CHANNELS; i++) {
 			IT_PLAYING * playing = sigrenderer->playing[i];
 			if (!playing || playing->channel != channel) continue;
