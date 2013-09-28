@@ -4907,6 +4907,8 @@ static long render_playing_ramp(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *pl
 				}
 				if (size < declick_remain) declick_remain = size;
 				remain = declick_remain;
+				if (remain > size)
+					declick_remain = size;
 				declick_target = playing->declick_volume + declick_dir / declick_count * declick_remain;
 				declick_lvol.volume = lvol.volume * playing->declick_volume;
 				declick_rvol.volume = rvol.volume * playing->declick_volume;
