@@ -3340,7 +3340,6 @@ static void process_xm_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *ent
 
 	if (entry->mask & IT_ENTRY_INSTRUMENT) {
 		int oldsample = channel->sample;
-		int oldvolume = channel->volume;
 		channel->inv_loop_offset = 0;
 		channel->instrument = entry->instrument;
 		instrument_to_sample(sigdata, channel);
@@ -3401,12 +3400,6 @@ static void process_xm_note_data(DUMB_IT_SIGRENDERER *sigrenderer, IT_ENTRY *ent
 				}
 				get_default_volpan(sigdata, channel);
 			}
-#ifdef END_RAMPING
-			if (channel->volume && !oldvolume) {
-				channel->playing->declick_stage = 0;
-				channel->playing->declick_volume = 1.f / 256.f;
-			}
-#endif
 		}
 	}
 
