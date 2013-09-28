@@ -4912,8 +4912,6 @@ static long render_playing_ramp(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *pl
 				declick_target = playing->declick_volume + declick_dir / declick_count * declick_remain;
 				declick_lvol.volume = lvol.volume * playing->declick_volume;
 				declick_rvol.volume = rvol.volume * playing->declick_volume;
-				lvol.volume += lvol.delta * declick_remain;
-				rvol.volume += rvol.delta * declick_remain;
 				declick_lvol.target = lvol.volume * declick_target;
 				declick_rvol.target = rvol.volume * declick_target;
 				declick_lvol.delta = (declick_lvol.target - declick_lvol.volume) / declick_remain;
@@ -4934,6 +4932,8 @@ static long render_playing_ramp(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *pl
 					size_rendered = render_playing_part(sigrenderer, playing, &declick_lvol, &declick_rvol, bits, delta, pos, remain, samples, store_end_sample, 3);
 					playing->declick_volume = declick_target;
 				}
+				lvol.volume = declick_lvol.volume;
+				rvol.volume = declick_rvol.volume;
 			} else /*if (playing->declick_stage == 3)*/ {
 				(*left_to_mix)++;
 			}
