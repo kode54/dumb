@@ -787,11 +787,62 @@ static void it_filter_sse(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample
 
 #undef LOG10
 
-int _dumb_it_use_sse = 0;
+#ifdef _USE_SSE
+#if defined(_M_IX86) || defined(__i386__)
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
+static inline void
+__cpuid(int *data, int selector)
+{
+    asm("cpuid"
+        : "=a" (data[0]),
+        "=b" (data[1]),
+        "=c" (data[2]),
+        "=d" (data[3])
+        : "a"(selector));
+}
+#endif
+
+static int query_cpu_feature_sse() {
+	int buffer[4];
+	__cpuid(buffer,1);
+	if ((buffer[3]&(1<<25)) == 0) return 0;
+	return 1;
+}
+
+static int _dumb_it_use_sse = 0;
+
+void _dumb_init_sse()
+{
+    static int initialized = 0;
+    if (!initialized)
+    {
+        _dumb_it_use_sse = query_cpu_feature_sse();
+        initialized = 1;
+    }
+}
+
+#elif defined(_M_X64) || defined(__amd64__)
+
+static const int _dumb_it_use_sse = 1;
+
+void _dumb_init_sse() { }
+
+#else
+
+static const int _dumb_it_use_sse = 0;
+
+void _dumb_init_sse() { }
+
+#endif
+#endif
 
 static void it_filter(DUMB_CLICK_REMOVER *cr, IT_FILTER_STATE *state, sample_t *dst, long pos, sample_t *src, long size, int step, int sampfreq, int cutoff, int resonance)
 {
 #if defined(_USE_SSE)
+    _dumb_init_sse();
 	if ( _dumb_it_use_sse ) it_filter_sse( cr, state, dst, pos, src, size, step, sampfreq, cutoff, resonance );
 	else
 #endif
