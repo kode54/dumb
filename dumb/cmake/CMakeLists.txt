@@ -109,6 +109,11 @@ set(INSTALL_HEADERS
     ../include/dumb.h
 )
 
+set(INSTALL_HEADERS_INTERNAL
+    ../include/internal/blip_buf.h
+    ../include/internal/lanczos_resampler.h
+)
+
 IF(BUILD_SHARED)
     add_library(dumb SHARED ${SOURCES})
 ELSE(BUILD_SHARED)
@@ -118,6 +123,7 @@ ENDIF(BUILD_SHARED)
 set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
 
 INSTALL(FILES ${INSTALL_HEADERS} DESTINATION include/dumb/)
+INSTALL(FILES ${INSTALL_HEADERS_INTERNAL} DESTINATION include/dumb/internal/)
 INSTALL(TARGETS dumb
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
