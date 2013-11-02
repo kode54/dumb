@@ -19,6 +19,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "dumb.h"
 #include "internal/dumb.h"
