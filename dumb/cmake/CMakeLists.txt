@@ -2,13 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 project(libdumb C)
 
 OPTION(BUILD_SHARED "Build Shared Library (OFF for Static)" ON)
-OPTION(USE_SSE "Use SSE" OFF)
 
-set(COMMON_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -Wno-unused-but-set-variable")
-IF(USE_SSE)
-    set(COMMON_FLAGS "${COMMON_FLAGS} -msse -D_USE_SSE")
-ENDIF(USE_SSE)
-
+set(COMMON_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -D_USE_SSE -Wno-unused-but-set-variable")
 set(CMAKE_C_FLAGS "${COMMON_FLAGS} -ffast-math -O2")
 set(CMAKE_C_FLAGS_DEBUG "${COMMON_FLAGS} -ggdb -DDEBUGMODE")
 set(CMAKE_C_FLAGS_RELEASE "${COMMON_FLAGS} -ffast-math -O2")
