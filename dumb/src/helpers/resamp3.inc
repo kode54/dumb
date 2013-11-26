@@ -53,6 +53,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 	LONG_LONG todo64;
 	int quality;
 	int blip_samples[256*SRC_CHANNELS];
+	int check;
 
 	if (!resampler || resampler->dir == 0) return 0;
 	ASSERT(resampler->dir == -1 || resampler->dir == 1);
@@ -109,6 +110,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					int todo_clocks = todo << 16, todo_clocks_set = todo_clocks;
 					SRCTYPE xbuf[2*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[0];
+					check = resampler->start;
 					COPYSRC(xbuf, 0, resampler->X, 1);
 					COPYSRC(xbuf, 1, resampler->X, 2);
 					if ( todo_clocks_set > 256 * 65536 ) todo_clocks_set = 256 * 65536;
@@ -124,14 +126,19 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 						todo_clocks_set = todo_clocks;
 						if ( todo_clocks_set > 256 * 65536 ) todo_clocks_set = 256 * 65536;
 						todo_clocks -= todo_clocks_set;
-						while ( resampler->last_clock < todo_clocks_set )
-						{
+						while ( resampler->last_clock < todo_clocks_set && pos >= check ) {
 							POKE_ALIAS(2);
 							pos--;
 							x -= SRC_CHANNELS;
 						}
 						todo = todo_clocks_set >> 16;
+						check = 0;
+						if ( resampler->last_clock < todo_clocks_set ) {
+							check = ( todo_clocks_set - resampler->last_clock + 65535 ) >> 16;
+						}
+						todo -= check;
 						MIX_ALIAS( todo );
+						done -= check;
 					}
 				} else if (quality <= DUMB_RQ_LINEAR) {
 					/* Linear interpolation, backwards */
@@ -237,6 +244,7 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 					int todo_clocks = todo << 16, todo_clocks_set = todo_clocks;
 					SRCTYPE xbuf[2*SRC_CHANNELS];
 					SRCTYPE *x = &xbuf[0];
+					check = resampler->end;
 					COPYSRC(xbuf, 0, resampler->X, 1);
 					COPYSRC(xbuf, 1, resampler->X, 2);
 					if ( todo_clocks_set > 256 * 65536 ) todo_clocks_set = 256 * 65536;
@@ -251,14 +259,19 @@ long dumb_resample(DUMB_RESAMPLER *resampler, sample_t *dst, long dst_size, VOLU
 						todo_clocks_set = todo_clocks;
 						if ( todo_clocks_set > 256 * 65536 ) todo_clocks_set = 256 * 65536;
 						todo_clocks -= todo_clocks_set;
-						while ( resampler->last_clock < todo_clocks_set )
-						{
+						while ( resampler->last_clock < todo_clocks_set && pos < check ) {
 							POKE_ALIAS(-2);
 							pos++;
 							x += SRC_CHANNELS;
 						}
 						todo = todo_clocks_set >> 16;
+						check = 0;
+						if ( resampler->last_clock < todo_clocks_set ) {
+							check = ( todo_clocks_set - resampler->last_clock + 65535 ) >> 16;
+						}
+						todo -= check;
 						MIX_ALIAS( todo );
+						done -= check;
 					}
 				} else if (quality <= DUMB_RQ_LINEAR) {
 					/* Linear interpolation, forwards */
