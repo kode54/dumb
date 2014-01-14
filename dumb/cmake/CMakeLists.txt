@@ -8,6 +8,11 @@ set(CMAKE_C_FLAGS "${COMMON_FLAGS} -ffast-math -O2")
 set(CMAKE_C_FLAGS_DEBUG "${COMMON_FLAGS} -ggdb -DDEBUGMODE")
 set(CMAKE_C_FLAGS_RELEASE "${COMMON_FLAGS} -ffast-math -O2")
 
+# Make sure the dylib install name path is set on OSX so you can include dumb in app bundles
+IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set_target_properties(dumb PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(../include/)
 
