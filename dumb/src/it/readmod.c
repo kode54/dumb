@@ -513,6 +513,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
     {
         for (i = 0; i < 128; i++)
         {
+			if (sigdata->order[i] == IT_ORDER_END) continue;
             if (sigdata->order[i] > sigdata->n_patterns)
                 sigdata->n_patterns = sigdata->order[i];
         }
