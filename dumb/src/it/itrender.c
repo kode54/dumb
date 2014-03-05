@@ -2608,8 +2608,11 @@ Yxy             This uses a table 4 times larger (hence 4 times slower) than
 								end = sample->sus_loop_end;
 							else if (sample->flags & IT_SAMPLE_LOOP)
 								end = sample->loop_end;
-							else
+							else {
 								end = sample->length;
+								if ( sigdata->flags & IT_WAS_PROCESSED && end > 64 ) // XXX bah damn LPC and edge case modules
+									end -= 64;
+							}
 							if ((sigdata->flags & IT_WAS_A_PTM) && (sample->flags & IT_SAMPLE_16BIT))
 								offset >>= 1;
 							if (offset < end) {
