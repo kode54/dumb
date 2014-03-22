@@ -101,7 +101,7 @@ SOURCES += \
     ../../src/it/loadany2.c \
     ../../src/it/loadany.c \
     ../../src/it/readany2.c \
-    ../../src/helpers/lanczos_resampler.c \
+    ../../src/helpers/sinc_resampler.c \
     ../../src/helpers/lpc.c
 
 HEADERS += \
@@ -113,7 +113,7 @@ HEADERS += \
     ../../include/internal/barray.h \
     ../../include/internal/tarray.h \
     ../../include/internal/aldumb.h \
-    ../../include/internal/lanczos_resampler.h \
+    ../../include/internal/sinc_resampler.h \
     ../../include/internal/stack_alloc.h \
     ../../include/internal/lpc.h \
     ../../include/internal/dumbfile.h
