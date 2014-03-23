@@ -46,7 +46,7 @@
 #include "dumb.h"
 
 #include "internal/blip_buf.h"
-#include "internal/sinc_resampler.h"
+#include "internal/resampler.h"
 
 
 
@@ -158,20 +158,12 @@ int dumb_resampling_quality = DUMB_RQ_CUBIC;
  * TODO: A0 and A3 stay very small indeed. Consider different scale/resolution?
  */
 
-static short cubicA0[1025], cubicA1[1025];
-
 void _dumb_init_cubic(void)
 {
-	unsigned int t; /* 3*1024*1024*1024 is within range if it's unsigned */
 	static int done = 0;
 	if (done) return;
-	for (t = 0; t < 1025; t++) {
-		/* int casts to pacify warnings about negating unsigned values */
-		cubicA0[t] = -(int)(  t*t*t >> 17) + (int)(  t*t >> 6) - (int)(t << 3);
-		cubicA1[t] =  (int)(3*t*t*t >> 17) - (int)(5*t*t >> 7)                 + (int)(1 << 14);
-	}
 
-	sinc_init();
+	resampler_init();
 
 	done = 1;
 }
