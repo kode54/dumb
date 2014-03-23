@@ -17,7 +17,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#include "resampler.h"
+#include "internal/resampler.h"
 
 enum { RESAMPLER_SHIFT = 13 };
 enum { RESAMPLER_RESOLUTION = 1 << RESAMPLER_SHIFT };
