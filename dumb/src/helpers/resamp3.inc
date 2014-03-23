@@ -302,12 +302,6 @@ void dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, VOLUME_PARAMETE
 		if (quality <= DUMB_RQ_ALIASING) {
 			/* Aliasing, backwards */
 			PEEK_ALIAS;
-		} else if (quality <= DUMB_RQ_LINEAR) {
-			/* Linear interpolation, backwards */
-			MIX_LINEAR(=, 0, 2, 1);
-                } else if (quality <= DUMB_RQ_CUBIC) {
-			/* Cubic interpolation, backwards */
-			MIX_CUBIC(=, 0, src, x, pos, 2, 1, 0);
                 } else {
                         /* FIR resampling, backwards */
                         PEEK_FIR;
@@ -317,12 +311,6 @@ void dumb_resample_get_current_sample(DUMB_RESAMPLER *resampler, VOLUME_PARAMETE
 		if (quality <= DUMB_RQ_ALIASING) {
 			/* Aliasing */
 			PEEK_ALIAS;
-		} else if (quality <= DUMB_RQ_LINEAR) {
-			/* Linear interpolation, forwards */
-			MIX_LINEAR(=, 0, 1, 2);
-                } else if (quality <= DUMB_RQ_CUBIC) {
-			/* Cubic interpolation, forwards */
-			MIX_CUBIC(=, 0, x, src, 0, 1, 2, pos);
                 } else {
                         /* FIR resampling, forwards */
                         PEEK_FIR;
