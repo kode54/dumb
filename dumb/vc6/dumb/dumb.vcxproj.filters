@@ -69,9 +69,6 @@
     <ClCompile Include="..\..\src\helpers\clickrem.c">
       <Filter>src\helpers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\helpers\fir_resampler.c">
-      <Filter>src\helpers</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\helpers\lpc.c">
       <Filter>src\helpers</Filter>
     </ClCompile>

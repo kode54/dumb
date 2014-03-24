@@ -111,7 +111,6 @@
     <ClCompile Include="..\..\src\helpers\barray.c" />
     <ClCompile Include="..\..\src\helpers\blip_buf.c" />
     <ClCompile Include="..\..\src\helpers\clickrem.c" />
-    <ClCompile Include="..\..\src\helpers\fir_resampler.c" />
     <ClCompile Include="..\..\src\helpers\resampler.c" />
     <ClCompile Include="..\..\src\helpers\lpc.c" />
     <ClCompile Include="..\..\src\helpers\memfile.c" />
