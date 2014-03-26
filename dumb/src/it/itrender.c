@@ -5350,6 +5350,13 @@ void dumb_it_set_resampling_quality(DUMB_IT_SIGRENDERER * sigrenderer, int quali
 }
 
 
+void dumb_it_set_ramp_style(DUMB_IT_SIGRENDERER * sigrenderer, int ramp_style) {
+	if (sigrenderer && ramp_style >= 0 && ramp_style <= 2) {
+		sigrenderer->ramp_style = ramp_style;
+	}
+}
+
+
 void dumb_it_set_loop_callback(DUMB_IT_SIGRENDERER *sigrenderer, int (*callback)(void *data), void *data)
 {
 	if (sigrenderer) {
