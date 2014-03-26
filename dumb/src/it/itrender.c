@@ -3946,11 +3946,11 @@ static void playing_volume_setup(DUMB_IT_SIGRENDERER * sigrenderer, IT_PLAYING *
 	playing->float_volume[1] *= vol;
 
     if (ramp_style == 0 || (ramp_style < 2 && playing->declick_stage == 2)) {
-		if (ramp_style < 2 || playing->declick_stage < 2) {
+		if (playing->declick_stage <= 2) {
 			playing->ramp_volume[0] = playing->float_volume[0];
 			playing->ramp_volume[1] = playing->float_volume[1];
 			playing->declick_stage = 2;
-		} else if (playing->declick_stage > 2) {
+		} else {
 			playing->float_volume[0] = 0;
 			playing->float_volume[1] = 0;
 			playing->ramp_volume[0] = 0;
