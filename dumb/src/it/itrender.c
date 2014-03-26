@@ -5162,7 +5162,7 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 	sigrenderer->sigdata = sigdata;
 	sigrenderer->n_channels = n_channels;
 	sigrenderer->resampling_quality = dumb_resampling_quality;
-    sigrenderer->ramp_stype = DUMB_IT_RAMP_FULL;
+    sigrenderer->ramp_style = DUMB_IT_RAMP_FULL;
 	sigrenderer->globalvolume = sigdata->global_volume;
 	sigrenderer->tempo = sigdata->tempo;
 
