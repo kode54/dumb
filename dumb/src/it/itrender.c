@@ -3922,6 +3922,7 @@ static void playing_volume_setup(DUMB_IT_SIGRENDERER * sigrenderer, IT_PLAYING *
 	int pan;
 	float vol, span;
     float rampScale;
+    int ramp_style = sigrenderer->ramp_style;
  
 	pan = apply_pan_envelope(playing);
 
@@ -3944,23 +3945,30 @@ static void playing_volume_setup(DUMB_IT_SIGRENDERER * sigrenderer, IT_PLAYING *
 	playing->float_volume[0] *= vol;
 	playing->float_volume[1] *= vol;
 
-    rampScale = 4;
-    if (playing->declick_stage == 0) {
-        playing->ramp_volume[0] = 0;
-        playing->ramp_volume[1] = 0;
-        rampScale = 48;
-        playing->declick_stage++;
-    } else if (playing->declick_stage == 1) {
-        rampScale = 48;
-    } else if (playing->declick_stage >= 3) {
-        playing->float_volume[0] = 0;
-        playing->float_volume[1] = 0;
-        if (playing->declick_stage == 3)
+    if (ramp_style == 0 || (ramp_style < 2 && playing->declick_stage == 2)) {
+        playing->ramp_volume[0] = playing->float_volume[0];
+        playing->ramp_volume[1] = playing->float_volume[1];
+        playing->ramp_delta[0] = 0;
+        playing->ramp_delta[1] = 0;
+    } else {
+        rampScale = 4;
+        if (playing->declick_stage == 0) {
+            playing->ramp_volume[0] = 0;
+            playing->ramp_volume[1] = 0;
+            rampScale = 48;
             playing->declick_stage++;
-        rampScale = 48;
+        } else if (playing->declick_stage == 1) {
+            rampScale = 48;
+        } else if (playing->declick_stage >= 3) {
+            playing->float_volume[0] = 0;
+            playing->float_volume[1] = 0;
+            if (playing->declick_stage == 3)
+                playing->declick_stage++;
+            rampScale = 48;
+        }
+        playing->ramp_delta[0] = rampScale * invt2g * (playing->float_volume[0] - playing->ramp_volume[0]);
+        playing->ramp_delta[1] = rampScale * invt2g * (playing->float_volume[1] - playing->ramp_volume[1]);
     }
-    playing->ramp_delta[0] = rampScale * invt2g * (playing->float_volume[0] - playing->ramp_volume[0]);
-	playing->ramp_delta[1] = rampScale * invt2g * (playing->float_volume[1] - playing->ramp_volume[1]);
 }
 
 static void process_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing, float invt2g)
@@ -5154,6 +5162,7 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 	sigrenderer->sigdata = sigdata;
 	sigrenderer->n_channels = n_channels;
 	sigrenderer->resampling_quality = dumb_resampling_quality;
+    sigrenderer->ramp_stype = DUMB_IT_RAMP_FULL;
 	sigrenderer->globalvolume = sigdata->global_volume;
 	sigrenderer->tempo = sigdata->tempo;
 
