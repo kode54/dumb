@@ -252,9 +252,6 @@
     <ClCompile Include="..\..\src\it\xmeffect.c">
       <Filter>src\it</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\helpers\blip_buf.c">
-      <Filter>src\helpers</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\it\readokt.c">
       <Filter>src\it\readers</Filter>
     </ClCompile>
@@ -312,9 +309,6 @@
       <Filter>include\internal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\internal\stack_alloc.h">
-      <Filter>include\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\internal\blip_buf.h">
       <Filter>include\internal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\internal\resampler.h">

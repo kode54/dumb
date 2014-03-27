@@ -109,7 +109,6 @@
     <ClCompile Include="..\..\src\core\rendsig.c" />
     <ClCompile Include="..\..\src\core\unload.c" />
     <ClCompile Include="..\..\src\helpers\barray.c" />
-    <ClCompile Include="..\..\src\helpers\blip_buf.c" />
     <ClCompile Include="..\..\src\helpers\clickrem.c" />
     <ClCompile Include="..\..\src\helpers\resampler.c" />
     <ClCompile Include="..\..\src\helpers\lpc.c" />
@@ -203,7 +202,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\dumb.h" />
     <ClInclude Include="..\..\include\internal\barray.h" />
-    <ClInclude Include="..\..\include\internal\blip_buf.h" />
     <ClInclude Include="..\..\include\internal\dumb.h" />
     <ClInclude Include="..\..\include\internal\dumbfile.h" />
     <ClInclude Include="..\..\include\internal\fir_resampler.h" />
