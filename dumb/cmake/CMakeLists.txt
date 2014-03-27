@@ -36,7 +36,6 @@ SET(SOURCES
     ../src/helpers/resample.c
     ../src/helpers/memfile.c
     ../src/helpers/clickrem.c
-    ../src/helpers/blip_buf.c
     ../src/helpers/barray.c
     ../src/helpers/tarray.c
     ../src/it/xmeffect.c
