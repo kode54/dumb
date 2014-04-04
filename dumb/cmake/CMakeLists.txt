@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 2.6)
 project(libdumb C)
 
-OPTION(BUILD_SHARED "Build Shared Library (OFF for Static)" ON)
-
-set(COMMON_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -D_USE_SSE -Wno-unused-but-set-variable")
-set(CMAKE_C_FLAGS "${COMMON_FLAGS} -ffast-math -O2")
-set(CMAKE_C_FLAGS_DEBUG "${COMMON_FLAGS} -ggdb -DDEBUGMODE")
-set(CMAKE_C_FLAGS_RELEASE "${COMMON_FLAGS} -ffast-math -O2")
+set(CMAKE_C_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -D_USE_SSE -msse -Wno-unused-variable -Wno-unused-but-set-variable")
+set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUGMODE=1 -D_DEBUG")
+set(CMAKE_C_FLAGS_RELEASE "-ffast-math -O2 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-ffast-math -g -O2 -DNDEBUG")
+set(CMAKE_C_FLAGS_MINSIZEREL "-ffast-math -Os -DNDEBUG")
 
 # Make sure the dylib install name path is set on OSX so you can include dumb in app bundles
 IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -108,12 +107,7 @@ set(INSTALL_HEADERS
     ../include/dumb.h
 )
 
-IF(BUILD_SHARED)
-    add_library(dumb SHARED ${SOURCES})
-ELSE(BUILD_SHARED)
-    add_library(dumb STATIC ${SOURCES})
-ENDIF(BUILD_SHARED)
-
+add_library(dumb ${SOURCES})
 set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
 
 INSTALL(FILES ${INSTALL_HEADERS} DESTINATION include/dumb/)
