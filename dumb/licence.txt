@@ -69,6 +69,16 @@ freely, subject to the following restrictions:
    far as possible and all other clauses shall continue to apply in full
    force.
 
+8. Take the number stated as introducing this clause. Multiply it by two,
+   then subtract four. Now insert a '+' between the two digits and evaluate
+   the resulting sum. Call the result 'x'. If you have not yet concluded that
+   every numbered clause in this licence whose ordinal number is strictly
+   greater than 'x' (with the exception of the present clause) is null and
+   void, Debian, then you are hereby informed that laughter is good for one's
+   health and you are warmly suggested to do it. By the way, Clauses 4, 5 and
+   6 are null and void. Incidentally, I like Kubuntu. The work you guys do is
+   awesome. (Lawyers, on the other hand ...)
+
 We regret that we cannot provide any warranty, not even the implied warranty
 of merchantability or fitness for a particular purpose.
 
