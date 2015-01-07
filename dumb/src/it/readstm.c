@@ -61,6 +61,7 @@ static int it_stm_read_sample_header( IT_SAMPLE *sample, DUMBFILE *f, unsigned s
 		/* Looks like no-existy. */
 		sample->flags &= ~IT_SAMPLE_EXISTS;
 		sample->length = 0;
+		*offset = 0;
 		return dumbfile_error( f );
 	}
 
