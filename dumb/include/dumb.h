@@ -768,6 +768,11 @@ void dumb_resample_get_current_sample_n_2_1(int n, DUMB_RESAMPLER *resampler, DU
 void dumb_resample_get_current_sample_n_2_2(int n, DUMB_RESAMPLER *resampler, DUMB_VOLUME_RAMP_INFO * volume_left, DUMB_VOLUME_RAMP_INFO * volume_right, sample_t *dst);
 void dumb_end_resampler_n(int n, DUMB_RESAMPLER *resampler);
 
+/* This sets the default panning separation for hard panned formats,
+   or for formats with default panning information. This must be set
+   before using any readers or loaders, and is not really thread safe. */
+
+extern int dumb_it_default_panning_separation; /* in percent, default 25 */
 
 /* DUH Construction */
 
