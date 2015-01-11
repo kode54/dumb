@@ -676,9 +676,10 @@ void dumb_destroy_click_remover_array(int n, DUMB_CLICK_REMOVER **cr);
 #define DUMB_RQ_ALIASING 0
 #define DUMB_RQ_BLEP     1
 #define DUMB_RQ_LINEAR   2
-#define DUMB_RQ_CUBIC    3
-#define DUMB_RQ_FIR      4
-#define DUMB_RQ_N_LEVELS 5
+#define DUMB_RQ_BLAM     3
+#define DUMB_RQ_CUBIC    4
+#define DUMB_RQ_FIR      5
+#define DUMB_RQ_N_LEVELS 6
 
 extern int dumb_resampling_quality; /* This specifies the default */
 void dumb_it_set_resampling_quality(DUMB_IT_SIGRENDERER * sigrenderer, int quality); /* This overrides it */
