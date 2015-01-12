@@ -908,7 +908,7 @@ static int resampler_run_blam(resampler * r, float ** out_, float * out_end)
             
             sample = in[0];
             if (phase_inc < 1.0f)
-                sample += (in[1] - in[0]) * fphase;
+                sample += (in[1] - in[0]) * phase;
             sample -= last_amp;
             
             if (sample)
