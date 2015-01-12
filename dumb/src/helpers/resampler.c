@@ -8,7 +8,7 @@
 #endif
 #ifdef __APPLE__
 #include <TargetConditionals.h>
-#if TARGET_CPU_ARM
+#if TARGET_CPU_ARM || TARGET_CPU_ARM64
 #include <arm_neon.h>
 #define RESAMPLER_NEON
 #endif
@@ -470,7 +470,7 @@ static int resampler_run_blep(resampler * r, float ** out_, float * out_end)
                 }
                 last_amp += sample;
                 sample /= kernel_sum;
-                for (sample = 0, i = 0; i < SINC_WIDTH * 2; ++i)
+                for (i = 0; i < SINC_WIDTH * 2; ++i)
                     out[i] += sample * kernel[i];
             }
             
@@ -743,7 +743,7 @@ static int resampler_run_blam(resampler * r, float ** out_, float * out_end)
                 }
                 last_amp += sample;
                 sample /= kernel_sum;
-                for (sample = 0, i = 0; i < SINC_WIDTH * 2; ++i)
+                for (i = 0; i < SINC_WIDTH * 2; ++i)
                     out[i] += sample * kernel[i];
             }
             
