@@ -626,8 +626,8 @@ static int resampler_run_blep(resampler * r, float ** out_, float * out_end)
                 {
                     temp1 = vld1q_f32( (const float32_t *)( kernel + i ) );
                     temp2 = vld1q_f32( (const float32_t *) out + i * 4 );
-                    temp1 = vmlaq_f32( temp2, temp1, samplex );
-                    vst1q_f32( (float32_t *) out + i * 4, temp1 );
+                    temp2 = vmlaq_f32( temp2, temp1, samplex );
+                    vst1q_f32( (float32_t *) out + i * 4, temp2 );
                 }
             }
             
@@ -935,8 +935,8 @@ static int resampler_run_blam(resampler * r, float ** out_, float * out_end)
                 {
                     temp1 = vld1q_f32( (const float32_t *)( kernel + i ) );
                     temp2 = vld1q_f32( (const float32_t *) out + i * 4 );
-                    temp1 = vmlaq_f32( temp2, temp1, samplex );
-                    vst1q_f32( (float32_t *) out + i * 4, temp1 );
+                    temp2 = vmlaq_f32( temp2, temp1, samplex );
+                    vst1q_f32( (float32_t *) out + i * 4, temp2 );
                 }
             }
 
