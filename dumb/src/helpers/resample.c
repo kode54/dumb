@@ -81,7 +81,7 @@
  * Values outside the range 0-4 will behave the same as the nearest
  * value within the range.
  */
-int dumb_resampling_quality = DUMB_RQ_BLAM;
+int dumb_resampling_quality = DUMB_RQ_CUBIC;
 
 
 
