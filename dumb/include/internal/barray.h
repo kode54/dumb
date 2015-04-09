@@ -4,6 +4,8 @@
 #include <stdlib.h>
 
 #ifdef BARRAY_DECORATE
+#undef PASTE
+#undef EVALUATE
 #define PASTE(a,b) a ## b
 #define EVALUATE(a,b) PASTE(a,b)
 #define bit_array_create EVALUATE(BARRAY_DECORATE,_bit_array_create)
