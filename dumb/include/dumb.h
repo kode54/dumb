@@ -36,24 +36,24 @@
 #endif
 
 
-#define DUMB_MAJOR_VERSION    0
-#define DUMB_MINOR_VERSION    9
-#define DUMB_REVISION_VERSION 3
+#define DUMB_MAJOR_VERSION    1
+#define DUMB_MINOR_VERSION    0
+#define DUMB_REVISION_VERSION 0
 
 #define DUMB_VERSION (DUMB_MAJOR_VERSION*10000 + DUMB_MINOR_VERSION*100 + DUMB_REVISION_VERSION)
 
-#define DUMB_VERSION_STR "0.9.3"
+#define DUMB_VERSION_STR "1.0.0"
 
 #define DUMB_NAME "DUMB v" DUMB_VERSION_STR
 
-#define DUMB_YEAR  2005
-#define DUMB_MONTH 8
-#define DUMB_DAY   7
+#define DUMB_YEAR  2015
+#define DUMB_MONTH 1
+#define DUMB_DAY   17
 
-#define DUMB_YEAR_STR2  "05"
-#define DUMB_YEAR_STR4  "2005"
-#define DUMB_MONTH_STR1 "8"
-#define DUMB_DAY_STR1   "7"
+#define DUMB_YEAR_STR2  "15"
+#define DUMB_YEAR_STR4  "2015"
+#define DUMB_MONTH_STR1 "1"
+#define DUMB_DAY_STR1   "17"
 
 #if DUMB_MONTH < 10
 #define DUMB_MONTH_STR2 "0" DUMB_MONTH_STR1
@@ -385,9 +385,9 @@ enum
     DUMB_IT_RAMP_ONOFF_ONLY = 1,
     DUMB_IT_RAMP_FULL = 2
 };
-        
+
 void dumb_it_set_ramp_style(DUMB_IT_SIGRENDERER * sigrenderer, int ramp_style);
-        
+
 void dumb_it_set_loop_callback(DUMB_IT_SIGRENDERER *sigrenderer, int (*callback)(void *data), void *data);
 void dumb_it_set_xm_speed_zero_callback(DUMB_IT_SIGRENDERER *sigrenderer, int (*callback)(void *data), void *data);
 void dumb_it_set_midi_callback(DUMB_IT_SIGRENDERER *sigrenderer, int (*callback)(void *data, int channel, unsigned char midi_byte), void *data);
