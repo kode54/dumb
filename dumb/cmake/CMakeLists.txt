@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.6)
 project(libdumb C)
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-scripts)
+
+option(BUILD_EXAMPLES "Build example binaries" ON)
+
 set(CMAKE_C_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -D_USE_SSE -msse -Wno-unused-variable -Wno-unused-but-set-variable")
 set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUGMODE=1 -D_DEBUG")
 set(CMAKE_C_FLAGS_RELEASE "-ffast-math -O2 -DNDEBUG")
@@ -9,6 +13,12 @@ set(CMAKE_C_FLAGS_MINSIZEREL "-ffast-math -Os -DNDEBUG")
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(../include/)
+
+if(BUILD_EXAMPLES)
+    find_package(argtable2)
+else()
+    message(STATUS "Not building examples")
+endif()
 
 SET(SOURCES
     ../src/core/unload.c
@@ -105,6 +115,15 @@ set(INSTALL_HEADERS
 add_library(dumb ${SOURCES})
 set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
 
+set(EXAMPLE_TARGETS "")
+
+if(BUILD_EXAMPLES)
+    add_executable(dumbout ../examples/dumbout.c)
+    target_link_libraries(dumbout ${ARGTABLE2_LIBRARY} dumb)
+    include_directories(${ARGTABLE2_INCLUDE_DIR} "../examples/")
+    set(EXAMPLE_TARGETS ${EXAMPLE_TARGETS} "dumbout")
+endif()
+
 # Make sure the dylib install name path is set on OSX so you can include dumb in app bundles
 IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set_target_properties(dumb PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
@@ -113,7 +132,7 @@ ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 target_link_libraries(dumb m)
 
 INSTALL(FILES ${INSTALL_HEADERS} DESTINATION include/)
-INSTALL(TARGETS dumb
+INSTALL(TARGETS dumb ${EXAMPLE_TARGETS}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib${LIB_SUFFIX}
     ARCHIVE DESTINATION lib${LIB_SUFFIX}
