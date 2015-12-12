@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 
 static const int endian_test = 1;
 #define is_bigendian() ((*(char*)&endian_test) == 0)
@@ -177,7 +178,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Loop as long as we have data to play
     bool run = true;
     char *buffer = malloc(streamer.bufsize);
     int read_samples;
@@ -185,7 +185,44 @@ int main(int argc, char *argv[]) {
 
     // If output endianness is different than machine endianness, and output is 16 bits, reorder bytes.
     int switch_endianness = ((is_bigendian() && settings.endianness == LITTLE_ENDIAN) ||
-                            (!is_bigendian() && settings.endianness == BIG_ENDIAN)) && settings.bits == 16;
+                            (!is_bigendian() && settings.endianness == BIG_ENDIAN));
+
+    // Write the initial delay to the file if one was requested.
+    long d = ((long)floor(settings.delay * settings.freq + 0.5f)) * settings.n_channels * (settings.bits / 8);
+    if(d) {
+        // Fill the buffer with silence. Remember to take into account endianness
+        if(settings.is_unsigned) {
+            if(settings.bits == 16) {
+                if(settings.endianness == BIG_ENDIAN) {
+                    // Unsigned 16bits big endian
+                    for(int i = 0; i < streamer.bufsize; i += 2) {
+                        buffer[i  ] = (char)0x80;
+                        buffer[i+1] = (char)0x00;
+                    }
+                } else {
+                    // Unsigned 16bits little endian
+                    for(int i = 0; i < streamer.bufsize; i += 2) {
+                        buffer[i  ] = (char)0x00;
+                        buffer[i+1] = (char)0x80;
+                    }
+                }
+            } else {
+                // Unsigned 8 bits
+                memset(buffer, 0x80, streamer.bufsize);
+            }
+        } else {
+            // Signed
+            memset(buffer, 0, streamer.bufsize);
+        }
+
+        while(d >= streamer.bufsize) {
+            fwrite(buffer, 1, streamer.bufsize, streamer.dst);
+            d -= streamer.bufsize;
+        }
+        if(d) {
+            fwrite(buffer, 1, d, streamer.dst);
+        }
+    }
 
     // Loop until we have nothing to loop through. Dumb will stop giving out bytes when the file is done.
     while(run) {
@@ -198,7 +235,7 @@ int main(int argc, char *argv[]) {
         read_bytes = read_samples * (settings.bits / 8) * settings.n_channels;
 
         // switch endianness if required
-        if(switch_endianness) {
+        if(switch_endianness && settings.bits == 16) {
             char tmp;
             for(int i = 0; i < read_bytes / 2; i++) {
                 tmp = buffer[i*2+0];
