@@ -27,4 +27,5 @@ Flags
 * CMAKE_INSTALL_PREFIX sets the installation path prefix
 * CMAKE_BUILD_TYPE sets the build type (eg. Release, Debug, RelWithDebInfo, MinSizeRel). Debug libraries will be named libdumbd, release libraries libdumb.
 * BUILD_SHARED_LIBS selects whether cmake should build dynamic or static library (On=shared, OFF=static)
+* BUILD_EXAMPLES selects example binaries. Note that example binaries require libargtable2 library. Enabled by default.
 * You may also need to tell cmake what kind of makefiles to create with the "-G" flag. Eg. for MSYS one would say something like `cmake -G "MSYS Makefiles" .`.

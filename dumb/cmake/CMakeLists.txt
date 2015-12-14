@@ -119,7 +119,7 @@ set(EXAMPLE_TARGETS "")
 
 if(BUILD_EXAMPLES)
     add_executable(dumbout ../examples/dumbout.c)
-    target_link_libraries(dumbout ${ARGTABLE2_LIBRARY} dumb)
+    target_link_libraries(dumbout ${ARGTABLE2_LIBRARY} m dumb)
     include_directories(${ARGTABLE2_INCLUDE_DIR} "../examples/")
     set(EXAMPLE_TARGETS ${EXAMPLE_TARGETS} "dumbout")
 endif()
