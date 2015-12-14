@@ -16,6 +16,7 @@ include_directories(../include/)
 
 if(BUILD_EXAMPLES)
     find_package(argtable2)
+    find_package(SDL2)
 else()
     message(STATUS "Not building examples")
 endif()
@@ -119,9 +120,17 @@ set(EXAMPLE_TARGETS "")
 
 if(BUILD_EXAMPLES)
     add_executable(dumbout ../examples/dumbout.c)
+    add_executable(dumbplay ../examples/dumbplay.c)
+
+    if(MINGW)
+        target_link_libraries(dumbplay mingw32)
+    endif()
+
     target_link_libraries(dumbout ${ARGTABLE2_LIBRARY} m dumb)
-    include_directories(${ARGTABLE2_INCLUDE_DIR} "../examples/")
-    set(EXAMPLE_TARGETS ${EXAMPLE_TARGETS} "dumbout")
+    target_link_libraries(dumbplay ${ARGTABLE2_LIBRARY} ${SDL2_LIBRARY} dumb)
+
+    include_directories(${ARGTABLE2_INCLUDE_DIR} ${SDL2_INCLUDE_DIR} "../examples/")
+    set(EXAMPLE_TARGETS ${EXAMPLE_TARGETS} "dumbout" "dumbplay")
 endif()
 
 # Make sure the dylib install name path is set on OSX so you can include dumb in app bundles
