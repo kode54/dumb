@@ -228,6 +228,8 @@ DUH *read_duh(DUMBFILE *f);
 long duh_get_length(DUH *duh);
 
 const char *duh_get_tag(DUH *duh, const char *key);
+int duh_get_tag_iterator_size(DUH *duh);
+int duh_get_tag_iterator_get(DUH *duh, const char **key, const char **tag, int i);
 
 /* Signal Rendering Functions */
 
@@ -317,14 +319,40 @@ void duh_end_sigrenderer(DUH_SIGRENDERER *sigrenderer);
 
 /* DUH Rendering Functions */
 
-long duh_render(
+/* For packed integers: 8, 16, 24-bit wide. 
+ * Intermediary buffer sig_samples must be freed with destroy_sample_buffer()
+ * in the end of the rendering loop.
+ */
+long duh_render_int(
 	DUH_SIGRENDERER *sigrenderer,
+	sample_t ***sig_samples,
+	long *sig_samples_size,
 	int bits, int unsign,
 	float volume, float delta,
 	long size, void *sptr
 );
 
+/* For floats: 32, 64-bit wide.
+ * Intermediary buffer sig_samples must be freed with destroy_sample_buffer()
+ * in the end of the rendering loop.
+ */
+long duh_render_float(
+	DUH_SIGRENDERER *sigrenderer,
+	sample_t ***sig_samples,
+	long *sig_samples_size,
+	int bits,
+	float volume, float delta,
+	long size, void *sptr
+);
+
 #ifdef DUMB_DECLARE_DEPRECATED
+
+long duh_render(
+	DUH_SIGRENDERER *sigrenderer,
+	int bits, int unsign,
+	float volume, float delta,
+	long size, void *sptr
+) DUMB_DEPRECATED;
 
 long duh_render_signal(
 	DUH_SIGRENDERER *sigrenderer,
