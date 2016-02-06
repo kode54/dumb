@@ -55,7 +55,7 @@ Carsten Bormann
 /* Input : n elements of time doamin data
    Output: m lpc coefficients, excitation energy */
 
-float vorbis_lpc_from_data(float *data,float *lpci,int n,int m){
+static float vorbis_lpc_from_data(float *data,float *lpci,int n,int m){
   double *aut=alloca(sizeof(*aut)*(m+1));
   double *lpc=alloca(sizeof(*lpc)*(m));
   double error;
@@ -127,7 +127,7 @@ float vorbis_lpc_from_data(float *data,float *lpci,int n,int m){
   return error;
 }
 
-void vorbis_lpc_predict(float *coeff,float *prime,int m,
+static void vorbis_lpc_predict(float *coeff,float *prime,int m,
                      float *data,long n){
 
   /* in: coeff[0...m-1] LPC coefficients
