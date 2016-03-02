@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.1)
 project(libdumb C)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-scripts)
@@ -121,7 +121,8 @@ set(EXAMPLE_TARGETS "")
 if(BUILD_EXAMPLES)
     add_executable(dumbout ../examples/dumbout.c)
     add_executable(dumbplay ../examples/dumbplay.c)
-
+    set_property(TARGET dumbout PROPERTY C_STANDARD 99)
+    set_property(TARGET dumbplay PROPERTY C_STANDARD 99)
     if(MINGW)
         target_link_libraries(dumbplay mingw32)
     endif()

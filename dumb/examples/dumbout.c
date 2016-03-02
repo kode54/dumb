@@ -9,8 +9,8 @@ static const int endian_test = 1;
 #define is_bigendian() ((*(char*)&endian_test) == 0)
 
 enum ENDIANNESS {
-    LITTLE_ENDIAN = 0,
-    BIG_ENDIAN
+    DUMB_LITTLE_ENDIAN = 0,
+    DUMB_BIG_ENDIAN
 };
 
 typedef struct {
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     settings.freq = 44100;
     settings.n_channels = 2;
     settings.bits = 16;
-    settings.endianness = LITTLE_ENDIAN;
+    settings.endianness = DUMB_LITTLE_ENDIAN;
     settings.is_unsigned = false;
     settings.volume = 1.0f;
     settings.delay = 0.0f;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Handle the switch options
-    if(arg_bigendian->count > 0) { settings.endianness = BIG_ENDIAN; }
+    if(arg_bigendian->count > 0) { settings.endianness = DUMB_BIG_ENDIAN; }
     if(arg_eight->count > 0) { settings.bits = 8; }
     if(arg_unsigned->count > 0) { settings.is_unsigned = true; }
     if(arg_mono->count > 0) { settings.n_channels = 1; }
@@ -184,8 +184,8 @@ int main(int argc, char *argv[]) {
     int read_bytes;
 
     // If output endianness is different than machine endianness, and output is 16 bits, reorder bytes.
-    int switch_endianness = ((is_bigendian() && settings.endianness == LITTLE_ENDIAN) ||
-                            (!is_bigendian() && settings.endianness == BIG_ENDIAN));
+    int switch_endianness = ((is_bigendian() && settings.endianness == DUMB_LITTLE_ENDIAN) ||
+                            (!is_bigendian() && settings.endianness == DUMB_BIG_ENDIAN));
 
     // Write the initial delay to the file if one was requested.
     long d = ((long)floor(settings.delay * settings.freq + 0.5f)) * settings.n_channels * (settings.bits / 8);
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
         // Fill the buffer with silence. Remember to take into account endianness
         if(settings.is_unsigned) {
             if(settings.bits == 16) {
-                if(settings.endianness == BIG_ENDIAN) {
+                if(settings.endianness == DUMB_BIG_ENDIAN) {
                     // Unsigned 16bits big endian
                     for(int i = 0; i < streamer.bufsize; i += 2) {
                         buffer[i  ] = (char)0x80;
