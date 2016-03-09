@@ -48,7 +48,7 @@ int duh_get_tag_iterator_size(DUH *duh)
 int duh_get_tag_iterator_get(DUH *duh, const char **key, const char **tag, int i)
 {
 	ASSERT(key);
-	ASSERT(value);
+	ASSERT(tag);
 	if (!duh || !duh->tag || i >= duh->n_tags) return -1;
 
 	*key = duh->tag[i][0];
