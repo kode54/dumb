@@ -1246,8 +1246,7 @@ int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 	}
 
 	if ( i < j ) return -1;
-	/* It's same as above. Typo? */
-	/* else if ( j > i ) return 1; */
+	else if ( i > j ) return 1;
 
 	i = memcmp( a, b, j );
 	if ( i ) return i;
