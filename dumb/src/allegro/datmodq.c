@@ -36,7 +36,7 @@ static void *dat_read_mod_quick(PACKFILE *f, long size)
 	if (!df)
 		return NULL;
 
-	duh = dumb_read_mod_quick(df);
+	duh = dumb_read_mod_quick(df, 0);
 
 	dumbfile_close(df);
 

@@ -141,8 +141,8 @@ set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
 set(ALLEGRO4_TARGETS "")
 
 if(BUILD_ALLEGRO4)
-   add_library(aldumb ${ALLEGRO_SOURCES})
-   set(ALLEGRO4_TARGETS ${ALLEGRO_TARGETS} aldumb)
+   add_library(aldmb ${ALLEGRO_SOURCES})
+   set(ALLEGRO4_TARGETS ${ALLEGRO_TARGETS} aldmb)
 endif()
 
 set(EXAMPLE_TARGETS "")
