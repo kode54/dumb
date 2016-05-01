@@ -4,7 +4,7 @@
 
 ### 1.1. Example
 
-In libdumb cmake directory (dumb/cmake/), run:
+In libdumb project root, run:
 ```
 mkdir -p build
 cd build
