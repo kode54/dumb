@@ -1246,7 +1246,7 @@ int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 	}
 
 	if ( i < j ) return -1;
-	else if ( j > i ) return 1;
+	else if ( i > j ) return 1;
 
 	i = memcmp( a, b, j );
 	if ( i ) return i;
@@ -1279,7 +1279,7 @@ DUH *dumb_read_psm_quick(DUMBFILE *f, int subsong)
 		if ( ver )
 		{
 			tag[2][0] = "FORMATVERSION";
-            snprintf( version, 15, "%u", ver );
+            snprintf( version, 15, "%d", ver );
             version[15] = 0;
 			tag[2][1] = (const char *) &version;
 			++n_tags;
