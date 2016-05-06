@@ -30,12 +30,12 @@ typedef struct dumb_packfile
 } dumb_packfile;
 
 
-static void *dumb_packfile_open_ex(PACKFILE *p)
+static void *dumb_packfile_open_ex(PACKFILE *p, long size)
 {
 	dumb_packfile * file = ( dumb_packfile * ) malloc( sizeof(dumb_packfile) );
 	if ( !file ) return 0;
 	file->p = p;
-	file->size = file_size_ex(filename);
+	file->size = size;
 	file->pos = 0;
 	return file;
 }
@@ -43,7 +43,7 @@ static void *dumb_packfile_open_ex(PACKFILE *p)
 static void *dumb_packfile_open(const char *filename)
 {
 	PACKFILE *p = pack_fopen(filename, F_READ);
-	if (p) return dumb_packfile_open_ex(p);
+	if (p) return dumb_packfile_open_ex(p, file_size_ex(filename));
 	else return 0;
 }
 
@@ -132,15 +132,16 @@ static DUMBFILE_SYSTEM packfile_dfs_leave_open = {
 };
 
 
+/* XXX no way to get the file size from an existing PACKFILE without reading the entire contents first */
 
 DUMBFILE *dumbfile_open_packfile(PACKFILE *p)
 {
-	return dumbfile_open_ex(dumb_packfile_open_ex(p), &packfile_dfs_leave_open);
+	return dumbfile_open_ex(dumb_packfile_open_ex(p, 0x7fffffff), &packfile_dfs_leave_open);
 }
 
 
 
 DUMBFILE *dumbfile_from_packfile(PACKFILE *p)
 {
-	return p ? dumbfile_open_ex(dumb_packfile_open_ex(p), &packfile_dfs) : NULL;
+	return p ? dumbfile_open_ex(dumb_packfile_open_ex(p, 0x7fffffff), &packfile_dfs) : NULL;
 }
