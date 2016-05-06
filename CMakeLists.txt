@@ -4,6 +4,7 @@ project(libdumb C)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-scripts)
 
 option(BUILD_EXAMPLES "Build example binaries" ON)
+option(BUILD_ALLEGRO4 "Build Allegro4 support" ON)
 
 set(CMAKE_C_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -D_USE_SSE -msse -Wno-unused-variable -Wno-unused-but-set-variable")
 set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUGMODE=1 -D_DEBUG")
@@ -19,6 +20,12 @@ if(BUILD_EXAMPLES)
     find_package(SDL2)
 else()
     message(STATUS "Not building examples")
+endif()
+
+if(BUILD_ALLEGRO4)
+    find_package(Allegro4)
+else()
+    message(STATUS "Not building Allegro 4 support")
 endif()
 
 SET(SOURCES
@@ -113,8 +120,32 @@ set(INSTALL_HEADERS
     ../include/dumb.h
 )
 
+set(ALLEGRO_SOURCES
+    src/allegro/alplay.c
+    src/allegro/datitq.c
+    src/allegro/dats3m.c
+    src/allegro/datxm.c
+    src/allegro/datduh.c
+    src/allegro/datmod.c
+    src/allegro/dats3mq.c
+    src/allegro/datxmq.c
+    src/allegro/datit.c
+    src/allegro/datmodq.c
+    src/allegro/datunld.c
+    src/allegro/packfile.c
+)
+
+
 add_library(dumb ${SOURCES})
 set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
+
+set(ALLEGRO4_TARGETS "")
+if(BUILD_ALLEGRO4)
+    add_library(aldmb ${ALLEGRO_SOURCES})
+    set(ALLEGRO4_TARGETS ${ALLEGRO_TARGETS} aldmb)
+    set(ALLEGRO4_HEADERS indclude/aldumb.h)
+    target_link_libraries(aldmb ${ALLEGRO_LIBRARIES})
+endif()
 
 set(EXAMPLE_TARGETS "")
 
@@ -141,7 +172,7 @@ ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
 target_link_libraries(dumb m)
 
-INSTALL(FILES ${INSTALL_HEADERS} DESTINATION include/)
+INSTALL(FILES ${INSTALL_HEADERS} ${ALLEGRO_HEADERS} DESTINATION include/)
 INSTALL(TARGETS dumb ${EXAMPLE_TARGETS}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib${LIB_SUFFIX}
