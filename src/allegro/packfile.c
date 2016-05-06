@@ -24,28 +24,35 @@
 
 typedef struct dumb_packfile
 {
-	FILE * file;
+	PACKFILE *p;
 	long size;
+	long pos;
 } dumb_packfile;
 
 
-static void *dumb_packfile_open(const char *filename)
+static void *dumb_packfile_open_ex(PACKFILE *p)
 {
 	dumb_packfile * file = ( dumb_packfile * ) malloc( sizeof(dumb_packfile) );
 	if ( !file ) return 0;
-	file->file = fopen(filename, "rb");
-	fseek(file->file, 0, SEEK_END);
-	file->size = ftell(file->file);
-	fseek(file->file, 0, SEEK_SET);
+	file->p = p;
+	file->size = file_size_ex(filename);
+	file->pos = 0;
 	return file;
 }
 
+static void *dumb_packfile_open(const char *filename)
+{
+	PACKFILE *p = pack_fopen(filename, F_READ);
+	if (p) return dumb_packfile_open_ex(p);
+	else return 0;
+}
 
 
 static int dumb_packfile_skip(void *f, long n)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
-	return fseek(file->file, n, SEEK_CUR);
+	file->pos += n;
+	return pack_fseek(file->p, file->pos);
 }
 
 
@@ -53,7 +60,9 @@ static int dumb_packfile_skip(void *f, long n)
 static int dumb_packfile_getc(void *f)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
-	return fgetc(file->file);
+	int c = pack_getc(file->p);
+	if ( c != EOF ) file->pos++;
+	return c;
 }
 
 
@@ -61,7 +70,9 @@ static int dumb_packfile_getc(void *f)
 static long dumb_packfile_getnc(char *ptr, long n, void *f)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
-	return fread(ptr, 1, n, file->file);
+	int nr = pack_fread(ptr, n, file->p);
+	if ( nr > 0 ) file->pos += nr;
+	return nr;
 }
 
 
@@ -69,7 +80,7 @@ static long dumb_packfile_getnc(char *ptr, long n, void *f)
 static void dumb_packfile_close(void *f)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
-	fclose(file->file);
+	pack_fclose(file->p);
 	free(f);
 }
 
@@ -80,13 +91,14 @@ static void dumb_packfile_noclose(void *f)
 
 static int dumb_packfile_seek(void *f, long n)
 {
-	dumb_packfile * file = (dumb_packfile *) f;
-	return fseek(file->file, n, SEEK_SET);
+	dumb_packfile * file = ( dumb_packfile * ) f;
+	file->pos = n;
+	return pack_fseek(file->p, n);
 }
 
 static long dumb_packfile_get_size(void *f)
 {
-	dumb_packfile * file = (dumb_packfile *) f;
+	dumb_packfile * file = ( dumb_packfile * ) f;
 	return file->size;
 }
 
@@ -123,12 +135,12 @@ static DUMBFILE_SYSTEM packfile_dfs_leave_open = {
 
 DUMBFILE *dumbfile_open_packfile(PACKFILE *p)
 {
-	return dumbfile_open_ex(p, &packfile_dfs_leave_open);
+	return dumbfile_open_ex(dumb_packfile_open_ex(p), &packfile_dfs_leave_open);
 }
 
 
 
 DUMBFILE *dumbfile_from_packfile(PACKFILE *p)
 {
-	return p ? dumbfile_open_ex(p, &packfile_dfs) : NULL;
+	return p ? dumbfile_open_ex(dumb_packfile_open_ex(p), &packfile_dfs) : NULL;
 }
