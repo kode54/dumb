@@ -22,48 +22,82 @@
 #include "aldumb.h"
 
 
+typedef struct dumb_packfile
+{
+	FILE * file;
+	long size;
+} dumb_packfile;
+
 
 static void *dumb_packfile_open(const char *filename)
 {
-	return pack_fopen(filename, F_READ);
+	dumb_packfile * file = ( dumb_packfile * ) malloc( sizeof(dumb_packfile) );
+	if ( !file ) return 0;
+	file->file = fopen(filename, "rb");
+	fseek(file->file, 0, SEEK_END);
+	file->size = ftell(file->file);
+	fseek(file->file, 0, SEEK_SET);
+	return file;
 }
 
 
 
 static int dumb_packfile_skip(void *f, long n)
 {
-	return pack_fseek(f, n);
+	dumb_packfile * file = ( dumb_packfile * ) f;
+	return fseek(file->file, n, SEEK_CUR);
 }
 
 
 
 static int dumb_packfile_getc(void *f)
 {
-	return pack_getc(f);
+	dumb_packfile * file = ( dumb_packfile * ) f;
+	return fgetc(file->file);
 }
 
 
 
 static long dumb_packfile_getnc(char *ptr, long n, void *f)
 {
-	return pack_fread(ptr, n, f);
+	dumb_packfile * file = ( dumb_packfile * ) f;
+	return fread(ptr, 1, n, file->file);
 }
 
 
 
 static void dumb_packfile_close(void *f)
 {
-	pack_fclose(f);
+	dumb_packfile * file = ( dumb_packfile * ) f;
+	fclose(file->file);
+	free(f);
 }
 
+static void dumb_packfile_noclose(void *f)
+{
+	free(f);
+}
 
+static int dumb_packfile_seek(void *f, long n)
+{
+	dumb_packfile * file = (dumb_packfile *) f;
+	return fseek(file->file, n, SEEK_SET);
+}
+
+static long dumb_packfile_get_size(void *f)
+{
+	dumb_packfile * file = (dumb_packfile *) f;
+	return file->size;
+}
 
 static DUMBFILE_SYSTEM packfile_dfs = {
 	&dumb_packfile_open,
 	&dumb_packfile_skip,
 	&dumb_packfile_getc,
 	&dumb_packfile_getnc,
-	&dumb_packfile_close
+	&dumb_packfile_close,
+	&dumb_packfile_seek,
+	&dumb_packfile_get_size
 };
 
 
@@ -80,7 +114,9 @@ static DUMBFILE_SYSTEM packfile_dfs_leave_open = {
 	&dumb_packfile_skip,
 	&dumb_packfile_getc,
 	&dumb_packfile_getnc,
-	NULL
+	&dumb_packfile_noclose,
+	&dumb_packfile_seek,
+	&dumb_packfile_get_size
 };
 
 
