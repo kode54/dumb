@@ -5,12 +5,6 @@
 # ALLEGRO_LIBRARIES - List of libraries when using allegro.
 # ALLEGRO_FOUND - True if allegro found.
 
-
-IF (ALLEGRO_INCLUDE_DIR)
-    # Already in cache, be silent
-    SET(ALLEGRO_FIND_QUIETLY TRUE)
-ENDIF (ALLEGRO_INCLUDE_DIR)
-
 FIND_PATH(ALLEGRO_INCLUDE_DIR allegro.h
 /usr/local/include
 /usr/include
@@ -35,14 +29,10 @@ ELSE (ALLEGRO_INCLUDE_DIR AND ALLEGRO_LIBRARY)
 ENDIF (ALLEGRO_INCLUDE_DIR AND ALLEGRO_LIBRARY)
 
 IF (ALLEGRO_FOUND)
-    IF (NOT ALLEGRO_FIND_QUIETLY)
-        MESSAGE(STATUS "Found Allegro: ${ALLEGRO_LIBRARY}")
-    ENDIF (NOT ALLEGRO_FIND_QUIETLY)
+    MESSAGE(STATUS "Found Allegro: ${ALLEGRO_LIBRARY}")
 ELSE (ALLEGRO_FOUND)
-    IF (ALLEGRO_FIND_REQUIRED)
-        MESSAGE(STATUS "Looked for Allegro libraries named ${ALLEGRO_NAMES}.")
-        MESSAGE(FATAL_ERROR "Could NOT find Allegro library")
-    ENDIF (ALLEGRO_FIND_REQUIRED)
+    MESSAGE(STATUS "Looked for Allegro libraries named ${ALLEGRO_NAMES}.")
+    MESSAGE(FATAL_ERROR "Could NOT find Allegro library")
 ENDIF (ALLEGRO_FOUND)
 
 MARK_AS_ADVANCED(
