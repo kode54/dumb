@@ -117,7 +117,7 @@ SET(SOURCES
 )
 
 set(INSTALL_HEADERS
-    ../include/dumb.h
+    include/dumb.h
 )
 
 set(ALLEGRO_SOURCES
@@ -139,15 +139,12 @@ set(ALLEGRO_SOURCES
 add_library(dumb ${SOURCES})
 set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
 
-set(ALLEGRO4_TARGETS "")
 if(BUILD_ALLEGRO4)
     add_library(aldmb ${ALLEGRO_SOURCES})
-    set(ALLEGRO4_TARGETS ${ALLEGRO_TARGETS} aldmb)
-    set(ALLEGRO4_HEADERS indclude/aldumb.h)
+    list(APPEND DUMB_TARGETS aldmb)
+    list(APPEND INSTALL_HEADERS include/aldumb.h)
     target_link_libraries(aldmb ${ALLEGRO_LIBRARIES})
 endif()
-
-set(EXAMPLE_TARGETS "")
 
 if(BUILD_EXAMPLES)
     add_executable(dumbout examples/dumbout.c)
@@ -162,7 +159,7 @@ if(BUILD_EXAMPLES)
     target_link_libraries(dumbplay ${ARGTABLE2_LIBRARY} ${SDL2_LIBRARY} dumb)
 
     include_directories(${ARGTABLE2_INCLUDE_DIR} ${SDL2_INCLUDE_DIR} "examples/")
-    set(EXAMPLE_TARGETS ${EXAMPLE_TARGETS} "dumbout" "dumbplay")
+    list(APPEND DUMB_TARGETS "dumbout" "dumbplay")
 endif()
 
 # Make sure the dylib install name path is set on OSX so you can include dumb in app bundles
@@ -172,8 +169,8 @@ ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
 target_link_libraries(dumb m)
 
-INSTALL(FILES ${INSTALL_HEADERS} ${ALLEGRO_HEADERS} DESTINATION include/)
-INSTALL(TARGETS dumb ${EXAMPLE_TARGETS}
+INSTALL(FILES ${INSTALL_HEADERS} DESTINATION include/)
+INSTALL(TARGETS dumb ${DUMB_TARGETS}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib${LIB_SUFFIX}
     ARCHIVE DESTINATION lib${LIB_SUFFIX}
