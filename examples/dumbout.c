@@ -16,6 +16,8 @@ enum ENDIANNESS {
 typedef struct {
     DUH_SIGRENDERER *renderer;
     DUH *src;
+    sample_t **sig_samples;
+    long sig_samples_size;
     FILE *dst;
     float delta;
     int bufsize;
@@ -226,12 +228,14 @@ int main(int argc, char *argv[]) {
 
     // Loop until we have nothing to loop through. Dumb will stop giving out bytes when the file is done.
     while(run) {
-        read_samples = duh_render(streamer.renderer,
-                                  settings.bits,
-                                  (int)settings.is_unsigned,
-                                  settings.volume,
-                                  streamer.delta,
-                                  4096, buffer);
+        read_samples = duh_render_int(streamer.renderer,
+                                      &streamer.sig_samples,
+                                      &streamer.sig_samples_size,
+                                      settings.bits,
+                                      (int)settings.is_unsigned,
+                                      settings.volume,
+                                      streamer.delta,
+                                      4096, buffer);
         read_bytes = read_samples * (settings.bits / 8) * settings.n_channels;
 
         // switch endianness if required
@@ -258,6 +262,10 @@ int main(int argc, char *argv[]) {
 
     if(!streamer.is_stdout && streamer.dst) {
         fclose(streamer.dst);
+    }
+
+    if(streamer.sig_samples) {
+        destroy_sample_buffer(streamer.sig_samples);
     }
 
 exit_1:

@@ -17,6 +17,8 @@ typedef struct {
     DUH_SIGRENDERER *renderer;
     DUH *src;
     SDL_AudioDeviceID dev;
+    sample_t **sig_samples;
+    long sig_samples_size;
 
     // Runtime vars
     float delta;
@@ -49,7 +51,16 @@ void stream_audio(void* userdata, Uint8* stream, int len) {
 
     // Read samples from libdumb save them to the SDL buffer. Note that we are reading SAMPLES, not bytes!
     int r_samples = len / streamer->sbytes;
-    int got = duh_render(streamer->renderer, streamer->bits, 0, streamer->volume, streamer->delta, r_samples, stream);
+    int got = duh_render_int(
+        streamer->renderer,
+        &streamer->sig_samples,
+        &streamer->sig_samples_size,
+        streamer->bits,
+        0,
+        streamer->volume,
+        streamer->delta,
+        r_samples,
+        stream);
     if(got == 0) {
         streamer->ended = true;
     }
@@ -266,6 +277,10 @@ int main(int argc, char *argv[]) {
     retcode = 0;
 
     // Free up resources and exit.
+    if(streamer.sig_samples) {
+        destroy_sample_buffer(streamer.sig_samples);
+    }
+
 exit_2:
     SDL_CloseAudioDevice(streamer.dev);
 
