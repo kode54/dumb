@@ -4259,6 +4259,8 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 						tick = 0;
 					else
 						++tick;
+					if (sigrenderer->sigdata->flags & IT_WAS_AN_STM)
+						tick /= 16;
 					playing->delta *= (float)pow(DUMB_SEMITONE_BASE, channel->arpeggio_offsets[channel->arpeggio_table[tick&31]]);
 				}
 			/*
