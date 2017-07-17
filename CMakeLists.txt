@@ -5,12 +5,16 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-scripts)
 
 option(BUILD_EXAMPLES "Build example binaries" ON)
 option(BUILD_ALLEGRO4 "Build Allegro4 support" ON)
+option(USE_SSE "Use SSE instructions" ON)
 
-set(CMAKE_C_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -D_USE_SSE -msse -Wno-unused-variable -Wno-unused-but-set-variable")
+set(CMAKE_C_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -Wno-unused-variable -Wno-unused-but-set-variable")
 set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUGMODE=1 -D_DEBUG")
 set(CMAKE_C_FLAGS_RELEASE "-ffast-math -O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-ffast-math -g -O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_MINSIZEREL "-ffast-math -Os -DNDEBUG")
+if(USE_SSE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_SSE -msse")
+endif()
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(include/)
