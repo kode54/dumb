@@ -143,7 +143,7 @@ if(BUILD_ALLEGRO4)
     add_library(aldmb ${ALLEGRO_SOURCES})
     list(APPEND DUMB_TARGETS aldmb)
     list(APPEND INSTALL_HEADERS include/aldumb.h)
-    target_link_libraries(aldmb ${ALLEGRO_LIBRARIES})
+    target_link_libraries(aldmb ${ALLEGRO_LIBRARIES} dumb)
 endif()
 
 if(BUILD_EXAMPLES)
