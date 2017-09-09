@@ -623,8 +623,8 @@ long _dumb_it_read_sample_data_adpcm4(IT_SAMPLE *sample, DUMBFILE *f)
 	long n, len, delta;
 	signed char * ptr, * end;
 	signed char compression_table[16];
-    if (dumbfile_getnc((char *)compression_table, 16, f) != 16)
-        return -1;
+	if (dumbfile_getnc((char *)compression_table, 16, f) != 16)
+		return -1;
 	ptr = (signed char *) sample->data;
 	delta = 0;
 
