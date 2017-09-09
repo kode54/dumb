@@ -1,42 +1,41 @@
-/*  _______         ____    __         ___    ___
- * \    _  \       \    /  \  /       \   \  /   /       '   '  '
- *  |  | \  \       |  |    ||         |   \/   |         .      .
- *  |  |  |  |      |  |    ||         ||\  /|  |
- *  |  |  |  |      |  |    ||         || \/ |  |         '  '  '
- *  |  |  |  |      |  |    ||         ||    |  |         .      .
- *  |  |_/  /        \  \__//          ||    |  |
- * /_______/ynamic    \____/niversal  /__\  /____\usic   /|  .  . ibliotheque
- *                                                      /  \
- *                                                     / .  \
- * readme.txt - General information on DUMB.          / / \  \
- *                                                   | <  /   \_
- *                                                   |  \/ /\   /
- *                                                    \_  /  > /
- *                                                      | \ / /
- *                                                      |  ' /
- *                                                       \__/
- */
+# Dynamic Universal Music Bibliotheque (libdumb)
+
+     _______         ____    __         ___    ___
+    \    _  \       \    /  \  /       \   \  /   /       '   '  '
+     |  | \  \       |  |    ||         |   \/   |         .      .
+     |  |  |  |      |  |    ||         ||\  /|  |
+     |  |  |  |      |  |    ||         || \/ |  |         '  '  '
+     |  |  |  |      |  |    ||         ||    |  |         .      .
+     |  |_/  /        \  \__//          ||    |  |
+    /_______/ynamic    \____/niversal  /__\  /____\usic   /|  .  . ibliotheque
+                                                         /  \
+                                                        / .  \
+                                                       / / \  \
+                                                      | <  /   \_
+                                                      |  \/ /\   /
+                                                       \_  /  > /
+                                                         | \ / /
+                                                         |  ' /
+                                                          \__/
 
 
-********************
-*** Introduction ***
-********************
 
+## Introduction
 
 Thank you for downloading DUMB v0.9.3! You should have the following
 documentation:
 
-   readme.txt    - This file
-   licence.txt   - Conditions for the use of this software
-   release.txt   - Release notes and changes for this and past releases
-   docs/
-     howto.txt   - Step-by-step instructions on adding DUMB to your project
-     faq.txt     - Frequently asked questions and answers to them
-     dumb.txt    - DUMB library reference
-     deprec.txt  - Information about deprecated parts of the API
-     ptr.txt     - Quick introduction to pointers for those who need it
-     fnptr.txt   - Explanation of function pointers for those who need it
-     modplug.txt - Our official position regarding ModPlug Tracker
+  * readme.txt    - This file
+  * licence.txt   - Conditions for the use of this software
+  * release.txt   - Release notes and changes for this and past releases
+  * docs/
+     * howto.txt   - Step-by-step instructions on adding DUMB to your project
+     * faq.txt     - Frequently asked questions and answers to them
+     * dumb.txt    - DUMB library reference
+     * deprec.txt  - Information about deprecated parts of the API
+     * ptr.txt     - Quick introduction to pointers for those who need it
+     * fnptr.txt   - Explanation of function pointers for those who need it
+     * modplug.txt - Our official position regarding ModPlug Tracker
 
 This file will help you get DUMB set up. If you have not yet done so, please
 read licence.txt and release.txt before proceeding. After you've got DUMB set
@@ -44,10 +43,7 @@ up, please refer to the files in the docs/ directory at your convenience. I
 recommend you start with howto.txt.
 
 
-****************
-*** Features ***
-****************
-
+## Features
 
 Here is the statutory feature list:
 
@@ -97,10 +93,7 @@ Here is the statutory feature list:
   compiling it manually are available further down
 
 
-*********************
-*** What you need ***
-*********************
-
+## What you need
 
 To use DUMB, you need a 32-bit C compiler (GCC and MSVC are fine). If you
 have Allegro, DUMB can integrate with its audio streams and datafiles, making
@@ -111,9 +104,7 @@ Allegro.
    Allegro - http://alleg.sf.net/
 
 
-**********************************************
-*** How to set DUMB up with DJGPP or MinGW ***
-**********************************************
+## How to set DUMB up with DJGPP or MinGW
 
 
 You should have got the .zip version. If for some reason you got the .tar.gz
@@ -134,11 +125,11 @@ Change to the directory into which you unzipped DUMB.
 
 If you are using MinGW (and you haven't renamed 'mingw32-make'), type:
 
-   mingw32-make
+    mingw32-make
 
 Otherwise, type the following:
 
-   make
+    make
 
 DUMB will ask you whether you wish to compile for DJGPP or MinGW. Then it
 will ask you whether you want support for Allegro. (You have to have made and
@@ -147,15 +138,15 @@ compile optimised and debugging builds of DUMB, along with the example
 programs. When it has finished, run one of the following to install the
 libraries:
 
-   make install
-   mingw32-make install
+    make install
+    mingw32-make install
 
 All done! If you ever need the configuration again (e.g. if you compiled for
 DJGPP before and you want to compile for MinGW now), run one of the
 following:
 
-   make config
-   mingw32-make config
+    make config
+    mingw32-make config
 
 See the comments in the Makefile for other targets.
 
@@ -178,10 +169,7 @@ when you are ready to start programming with DUMB. If you use DUMB in a game,
 let me know - I might decide to place a link to your game on DUMB's website!
 
 
-******************************************************
-*** How to set DUMB up with Microsoft Visual C++ 6 ***
-******************************************************
-
+## How to set DUMB up with Microsoft Visual C++ 6
 
 If you have a newer version of Microsoft Visual C++ or Visual Something that
 supports C++, please try these instructions and let me know if it works.
@@ -266,10 +254,7 @@ start using DUMB, refer to docs/howto.txt. If you use DUMB in a game, let me
 know - I might decide to place a link to your game on DUMB's website!
 
 
-******************************************************
-*** How to set DUMB up on Linux, BeOS and Mac OS X ***
-******************************************************
-
+## How to set DUMB up on Linux, BeOS and Mac OS X
 
 You should have got the .tar.gz version. If for some reason you got the .zip
 version instead, you may have to strip all characters with ASCII code 13 from
@@ -288,7 +273,7 @@ If you are not using the configure script, the procedure is as follows.
 
 First, run the following command as a normal user:
 
-   make
+    make
 
 You will be asked whether you want Allegro support. Then, unless you are on
 BeOS, you will be asked where you'd like DUMB to install its headers,
@@ -299,7 +284,7 @@ not work. Once you have specified these pieces of information, the optimised
 and debugging builds of DUMB will be compiled, along with the examples. When
 it has finished, you can install them with:
 
-   make install
+    make install
 
 You may need to be root for this to work. It depends on the prefix you chose.
 
@@ -324,7 +309,7 @@ The default Makefile is a copy of Makefile.rdy (short for 'ready'), and it
 must exist with the name Makefile.rdy in order to work. The configure script
 will overwrite Makefile, so if you want the default Makefile back, just run:
 
-   cp Makefile.rdy Makefile
+    cp Makefile.rdy Makefile
 
 Do not use a symlink, as that would result in Makefile.rdy getting
 overwritten next time the configure script is run!
@@ -333,10 +318,7 @@ You can also access the usual build system by passing '-f Makefile.rdy' to
 Make.
 
 
-********************************************************
-*** How to build DUMB manually if nothing else works ***
-********************************************************
-
+## How to build DUMB manually if nothing else works
 
 Those porting to platforms without floating point support should be aware
 that DUMB does use floating point operations but not in the inner loops. They
@@ -387,16 +369,14 @@ by simple name with no path, then that is ideal.
 If you successfully port DUMB to a new platform, please let me know!
 
 
-****************************
-*** The example programs ***
-****************************
-
+## The example programs
 
 Three example programs are provided. On DOS and Windows, you can find them in
 the examples subdirectory. On other systems they will be installed system-
 wide.
 
-dumbplay
+
+### dumbplay
    This program will only be built if you have Allegro. Pass it the filename
    of an IT, XM, S3M or MOD file, and it will play it. It's not a polished
    player with real-time threading or anything - so don't complain about it
@@ -406,7 +386,9 @@ dumbplay
    where the program is installed system-wide, but it is non-fatal.) Have a
    look at the examples/dumb.ini file for further information.
 
-dumbout
+
+### dumbout
+
    This program does not need Allegro. You can use it to stream an IT, XM,
    S3M or MOD file to raw PCM. This can be used as input to an encoder like
    oggenc (with appropriate command-line options), or it can be sent to a
@@ -415,15 +397,14 @@ dumbout
    render a module with the module's playing time! dumbout doesn't try to
    read any configuration file; the options are set on the command line.
 
-dumb2wav
+
+### dumb2wav
+
    This program is much the same as dumbout, but it writes a .wav file with
    the appropriate header. Thanks go to Chad Austin for this useful tool.
 
 
-*********************************************
-*** Downloading music or writing your own ***
-*********************************************
-
+## Downloading music or writing your own
 
 If you would like to compose your own music modules, then this section should
 help get you started.
@@ -431,9 +412,9 @@ help get you started.
 The best programs for the job are the trackers that pioneered the file
 formats:
 
-   Impulse Tracker - IT files - http://www.lim.com.au/ImpulseTracker/
-   Fast Tracker II - XM files - http://www.fasttracker2.com/
-   Scream Tracker 3 - S3M files - No official site known, please use Google
+* Impulse Tracker - IT files - http://www.lim.com.au/ImpulseTracker/
+* Fast Tracker II - XM files - http://www.fasttracker2.com/
+* Scream Tracker 3 - S3M files - No official site known, please use Google
 
 MOD files come from the Amiga; I do not know what PC tracker to recommend for
 editing these. If you know of one, let me know! In the meantime, I would
@@ -472,6 +453,7 @@ with it. There are plug-ins available to improve Winamp's module support, for
 example WSP.
 
    Winamp - http://www.winamp.com/
+
    WSP - http://www.spytech.cz/index.php?sec=demo
 
 (There is a Winamp plug-in that uses DUMB, but it is unreliable. If anyone
@@ -489,11 +471,11 @@ download samples at
 If you would like to download module files composed by other people, check
 the following sites:
 
-   http://www.modarchive.com/
-   http://www.scene.org/
-   http://www.tump.net/
-   http://www.homemusic.cc/main.php
-   http://www.modplug.com/
+ * http://www.modarchive.com/
+ * http://www.scene.org/
+ * http://www.tump.net/
+ * http://www.homemusic.cc/main.php
+ * http://www.modplug.com/
 
 Once again, if you know of more sites where samples or module files are
 available for download, please let me know.
@@ -516,10 +498,7 @@ loading), but future versions of DUMB will be able to rectify these mistakes.
 On the other hand, if you convert the file, the damage is permanent.
 
 
-***********************
-*** Contact details ***
-***********************
-
+## Contact details
 
 If you have trouble with DUMB, or want to contact me for any other reason, my
 e-mail address is given below. Please do get in touch, even if I appear to
@@ -529,10 +508,7 @@ If you wish to chat online about something, perhaps on IRC, that can most
 likely be arranged. Send me an e-mail.
 
 
-******************
-*** Conclusion ***
-******************
-
+## Conclusion
 
 This is the conclusion.
 
