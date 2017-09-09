@@ -26,6 +26,8 @@ make install
 * CMAKE_BUILD_TYPE sets the build type (eg. Release, Debug, RelWithDebInfo, MinSizeRel). Debug libraries will be named libdumbd, release libraries libdumb.
 * BUILD_SHARED_LIBS selects whether cmake should build dynamic or static library. On by default. (On=shared, OFF=static)
 * BUILD_EXAMPLES selects example binaries. Note that example binaries require argtable2 and SDL2 libraries. On by default.
+* BUILD_ALLEGRO4 enables allegro 4 support libraries to be built. On by default.
+* USE_SSE enables or disables SSE instructions usage. On by default.
 * You may also need to tell cmake what kind of makefiles to create with the "-G" flag. Eg. for MSYS one would say something like `cmake -G "MSYS Makefiles" .`.
 
 ## 2. Visual Studio
