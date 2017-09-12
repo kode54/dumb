@@ -245,9 +245,8 @@ static int it_old_psm_read_patterns(IT_PATTERN * pattern, DUMBFILE * f, int num,
 				if (flags & 0x80) ptr += 2;
 				if (flags & 0x40) ptr++;
 				if (flags & 0x20) {
-					ptr++;
-					if (*ptr == 40) ptr += 3;
-					else ptr++;
+					if (*ptr == 40) ptr += 4;
+					else ptr += 2;
 				}
 			}
 		}
