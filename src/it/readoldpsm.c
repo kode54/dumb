@@ -224,6 +224,8 @@ static int it_old_psm_read_patterns(IT_PATTERN * pattern, DUMBFILE * f, int num,
 		}
 
 		psize = (psize + 15) & ~15;
+		
+		if (offset + psize > size) goto error_fb;
 
 		end = ptr + psize;
 		ptr += 4;
