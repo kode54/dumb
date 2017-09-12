@@ -461,7 +461,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 	PSMCHUNK *chunk;
 	int n_chunks = 0;
 
-	PSMCHUNK *songchunk;
+	PSMCHUNK *songchunk = 0;
 	int n_song_chunks = 0;
 
 	PSMEVENT *event = 0;
@@ -491,6 +491,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 	chunk = calloc(768, sizeof(*chunk));
 
 	while (length >= 8) {
+		if (n_chunks >= 768) goto error_fc;
 		chunk[n_chunks].id = dumbfile_mgetl(f);
 		n = dumbfile_igetl(f);
 		length -= 8;
@@ -584,13 +585,14 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 			ptr += 11;
 			songchunk = 0;
 			if (length >= 8) {
-				songchunk = malloc(128 * sizeof(*songchunk));
+				songchunk = malloc(256 * sizeof(*songchunk));
 				if (!songchunk) goto error_usd;
 				while (length >= 8) {
+					if (n_song_chunks >= 256) goto error_sc;
 					songchunk[n_song_chunks].id = DUMB_ID(ptr[0], ptr[1], ptr[2], ptr[3]);
 					n = ptr[4] | (ptr[5] << 8) | (ptr[6] << 16) | (ptr[7] << 24);
 					length -= 8;
-					if (n > length) goto error_sc;
+					if (n < 0 || n > length) goto error_sc;
 					songchunk[n_song_chunks].len = n;
 					songchunk[n_song_chunks].data = ptr + 8;
 					n_song_chunks++;
