@@ -1048,7 +1048,10 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 			sigdata->pattern[n].entry = NULL;
 	}
 
-    dumbfile_getnc((char *)sigdata->order, sigdata->n_orders, f);
+	if ( dumbfile_getnc((char *)sigdata->order, sigdata->n_orders, f) < sigdata->n_orders ) {
+		_dumb_it_unload_sigdata(sigdata);
+		return NULL;
+	}
 	sigdata->restart_position = 0;
     
 	min_components = (special & 1) + sigdata->n_instruments + sigdata->n_samples + sigdata->n_patterns;
