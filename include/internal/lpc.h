@@ -19,6 +19,6 @@
 #define _V_LPC_H_
 
 struct DUMB_IT_SIGDATA;
-extern void dumb_it_add_lpc(struct DUMB_IT_SIGDATA *sigdata);
+extern int dumb_it_add_lpc(struct DUMB_IT_SIGDATA *sigdata);
 
 #endif

@@ -5410,7 +5410,10 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 	//sigrenderer->max_output = 0;
 
 	if ( !(sigdata->flags & IT_WAS_PROCESSED) ) {
-		dumb_it_add_lpc( sigdata );
+		if ( dumb_it_add_lpc( sigdata ) < 0 ) {
+			_dumb_it_end_sigrenderer( sigrenderer );
+			return NULL;
+		}
 
 		sigdata->flags |= IT_WAS_PROCESSED;
 	}
