@@ -371,6 +371,8 @@ static int limit_xm_resize(void *f, long n)
 {
 	DUMBFILE *df = f;
 	LIMITED_XM *lx = df->file;
+	if (n < 0)
+		return -1;
 	if (lx->buffered || n) {
 		if (n > lx->allocated) {
 			unsigned char *buffered = realloc( lx->buffered, n );
