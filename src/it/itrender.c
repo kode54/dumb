@@ -4445,8 +4445,13 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 
 /** WARNING - everything pertaining to a new pattern initialised? */
 
-				sigrenderer->entry = sigrenderer->entry_start = pattern->entry;
-				sigrenderer->entry_end = sigrenderer->entry + pattern->n_entries;
+				if ( pattern->entry ) {
+					sigrenderer->entry = sigrenderer->entry_start = pattern->entry;
+					sigrenderer->entry_end = sigrenderer->entry + pattern->n_entries;
+				} else {
+					sigrenderer->entry = sigrenderer->entry_start = 0;
+					sigrenderer->entry_end = 0;
+				}
 
 				/* If n_rows was 0, we're only just starting. Don't do anything weird here. */
 				/* added: process row check, for break to row spooniness */
@@ -4511,6 +4516,7 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 			if (!(sigdata->flags & IT_WAS_A_669))
 				reset_effects(sigrenderer);
 
+			if ( sigrenderer->entry )
 			{
 				IT_ENTRY *entry = sigrenderer->entry;
 				int ignore_cxx = 0;
@@ -4530,6 +4536,7 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 			else if (!(sigdata->flags & IT_OLD_EFFECTS))
 				update_smooth_effects(sigrenderer);
 		} else {
+			if ( sigrenderer->entry )
 			{
 				IT_ENTRY *entry = sigrenderer->entry;
 
