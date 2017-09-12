@@ -4301,6 +4301,9 @@ static void process_all_playing(DUMB_IT_SIGRENDERER *sigrenderer)
 static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 {
 	DUMB_IT_SIGDATA *sigdata = sigrenderer->sigdata;
+	
+	if ( !sigrenderer->tempo ) // problematic, causes divide by zero below
+		return 1;
 
 	// Set note vol/freq to vol/freq set for each channel
 
@@ -5598,6 +5601,8 @@ static long it_sigrenderer_get_samples(
 	LONG_LONG t;
 
 	if (sigrenderer->order < 0) return 0; // problematic
+	
+	if (!sigrenderer->tempo) return 0; // also problematic
 
 	pos = 0;
 	dt = (int)(delta * 65536.0f + 0.5f);
