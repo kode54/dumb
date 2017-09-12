@@ -825,7 +825,7 @@ static int it_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buff
 
 	while (bufpos < buflen) {
 		unsigned char b = buffer[bufpos++];
-
+		
 		if (b == 0) {
 			/* End of row */
 			IT_SET_END_ROW(entry);
@@ -841,31 +841,46 @@ static int it_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buff
 
 		channel = (b - 1) & 63;
 
-		if (b & 128)
+		if (b & 128) {
+			if (bufpos >= buflen)
+				return -1;
+			
 			cmask[channel] = mask = buffer[bufpos++];
-		else
+		} else
 			mask = cmask[channel];
 
 		if (mask) {
 			entry->mask = (mask & 15) | (mask >> 4);
 			entry->channel = channel;
 
-			if (mask & IT_ENTRY_NOTE)
+			if (mask & IT_ENTRY_NOTE) {
+				if (bufpos >= buflen)
+					return -1;
+				
 				cnote[channel] = entry->note = buffer[bufpos++];
-			else if (mask & (IT_ENTRY_NOTE << 4))
+			} else if (mask & (IT_ENTRY_NOTE << 4))
 				entry->note = cnote[channel];
 
-			if (mask & IT_ENTRY_INSTRUMENT)
+			if (mask & IT_ENTRY_INSTRUMENT) {
+				if (bufpos >= buflen)
+					return -1;
+				
 				cinstrument[channel] = entry->instrument = buffer[bufpos++];
-			else if (mask & (IT_ENTRY_INSTRUMENT << 4))
+			} else if (mask & (IT_ENTRY_INSTRUMENT << 4))
 				entry->instrument = cinstrument[channel];
 
-			if (mask & IT_ENTRY_VOLPAN)
+			if (mask & IT_ENTRY_VOLPAN) {
+				if (bufpos >= buflen)
+					return -1;
+				
 				cvolpan[channel] = entry->volpan = buffer[bufpos++];
-			else if (mask & (IT_ENTRY_VOLPAN << 4))
+			} else if (mask & (IT_ENTRY_VOLPAN << 4))
 				entry->volpan = cvolpan[channel];
 
 			if (mask & IT_ENTRY_EFFECT) {
+				if (bufpos + 1 >= buflen)
+					return -1;
+				
 				ceffect[channel] = entry->effect = buffer[bufpos++];
 				ceffectvalue[channel] = entry->effectvalue = buffer[bufpos++];
 			} else {
