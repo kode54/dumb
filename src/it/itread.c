@@ -943,6 +943,7 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 	int message_length, message_offset;
 
 	IT_COMPONENT *component;
+	int min_components;
 	int n_components = 0;
 
 	unsigned char sample_convert[4096];
@@ -1049,8 +1050,10 @@ static sigdata_t *it_load_sigdata(DUMBFILE *f)
 
     dumbfile_getnc((char *)sigdata->order, sigdata->n_orders, f);
 	sigdata->restart_position = 0;
+    
+	min_components = (special & 1) + sigdata->n_instruments + sigdata->n_samples + sigdata->n_patterns;
 
-	component = malloc(769 * sizeof(*component));
+	component = malloc(min_components * sizeof(*component));
 	if (!component) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
