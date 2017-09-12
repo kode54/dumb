@@ -4302,7 +4302,7 @@ static int process_tick(DUMB_IT_SIGRENDERER *sigrenderer)
 {
 	DUMB_IT_SIGDATA *sigdata = sigrenderer->sigdata;
 	
-	if ( !sigrenderer->tempo ) // problematic, causes divide by zero below
+	if ( sigrenderer->tempo < 32 || sigrenderer->tempo > 255 ) // problematic
 		return 1;
 
 	// Set note vol/freq to vol/freq set for each channel
