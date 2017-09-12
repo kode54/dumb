@@ -910,7 +910,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 	/* sanity checks */
 	// XXX
 	i = header_size - 4 - 2 * 8; /* Maximum number of orders expected */
-	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_orders > i || sigdata->n_patterns > 256 || sigdata->n_instruments > 256 || n_channels > DUMB_IT_N_CHANNELS) {
+	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_orders > i || !sigdata->n_patterns || sigdata->n_patterns > 256 || !sigdata->n_instruments || sigdata->n_instruments > 256 || n_channels > DUMB_IT_N_CHANNELS) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;
 	}
