@@ -3789,7 +3789,7 @@ static void update_tick_counts(DUMB_IT_SIGRENDERER *sigrenderer)
 					}
 				}
 			}
-		} else if (channel->note_delay_count) {
+		} else if (channel->note_delay_count && channel->note_delay_entry) {
 			channel->note_delay_count--;
 			if (channel->note_delay_count == 0)
 				process_note_data(sigrenderer, channel->note_delay_entry, 0);
@@ -5332,6 +5332,10 @@ static DUMB_IT_SIGRENDERER *init_sigrenderer(DUMB_IT_SIGDATA *sigdata, int n_cha
 		channel->inv_loop_speed = 0;
 		channel->inv_loop_offset = 0;
 		channel->playing = NULL;
+		channel->key_off_count = 0;
+		channel->note_cut_count = 0;
+		channel->note_delay_count = 0;
+		channel->note_delay_entry = 0;
 #ifdef BIT_ARRAY_BULLSHIT
 		channel->played_patjump = NULL;
 		channel->played_patjump_order = 0xFFFE;
