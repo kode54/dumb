@@ -1,16 +1,25 @@
 cmake_minimum_required(VERSION 3.1)
 project(libdumb C)
 
+# Bump major (== soversion) on API breakages
+set(DUMB_VERSION_MAJOR 1)
+set(DUMB_VERSION_MINOR 0)
+set(DUMB_VERSION ${DUMB_VERSION_MAJOR}.${DUMB_VERSION_MINOR})
+
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-scripts)
 
 option(BUILD_EXAMPLES "Build example binaries" ON)
 option(BUILD_ALLEGRO4 "Build Allegro4 support" ON)
+option(USE_SSE "Use SSE instructions" ON)
 
-set(CMAKE_C_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -D_USE_SSE -msse -Wno-unused-variable -Wno-unused-but-set-variable")
+set(CMAKE_C_FLAGS "-Wall -DDUMB_DECLARE_DEPRECATED -Wno-unused-variable -Wno-unused-but-set-variable")
 set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUGMODE=1 -D_DEBUG")
 set(CMAKE_C_FLAGS_RELEASE "-ffast-math -O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-ffast-math -g -O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_MINSIZEREL "-ffast-math -Os -DNDEBUG")
+if(USE_SSE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_SSE -msse")
+endif()
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(include/)
@@ -138,12 +147,17 @@ set(ALLEGRO_SOURCES
 
 add_library(dumb ${SOURCES})
 set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
+set_target_properties(dumb PROPERTIES VERSION ${DUMB_VERSION})
+set_target_properties(dumb PROPERTIES SOVERSION ${DUMB_VERSION_MAJOR})
 
 if(BUILD_ALLEGRO4)
     add_library(aldmb ${ALLEGRO_SOURCES})
+    set_target_properties(aldmb PROPERTIES DEBUG_POSTFIX d)
+    set_target_properties(aldmb PROPERTIES VERSION ${DUMB_VERSION})
+    set_target_properties(aldmb PROPERTIES SOVERSION ${DUMB_VERSION_MAJOR})
     list(APPEND DUMB_TARGETS aldmb)
     list(APPEND INSTALL_HEADERS include/aldumb.h)
-    target_link_libraries(aldmb ${ALLEGRO_LIBRARIES})
+    target_link_libraries(aldmb ${ALLEGRO_LIBRARIES} dumb)
 endif()
 
 if(BUILD_EXAMPLES)
