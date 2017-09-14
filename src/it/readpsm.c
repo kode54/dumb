@@ -96,7 +96,7 @@ static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data,
 
 	if (insno != id) return -1;
 
-	if (!length) {
+	if (length <= 0) {
 		sample->flags &= ~IT_SAMPLE_EXISTS;
 		return 0;
 	}
