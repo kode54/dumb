@@ -283,15 +283,15 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
 	int i;
 	unsigned long fft;
 
-    if ( dumbfile_seek(f, MOD_FFT_OFFSET, DFS_SEEK_SET) )
-        return NULL;
+	if ( dumbfile_seek(f, MOD_FFT_OFFSET, DFS_SEEK_SET) )
+		return NULL;
 
-    fft = dumbfile_mgetl(f);
-    if (dumbfile_error(f))
-        return NULL;
+	fft = dumbfile_mgetl(f);
+	if (dumbfile_error(f))
+		return NULL;
 
-    if ( dumbfile_seek(f, 0, DFS_SEEK_SET) )
-        return NULL;
+	if ( dumbfile_seek(f, 0, DFS_SEEK_SET) )
+		return NULL;
 
 	sigdata = malloc(sizeof(*sigdata));
 	if (!sigdata) {
