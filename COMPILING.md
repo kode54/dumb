@@ -8,7 +8,7 @@ In libdumb project root, run:
 ```
 mkdir -p build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS:BOOL=ON ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS:BOOL=ON -DBUILD_ALLEGRO4:BOOL=ON ..
 make
 make install
 ```
@@ -22,10 +22,11 @@ make install
 
 ### 1.3. Flags
 
-* CMAKE_INSTALL_PREFIX sets the installation path prefix
-* CMAKE_BUILD_TYPE sets the build type (eg. Release, Debug, RelWithDebInfo, MinSizeRel). Debug libraries will be named libdumbd, release libraries libdumb.
-* BUILD_SHARED_LIBS selects whether cmake should build dynamic or static library. On by default. (On=shared, OFF=static)
-* BUILD_EXAMPLES selects example binaries. Note that example binaries require argtable2 and SDL2 libraries. On by default.
+* `CMAKE_INSTALL_PREFIX` sets the installation path prefix.
+* `CMAKE_BUILD_TYPE` chooses the build type: `Release`, `Debug`, `RelWithDebInfo`, or `MinSizeRel`. Debug libraries will be named `libdumbd`, release libraries `libdumb`. Default is `Release`.
+* `BUILD_SHARED_LIBS` selects whether cmake should build a dynamic (`ON`) or static (`OFF`) library. Default is `OFF`.
+* `BUILD_ALLEGRO4` enables (`ON`) or disables (`OFF`) the optional Allegro 4 support. This requires Allegro 4 installed on the system. Default is `ON`.
+* `BUILD_EXAMPLES` selects example binaries. These example binaries require argtable2 and SDL2 libraries. Default is `ON`.
 * You may also need to tell cmake what kind of makefiles to create with the "-G" flag. Eg. for MSYS one would say something like `cmake -G "MSYS Makefiles" .`.
 
 ## 2. Visual Studio
