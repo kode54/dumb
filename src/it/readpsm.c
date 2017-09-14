@@ -162,7 +162,12 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 
 	nrows = data[0] | (data[1] << 8);
 
-	if (!nrows) return 0;
+	if (!nrows) {
+		pattern->n_rows = 0;
+		pattern->n_entries = 0;
+		pattern->entry = NULL;
+		return 0;
+	}
 
 	pattern->n_rows = nrows;
 
