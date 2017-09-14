@@ -30,7 +30,7 @@ size_t strlen_max(const char * ptr, size_t max)
 	if (ptr==0) return 0;
 	start = ptr;
 	end = ptr + max;
-	while(*ptr && ptr < end) ptr++;
+	while(ptr < end && *ptr) ptr++;
 	return ptr - start;
 }
 
@@ -321,7 +321,8 @@ static DUMB_IT_SIGDATA *it_mtm_load_sigdata(DUMBFILE *f, int * version)
 			int l, m;
 
 			for (l = 0, n = 0; n <= o; n += 40) {
-				l += strlen_max(&comment[n], 40) + 2;
+				int maxlen = l_comment - n;
+				l += strlen_max(&comment[n], maxlen > 40 ? 40 : maxlen) + 2;
 			}
 
 			l -= 1;
@@ -330,7 +331,8 @@ static DUMB_IT_SIGDATA *it_mtm_load_sigdata(DUMBFILE *f, int * version)
 			if (!sigdata->song_message) goto error_fc;
 
 			for (m = 0, n = 0; n <= o; n += 40) {
-				int p = (int) strlen_max(&comment[n], 40);
+				int maxlen = l_comment - n;
+				int p = (int) strlen_max(&comment[n], maxlen > 40 ? 40 : maxlen);
 				if (p) {
 					memcpy(sigdata->song_message + m, &comment[n], p);
 					m += p;
