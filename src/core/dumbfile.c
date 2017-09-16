@@ -106,6 +106,7 @@ long dumbfile_pos(DUMBFILE *f)
 
 
 
+/* Move forward in the file from the current position by n bytes. */
 int dumbfile_skip(DUMBFILE *f, long n)
 {
 	int rv;
@@ -372,12 +373,16 @@ long dumbfile_getnc(char *ptr, long n, DUMBFILE *f)
 
 
 
+/* Move to an arbitrary position n in the file, specified relative to origin,
+ * where origin shall be one of the DFS_SEEK_* constants.
+ */
 int dumbfile_seek(DUMBFILE *f, long n, int origin)
 {
     switch ( origin )
     {
     case DFS_SEEK_CUR: n += f->pos; break;
     case DFS_SEEK_END: n += (*f->dfs->get_size)(f->file); break;
+    default: break; /* keep n, seek position from beginning of file */
     }
     f->pos = n;
     return (*f->dfs->seek)(f->file, n);
