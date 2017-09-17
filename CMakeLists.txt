@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(libdumb C)
+include(GNUInstallDirs)
 
 # Bump major (== soversion) on API breakages
 set(DUMB_VERSION_MAJOR 1)
@@ -145,6 +146,14 @@ set(ALLEGRO_SOURCES
 )
 
 
+set(PKG_CONFIG_FILE "${CMAKE_CURRENT_BINARY_DIR}/dumb.pc")
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.in"
+    ${PKG_CONFIG_FILE}
+    @ONLY
+)
+
 add_library(dumb ${SOURCES})
 set_target_properties(dumb PROPERTIES DEBUG_POSTFIX d)
 set_target_properties(dumb PROPERTIES VERSION ${DUMB_VERSION})
@@ -178,14 +187,15 @@ endif()
 
 # Make sure the dylib install name path is set on OSX so you can include dumb in app bundles
 IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set_target_properties(dumb PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+    set_target_properties(dumb PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_FULL_LIBDIR})
 ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
 target_link_libraries(dumb m)
 
-INSTALL(FILES ${INSTALL_HEADERS} DESTINATION include/)
-INSTALL(TARGETS dumb ${DUMB_TARGETS}
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib${LIB_SUFFIX}
-    ARCHIVE DESTINATION lib${LIB_SUFFIX}
+install(FILES ${PKG_CONFIG_FILE} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+install(FILES ${INSTALL_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS dumb ${DUMB_TARGETS}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
