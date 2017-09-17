@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(libdumb C)
+include(GNUInstallDirs)
 
 # Bump major (== soversion) on API breakages
 set(DUMB_VERSION_MAJOR 1)
@@ -178,14 +179,14 @@ endif()
 
 # Make sure the dylib install name path is set on OSX so you can include dumb in app bundles
 IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set_target_properties(dumb PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+    set_target_properties(dumb PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
 target_link_libraries(dumb m)
 
-INSTALL(FILES ${INSTALL_HEADERS} DESTINATION include/)
+INSTALL(FILES ${INSTALL_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 INSTALL(TARGETS dumb ${DUMB_TARGETS}
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib${LIB_SUFFIX}
-    ARCHIVE DESTINATION lib${LIB_SUFFIX}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
