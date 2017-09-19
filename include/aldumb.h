@@ -78,17 +78,6 @@ DUH_SIGRENDERER *al_duh_get_sigrenderer(AL_DUH_PLAYER *dp);
 /* IMPORTANT: This function will return NULL if the music has ended. */
 DUH_SIGRENDERER *al_duh_decompose_to_sigrenderer(AL_DUH_PLAYER *dp);
 
-#ifdef DUMB_DECLARE_DEPRECATED
-
-AL_DUH_PLAYER *al_duh_encapsulate_renderer(DUH_SIGRENDERER *dr, float volume, long bufsize, int freq) DUMB_DEPRECATED;
-DUH_SIGRENDERER *al_duh_get_renderer(AL_DUH_PLAYER *dp) DUMB_DEPRECATED;
-DUH_SIGRENDERER *al_duh_decompose_to_renderer(AL_DUH_PLAYER *dp) DUMB_DEPRECATED;
-/* Replace 'renderer' with 'sigrenderer' in each case where you called one of
- * these functions.
- */
-
-#endif
-
 
 #ifdef __cplusplus
 	}
