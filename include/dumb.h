@@ -46,36 +46,6 @@
 
 #define DUMB_NAME "DUMB v" DUMB_VERSION_STR
 
-#define DUMB_YEAR  2015
-#define DUMB_MONTH 1
-#define DUMB_DAY   17
-
-#define DUMB_YEAR_STR2  "15"
-#define DUMB_YEAR_STR4  "2015"
-#define DUMB_MONTH_STR1 "1"
-#define DUMB_DAY_STR1   "17"
-
-#if DUMB_MONTH < 10
-#define DUMB_MONTH_STR2 "0" DUMB_MONTH_STR1
-#else
-#define DUMB_MONTH_STR2 DUMB_MONTH_STR1
-#endif
-
-#if DUMB_DAY < 10
-#define DUMB_DAY_STR2 "0" DUMB_DAY_STR1
-#else
-#define DUMB_DAY_STR2 DUMB_DAY_STR1
-#endif
-
-
-/* WARNING: The month and day were inadvertently swapped in the v0.8 release.
- *          Please do not compare this constant against any date in 2002. In
- *          any case, DUMB_VERSION is probably more useful for this purpose.
- */
-#define DUMB_DATE (DUMB_YEAR*10000 + DUMB_MONTH*100 + DUMB_DAY)
-
-#define DUMB_DATE_STR DUMB_DAY_STR1 "." DUMB_MONTH_STR1 "." DUMB_YEAR_STR4
-
 
 #ifdef DEBUGMODE
 
@@ -97,15 +67,13 @@
 #define TRACE 1 ? (void)0 : (void)printf
 #endif
 
-#endif
+#endif // DEBUGMODE
 
 
 #define DUMB_ID(a,b,c,d) (((unsigned int)(a) << 24) | \
                           ((unsigned int)(b) << 16) | \
                           ((unsigned int)(c) <<  8) | \
                           ((unsigned int)(d)      ))
-
-
 
 #ifndef LONG_LONG
 #if defined __GNUC__ || defined __INTEL_COMPILER || defined __MWERKS__
@@ -307,7 +275,7 @@ void duh_end_sigrenderer(DUH_SIGRENDERER *sigrenderer);
 
 /* DUH Rendering Functions */
 
-/* For packed integers: 8, 16, 24-bit wide. 
+/* For packed integers: 8, 16, 24-bit wide.
  * Intermediary buffer sig_samples must be freed with destroy_sample_buffer()
  * in the end of the rendering loop.
  */
