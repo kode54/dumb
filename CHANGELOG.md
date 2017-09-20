@@ -27,13 +27,14 @@
 * Audio playback quality improvements for STM
 * Added support for FEST MOD files
 * Default resampling quality is now cubic
-* Allegro4 support
+* Allegro 4 support
 * New dumbplay, dumbout examples
 * Multiple cmake fixes
-* duh_render() deprecated. Instead, there are new duh_render_float() 
-  and duh_render_int() API functions.
+* Deprecated `duh_render()`, use `duh_render_float()` and `duh_render_int()`
+* Removed API deprecated since 0.9.3, see the
+    [DUMB 0.9.3 deprecation reference](http://dumb.sourceforge.net/index.php?page=docs&doc=deprec)
 
-## v1.0.0, released 17 January 2017
+## v1.0.0, released 17 January 2015
 
 * Support newer compilers
 * Better audio playback quality
