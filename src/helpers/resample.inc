@@ -126,6 +126,7 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		if ( volr == volt ) volume = NULL; \
 	} else { \
 		vol = 0; \
+		volr = 0; \
 		vold = 0; \
 		volt = 0; \
 		volm = 0; \
@@ -187,6 +188,7 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		if ( lvolr == lvolt ) volume_left = NULL; \
 	} else { \
 		lvol = 0; \
+		lvolr = 0; \
 		lvold = 0; \
 		lvolt = 0; \
 		lvolm = 0; \
@@ -200,6 +202,7 @@ DUMB_RESAMPLER *dumb_start_resampler(SRCTYPE *src, int src_channels, long pos, l
 		if ( rvolr == rvolt ) volume_right = NULL; \
 	} else { \
 		rvol = 0; \
+		rvolr = 0; \
 		rvold = 0; \
 		rvolt = 0; \
 		rvolm = 0; \
