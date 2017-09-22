@@ -106,19 +106,6 @@
                           ((unsigned int)(d)      ))
 
 
-
-#ifndef LONG_LONG
-#if defined __GNUC__ || defined __INTEL_COMPILER || defined __MWERKS__
-#define LONG_LONG long long
-#elif defined _MSC_VER || defined __WATCOMC__
-#define LONG_LONG __int64
-#elif defined __sgi
-#define LONG_LONG long long
-#else
-#error 64-bit integer type unknown
-#endif
-#endif
-
 #if __GNUC__ * 100 + __GNUC_MINOR__ >= 301 /* GCC 3.1+ */
 #ifndef DUMB_DECLARE_DEPRECATED
 #define DUMB_DECLARE_DEPRECATED

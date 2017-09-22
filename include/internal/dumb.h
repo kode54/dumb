@@ -26,6 +26,7 @@
 #ifndef INTERNAL_DUMB_H
 #define INTERNAL_DUMB_H
 
+#include "../dumb.h"
 
 #undef MIN
 #undef MAX
@@ -37,6 +38,16 @@
 
 #undef ABS
 #define ABS(x) (((x) >= 0) ? (x) : (-(x)))
+
+#ifndef LONG_LONG
+# if defined __GNUC__ || defined __INTEL_COMPILER || defined __MWERKS__ || defined __sgi
+#  define LONG_LONG long long
+# elif defined _MSC_VER || defined __WATCOMC__
+#  define LONG_LONG __int64
+# else
+#  error 64-bit integer type unknown
+# endif
+#endif
 
 typedef struct DUH_SIGTYPE_DESC_LINK
 {
