@@ -399,7 +399,7 @@ static int limit_xm_skip_end(void *f, long n)
 	return dumbfile_skip( lx->remaining, n );
 }
 
-static int limit_xm_skip(void *f, long n)
+static int limit_xm_skip(void *f, dumb_off_t n)
 {
 	LIMITED_XM *lx = f;
 	lx->ptr += n;
@@ -419,7 +419,7 @@ static int limit_xm_getc(void *f)
 
 
 
-static long limit_xm_getnc(char *ptr, long n, void *f)
+static size_t limit_xm_getnc(char *ptr, size_t n, void *f)
 {
 	LIMITED_XM *lx = f;
 	int left;
@@ -450,7 +450,7 @@ static void limit_xm_close(void *f)
 
 
 /* These two can be stubs since this implementation doesn't use seeking */
-static int limit_xm_seek(void *f, long n)
+static int limit_xm_seek(void *f, dumb_off_t n)
 {
     (void)f;
     (void)n;
@@ -459,7 +459,7 @@ static int limit_xm_seek(void *f, long n)
 
 
 
-static long limit_xm_get_size(void *f)
+static dumb_off_t limit_xm_get_size(void *f)
 {
     (void)f;
     return 0;

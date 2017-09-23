@@ -43,9 +43,8 @@
  */
 
 #include <math.h>
-#include "dumb.h"
-
 #include "internal/resampler.h"
+#include "internal/dumb.h"
 
 
 

@@ -29,12 +29,12 @@ typedef struct MEMFILE MEMFILE;
 struct MEMFILE
 {
 	const char *ptr, *ptr_begin;
-	long left, size;
+	size_t left, size;
 };
 
 
 
-static int dumb_memfile_skip(void *f, long n)
+static int dumb_memfile_skip(void *f, dumb_off_t n)
 {
 	MEMFILE *m = f;
 	if (n > m->left) return -1;
@@ -55,7 +55,7 @@ static int dumb_memfile_getc(void *f)
 
 
 
-static long dumb_memfile_getnc(char *ptr, long n, void *f)
+static size_t dumb_memfile_getnc(char *ptr, size_t n, void *f)
 {
 	MEMFILE *m = f;
 	if (n > m->left) n = m->left;
@@ -73,7 +73,7 @@ static void dumb_memfile_close(void *f)
 }
 
 
-static int dumb_memfile_seek(void *f, long n)
+static int dumb_memfile_seek(void *f, dumb_off_t n)
 {
 	MEMFILE *m = f;
 
@@ -84,7 +84,7 @@ static int dumb_memfile_seek(void *f, long n)
 }
 
 
-static long dumb_memfile_get_size(void *f)
+static dumb_off_t dumb_memfile_get_size(void *f)
 {
 	MEMFILE *m = f;
 	return m->size;
@@ -103,7 +103,7 @@ static const DUMBFILE_SYSTEM memfile_dfs = {
 
 
 
-DUMBFILE *dumbfile_open_memory(const char *data, long size)
+DUMBFILE *dumbfile_open_memory(const char *data, size_t size)
 {
 	MEMFILE *m = malloc(sizeof(*m));
 	if (!m) return NULL;

@@ -48,7 +48,7 @@ static void *dumb_packfile_open(const char *filename)
 }
 
 
-static int dumb_packfile_skip(void *f, long n)
+static int dumb_packfile_skip(void *f, dumb_off_t n)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
 	file->pos += n;
@@ -67,7 +67,7 @@ static int dumb_packfile_getc(void *f)
 
 
 
-static long dumb_packfile_getnc(char *ptr, long n, void *f)
+static size_t dumb_packfile_getnc(char *ptr, size_t n, void *f)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
 	int nr = pack_fread(ptr, n, file->p);
@@ -89,14 +89,14 @@ static void dumb_packfile_noclose(void *f)
 	free(f);
 }
 
-static int dumb_packfile_seek(void *f, long n)
+static int dumb_packfile_seek(void *f, dumb_off_t n)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
 	file->pos = n;
 	return pack_fseek(file->p, n);
 }
 
-static long dumb_packfile_get_size(void *f)
+static dumb_off_t dumb_packfile_get_size(void *f)
 {
 	dumb_packfile * file = ( dumb_packfile * ) f;
 	return file->size;

@@ -2,18 +2,7 @@
 #define _T_ARRAY_H_
 
 #include <stdlib.h>
-
-#ifndef LONG_LONG
-#if defined __GNUC__ || defined __INTEL_COMPILER || defined __MWERKS__
-#define LONG_LONG long long
-#elif defined _MSC_VER || defined __WATCOMC__
-#define LONG_LONG __int64
-#elif defined __sgi
-#define LONG_LONG long long
-#else
-#error 64-bit integer type unknown
-#endif
-#endif
+#include "internal/dumb.h"
 
 void * timekeeping_array_create(size_t size);
 void timekeeping_array_destroy(void * array);

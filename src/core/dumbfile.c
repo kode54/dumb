@@ -98,7 +98,7 @@ DUMBFILE *dumbfile_open_ex(void *file, const DUMBFILE_SYSTEM *dfs)
 
 
 
-long dumbfile_pos(DUMBFILE *f)
+dumb_off_t dumbfile_pos(DUMBFILE *f)
 {
 	ASSERT(f);
 
@@ -108,7 +108,7 @@ long dumbfile_pos(DUMBFILE *f)
 
 
 /* Move forward in the file from the current position by n bytes. */
-int dumbfile_skip(DUMBFILE *f, long n)
+int dumbfile_skip(DUMBFILE *f, dumb_off_t n)
 {
 	int rv;
 
@@ -340,7 +340,7 @@ signed long dumbfile_cgetsl(DUMBFILE *f)
 
 
 
-long dumbfile_getnc(char *ptr, long n, DUMBFILE *f)
+size_t dumbfile_getnc(char *ptr, size_t n, DUMBFILE *f)
 {
 	long rv;
 
@@ -377,7 +377,7 @@ long dumbfile_getnc(char *ptr, long n, DUMBFILE *f)
 /* Move to an arbitrary position n in the file, specified relative to origin,
  * where origin shall be one of the DFS_SEEK_* constants.
  */
-int dumbfile_seek(DUMBFILE *f, long n, int origin)
+int dumbfile_seek(DUMBFILE *f, dumb_off_t n, int origin)
 {
     switch ( origin )
     {
@@ -391,7 +391,7 @@ int dumbfile_seek(DUMBFILE *f, long n, int origin)
 
 
 
-long dumbfile_get_size(DUMBFILE *f)
+dumb_off_t dumbfile_get_size(DUMBFILE *f)
 {
     return (*f->dfs->get_size)(f->file);
 }

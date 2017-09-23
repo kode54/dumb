@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "dumb.h"
+#include "internal/dumb.h"
 
 
 
