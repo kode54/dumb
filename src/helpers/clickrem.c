@@ -145,7 +145,7 @@ void dumb_remove_clicks(DUMB_CLICK_REMOVER *cr, sample_t *samples, long length, 
 
 	while (click) {
 		DUMB_CLICK *next = click->next;
-		int end = click->pos * step;
+		long end = click->pos * step;
 		ASSERT(end <= length);
 		offset = cr->offset;
 		if (offset < 0) {

@@ -426,8 +426,8 @@ S3M_COMPONENT;
 
 static int s3m_component_compare(const void *e1, const void *e2)
 {
-	return ((const S3M_COMPONENT *)e1)->offset -
-	       ((const S3M_COMPONENT *)e2)->offset;
+	return (int)(((const S3M_COMPONENT *)e1)->offset -
+	       ((const S3M_COMPONENT *)e2)->offset);
 }
 
 

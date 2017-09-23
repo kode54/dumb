@@ -37,7 +37,7 @@
 typedef struct _PSMCHUNK
 {
 	int id;
-	int len;
+	size_t len;
 	unsigned char * data;
 } PSMCHUNK;
 
@@ -56,7 +56,7 @@ typedef struct _PSMEVENT
 #define PSM_EVENT_CHANGE_PAN       13
 #define PSM_EVENT_CHANGE_VOL       14
 
-static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data, int len, int id, int version) {
+static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data, size_t len, int id, int version) {
 	int flags;
 	int insno;
 	int length;
@@ -142,7 +142,7 @@ static int it_psm_process_sample(IT_SAMPLE * sample, const unsigned char * data,
 	return 0;
 }
 
-static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * data, int len, int speed, int bpm, const unsigned char * pan, const int * vol, int version) {
+static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * data, size_t len, int speed, int bpm, const unsigned char * pan, const int * vol, int version) {
 	int length, nrows, row, rowlen, pos;
 	unsigned flags, chan;
 	IT_ENTRY * entry;
@@ -474,13 +474,14 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 
 	unsigned char * ptr;
 
-	int n, length, o;
+	size_t n, length;
+    int o;
 
 	int found;
 
 	int n_patterns = 0;
 
-	int first_pattern_line = -1;
+	long first_pattern_line = -1;
 	int first_pattern;
 
 	int speed, bpm;
@@ -497,10 +498,10 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 
 	while (length >= 8) {
 		if (n_chunks >= 768) goto error_fc;
-		chunk[n_chunks].id = dumbfile_mgetl(f);
+		chunk[n_chunks].id = (unsigned int) dumbfile_mgetl(f);
 		n = dumbfile_igetl(f);
 		length -= 8;
-		if (n < 0 || n > length)
+		if ((signed int)n <= 0 || n > length)
 			goto error_fc;
 		chunk[n_chunks].len = n;
 		if (n) {
@@ -575,7 +576,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 	}
 
 	if (n == n_chunks) return NULL;
-	subsong = n;
+	subsong = (int) n;
 
 	/*for (n = 0; n < n_chunks; n++) {
 		PSMCHUNK * c = &chunk[n];
@@ -597,7 +598,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 					songchunk[n_song_chunks].id = DUMB_ID(ptr[0], ptr[1], ptr[2], ptr[3]);
 					n = ptr[4] | (ptr[5] << 8) | (ptr[6] << 16) | (ptr[7] << 24);
 					length -= 8;
-					if (n < 0 || n > length) goto error_sc;
+					if ((signed int)n < 0 || n > length) goto error_sc;
 					songchunk[n_song_chunks].len = n;
 					songchunk[n_song_chunks].data = ptr + 8;
 					n_song_chunks++;
@@ -813,7 +814,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 							if (it_psm_process_pattern(&sigdata->pattern[n_patterns], ptr, length, speed, bpm, pan, vol, found)) goto error_ev;
 							if (first_pattern_line < 0) {
 								first_pattern_line = n;
-								first_pattern = o;
+								first_pattern = (int)o;
 							}
 							e->data[0] = n_patterns;
 							e->data[1] = n_patterns >> 8;
@@ -826,7 +827,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 							if (it_psm_process_pattern(&sigdata->pattern[n_patterns], ptr, length, speed, bpm, pan, vol, found)) goto error_ev;
 							if (first_pattern_line < 0) {
 								first_pattern_line = n;
-								first_pattern = o;
+								first_pattern = (int)o;
 							}
 							e->data[0] = n_patterns;
 							e->data[1] = n_patterns >> 8;
@@ -1192,7 +1193,8 @@ static void dumb_it_optimize_orders(DUMB_IT_SIGDATA * sigdata) {
 }
 
 int dumb_get_psm_subsong_count(DUMBFILE *f) {
-	int length, subsongs;
+	size_t length;
+    int subsongs;
 	long l;
 	
 	if (dumbfile_mgetl(f) != DUMB_ID('P','S','M',' ')) return 0;
@@ -1220,13 +1222,14 @@ int dumb_get_psm_subsong_count(DUMBFILE *f) {
 /* Eww */
 int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 {
-    size_t i, j, na, nb;
+    int i;
+    unsigned long j, na, nb;
 	char * p;
 
 	na = nb = 0;
 
 	i = memcmp( a, b, l );
-	if ( !i ) return i;
+	if ( !i ) return 0;
 
 	/* damnit */
 
@@ -1258,7 +1261,7 @@ int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 	i = memcmp( a, b, j );
 	if ( i ) return i;
 
-	return na - nb;
+	return (int)(na - nb);
 }
 
 

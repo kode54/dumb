@@ -367,7 +367,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
 					sigdata->n_samples = 15;
 				}
 			} else if ((fft & 0x00FFFFFFL) == DUMB_ID(0,'C','H','N')) {
-				n_channels = (fft >> 24) - '0';
+				n_channels = (int)((fft >> 24) - '0');
 				if ((unsigned int)(n_channels - 1) >= 9) {
 					/* Character was '0' or it wasn't a digit */
 					n_channels = 4;
@@ -505,7 +505,7 @@ static DUMB_IT_SIGDATA *it_mod_load_sigdata(DUMBFILE *f, int restrict_)
         }
 
 		if (remain > total_sample_size) {
-			sigdata->n_patterns = ( remain - total_sample_size + 4 ) / ( 256 * sigdata->n_pchannels );
+			sigdata->n_patterns = (int)(( remain - total_sample_size + 4 ) / ( 256 * sigdata->n_pchannels ));
 			if (fft == DUMB_ID('M',0,0,0) || fft == DUMB_ID('8',0,0,0)) {
 				remain -= sigdata->n_patterns * 256 * sigdata->n_pchannels;
 				if (dumbfile_skip(f, remain - total_sample_size)) {

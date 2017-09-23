@@ -62,12 +62,12 @@ static int process_pickup(DUMB_RESAMPLER *resampler)
 			if (resampler->overshot >= 3 && resampler->pos+3 >= resampler->start) COPYSRC(resampler->X, 0, src, resampler->pos+3);
 			if (resampler->overshot >= 2 && resampler->pos+2 >= resampler->start) COPYSRC(resampler->X, 1, src, resampler->pos+2);
 			if (resampler->overshot >= 1 && resampler->pos+1 >= resampler->start) COPYSRC(resampler->X, 2, src, resampler->pos+1);
-			resampler->overshot = resampler->start - resampler->pos - 1;
+			resampler->overshot = (int)(resampler->start - resampler->pos - 1);
 		} else {
 			if (resampler->overshot >= 3 && resampler->pos-3 < resampler->end) COPYSRC(resampler->X, 0, src, resampler->pos-3);
 			if (resampler->overshot >= 2 && resampler->pos-2 < resampler->end) COPYSRC(resampler->X, 1, src, resampler->pos-2);
 			if (resampler->overshot >= 1 && resampler->pos-1 < resampler->end) COPYSRC(resampler->X, 2, src, resampler->pos-1);
-			resampler->overshot = resampler->pos - resampler->end;
+			resampler->overshot = (int)(resampler->pos - resampler->end);
 		}
 
 		if (resampler->overshot < 0) {

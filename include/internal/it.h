@@ -385,7 +385,7 @@ struct IT_ENTRY
 struct IT_PATTERN
 {
 	int n_rows;
-	int n_entries;
+	size_t n_entries;
 	IT_ENTRY *entry;
 };
 
@@ -918,9 +918,9 @@ long _dumb_it_read_sample_data_adpcm4(IT_SAMPLE *sample, DUMBFILE *f);
 void _dumb_it_interleave_stereo_sample(IT_SAMPLE *sample);
 
 /* Calling either of these is optional */
-void _dumb_init_cubic();
+void _dumb_init_cubic(void);
 #ifdef _USE_SSE
-void _dumb_init_sse();
+void _dumb_init_sse(void);
 #endif
 
 #endif /* INTERNAL_IT_H */

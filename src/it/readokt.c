@@ -227,8 +227,8 @@ static IFF_CHUNKED *dumbfile_read_okt(DUMBFILE *f)
 		bytes_read = dumbfile_mgetl( f );
 		if ( bytes_read < 0 ) break;
 
-		chunk->type = bytes_read;
-		chunk->size = dumbfile_mgetl( f );
+		chunk->type = (unsigned int)bytes_read;
+		chunk->size = (unsigned int)dumbfile_mgetl( f );
 
 		if ( dumbfile_error( f ) ) break;
 
@@ -247,7 +247,7 @@ static IFF_CHUNKED *dumbfile_read_okt(DUMBFILE *f)
 				free( chunk->data );
 				break;
 			} else {
-				chunk->size = bytes_read;
+				chunk->size = (unsigned int)bytes_read;
 				mod->chunk_count++;
 				break;
 			}

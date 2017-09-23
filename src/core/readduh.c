@@ -81,7 +81,7 @@ DUH *read_duh(DUMBFILE *f)
 		return NULL;
 	}
 
-	duh->n_signals = dumbfile_igetl(f);
+	duh->n_signals = (int) dumbfile_igetl(f);
 	if (dumbfile_error(f) || duh->n_signals <= 0) {
 		free(duh);
 		return NULL;

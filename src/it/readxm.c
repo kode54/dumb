@@ -422,7 +422,7 @@ static int limit_xm_getc(void *f)
 static size_t limit_xm_getnc(char *ptr, size_t n, void *f)
 {
 	LIMITED_XM *lx = f;
-	int left;
+	long left;
 	left = lx->allocated - lx->ptr;
 	if (n > left) {
 		if (left > 0) {
@@ -818,7 +818,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 	DUMB_IT_SIGDATA *sigdata;
 	char id_text[18];
 
-	int header_size;
+	size_t header_size;
 	int flags;
 	int n_channels;
 	int total_samples;
@@ -911,7 +911,7 @@ static DUMB_IT_SIGDATA *it_xm_load_sigdata(DUMBFILE *f, int * version)
 
 	/* sanity checks */
 	// XXX
-	i = header_size - 4 - 2 * 8; /* Maximum number of orders expected */
+	i = (int)(header_size - 4 - 2 * 8); /* Maximum number of orders expected */
 	if (dumbfile_error(f) || sigdata->n_orders <= 0 || sigdata->n_orders > i || !sigdata->n_patterns || sigdata->n_patterns > 256 || !sigdata->n_instruments || sigdata->n_instruments > 256 || n_channels > DUMB_IT_N_CHANNELS) {
 		_dumb_it_unload_sigdata(sigdata);
 		return NULL;

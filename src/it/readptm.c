@@ -149,7 +149,7 @@ static int it_ptm_read_sample_data(IT_SAMPLE *sample, int last, DUMBFILE *f)
 
 
 
-static int it_ptm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buffer, int length)
+static int it_ptm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *buffer, size_t length)
 {
 	int buflen = 0;
 	int bufpos = 0;
@@ -313,8 +313,8 @@ PTM_COMPONENT;
 
 static int ptm_component_compare(const void *e1, const void *e2)
 {
-	return ((const PTM_COMPONENT *)e1)->offset -
-	       ((const PTM_COMPONENT *)e2)->offset;
+	return (int)(((const PTM_COMPONENT *)e1)->offset -
+	       ((const PTM_COMPONENT *)e2)->offset);
 }
 
 

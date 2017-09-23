@@ -24,17 +24,17 @@
 #include "internal/it.h"
 #include "internal/riff.h"
 
-static int it_riff_am_process_sample( IT_SAMPLE * sample, DUMBFILE * f, int len, int ver )
+static int it_riff_am_process_sample( IT_SAMPLE * sample, DUMBFILE * f, size_t len, int ver )
 {
-	int header_length;
+	size_t header_length;
 	int default_pan;
 	int default_volume;
 	int flags;
-	int length;
-	int length_bytes;
-	int loop_start;
-	int loop_end;
-    int sample_rate;
+	size_t length;
+	size_t length_bytes;
+	size_t loop_start;
+	size_t loop_end;
+    size_t sample_rate;
 
     long start = dumbfile_pos( f );
 
@@ -145,7 +145,7 @@ static int it_riff_am_process_sample( IT_SAMPLE * sample, DUMBFILE * f, int len,
 	return 0;
 }
 
-static int it_riff_am_process_pattern( IT_PATTERN * pattern, DUMBFILE * f, int len, int ver )
+static int it_riff_am_process_pattern( IT_PATTERN * pattern, DUMBFILE * f, size_t len, int ver )
 {
     int nrows, row;
     long start, end;
@@ -266,7 +266,8 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 {
 	DUMB_IT_SIGDATA *sigdata;
 
-    int n, o, p, found;
+    int n, found;
+    size_t o, p;
 
 	if ( ! stream ) goto error;
 
@@ -300,7 +301,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
         case DUMB_ID( 'P', 'A', 'T', 'T' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_sd;
             o = dumbfile_getc( f );
-            if ( o >= sigdata->n_patterns ) sigdata->n_patterns = o + 1;
+            if ( o >= sigdata->n_patterns ) sigdata->n_patterns = (int)(o + 1);
             o = dumbfile_igetl( f );
             if ( (unsigned)o + 5 > c->size ) goto error_sd;
 			break;
@@ -310,13 +311,13 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 				if ( c->size < 0xE1 ) goto error_sd;
                 if ( dumbfile_seek( f, c->offset + 1, DFS_SEEK_SET ) ) goto error_sd;
                 o = dumbfile_getc( f );
-                if ( o >= sigdata->n_samples ) sigdata->n_samples = o + 1;
+                if ( o >= sigdata->n_samples ) sigdata->n_samples = (int)(o + 1);
                 if ( c->size >= 0x121 )
                 {
                     if ( dumbfile_seek( f, c->offset + 0xE1, DFS_SEEK_SET ) ) goto error_sd;
                     if ( dumbfile_mgetl( f ) == DUMB_ID('S','A','M','P') )
                     {
-                        unsigned size = dumbfile_igetl( f );
+                        size_t size = dumbfile_igetl( f );
                         if ( size + 0xE1 + 8 > c->size ) goto error_sd;
                     }
 				}
@@ -436,7 +437,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
                     if ( dumbfile_seek( f, c->offset + 0xE1, DFS_SEEK_SET ) ) goto error_usd;
                     if ( dumbfile_mgetl( f ) == DUMB_ID('S','A','M','P') )
                     {
-                        unsigned size = dumbfile_igetl( f );
+                        size_t size = dumbfile_igetl( f );
                         if ( it_riff_am_process_sample( sample, f, size, 0 ) ) goto error_usd;
                         break;
                     }
@@ -466,7 +467,8 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 {
 	DUMB_IT_SIGDATA *sigdata;
 
-	int n, o, p, found;
+	int n, found;
+    size_t o, p;
 
     if ( ! f || ! stream ) goto error;
 
@@ -500,7 +502,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 		case DUMB_ID( 'P', 'A', 'T', 'T' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_sd;
             o = dumbfile_getc( f );
-            if ( o >= sigdata->n_patterns ) sigdata->n_patterns = o + 1;
+            if ( o >= sigdata->n_patterns ) sigdata->n_patterns = (int)(o + 1);
             o = dumbfile_igetl( f );
             if ( (unsigned)o + 5 > c->size ) goto error_sd;
 			break;
@@ -519,7 +521,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 						case DUMB_ID( 'I', 'N', 'S', 'T' ):
 							{
 								struct riff * temp;
-								unsigned size;
+								size_t size;
 								unsigned sample_found;
                                 if ( dumbfile_seek( f, chk->offset, DFS_SEEK_SET ) ) goto error_sd;
                                 size = dumbfile_igetl( f );
@@ -527,7 +529,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 								sample_found = 0;
                                 dumbfile_skip( f, 1 );
                                 p = dumbfile_getc( f );
-                                if ( p >= sigdata->n_samples ) sigdata->n_samples = p + 1;
+                                if ( p >= sigdata->n_samples ) sigdata->n_samples = (int)(p + 1);
                                 temp = riff_parse( f, chk->offset + 4 + size, chk->size - size - 4, 1 );
 								if ( temp )
 								{
@@ -675,7 +677,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 						case DUMB_ID( 'I', 'N', 'S', 'T' ):
 							{
 								struct riff * temp;
-								unsigned size;
+								size_t size;
 								unsigned sample_found;
 								IT_SAMPLE * sample;
                                 if ( dumbfile_seek( f, chk->offset, DFS_SEEK_SET ) ) goto error_usd;
