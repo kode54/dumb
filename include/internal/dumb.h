@@ -67,7 +67,7 @@ DUH_SIGNAL;
 
 struct DUH
 {
-	long length;
+	dumb_off_t length;
 
 	int n_tags;
 	char *(*tag)[2];

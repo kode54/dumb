@@ -50,7 +50,7 @@ static DUH_SIGNAL *make_signal(DUH_SIGTYPE_DESC *desc, sigdata_t *sigdata)
 
 
 DUH *make_duh(
-	long length,
+	dumb_off_t length,
 	int n_tags,
 	const char *const tags[][2],
 	int n_signals,

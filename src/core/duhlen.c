@@ -28,14 +28,14 @@
 
 
 
-long duh_get_length(DUH *duh)
+dumb_off_t duh_get_length(DUH *duh)
 {
 	return duh ? duh->length : 0;
 }
 
 
 
-void duh_set_length(DUH *duh, long length)
+void duh_set_length(DUH *duh, dumb_off_t length)
 {
 	if (duh)
 		duh->length = length;

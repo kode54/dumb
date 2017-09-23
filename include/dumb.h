@@ -129,16 +129,47 @@ void dumb_exit(void);
 
 
 /* File Input Functions */
+#ifdef DUMB_OFF_T_CUSTOM
+    typedef dumb_off_t DUMB_OFF_T_CUSTOM;
+#elif defined _MSC_VER  || defined __WATCOMC__
+    typedef __int64 dumb_off_t;
+#elif defined __DJGPP__
+    typedef off64_t dumb_off_t;
+#elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 500 || defined __MINGW32__
+	typedef off_t dumb_off_t;
+#else
+    typedef long long dumb_off_t;
+#endif
+
+/*
+ * If the build fails here, it does so, because we need a 64-bit-type for
+ * defining offsets. To fix this do either of the following:
+ *
+ * 1. Compile your code with -D_FILE_OFFSET_BITS=64, so that off_t is 64-bit
+ *    (recommended, but make sure the rest of your code can handle it)
+ * 2. Supply your own definition of a signed 64-bit integer
+ *    such as off64_t or int64_t before including dumb.h as follows:
+ *    #define DUMB_OFF_T_CUSTOM int64_t
+ */
+#if (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)) && !defined __cplusplus
+	_Static_assert(sizeof(dumb_off_t) >= 8, "fuse: off_t must be 64bit");
+#else
+	struct dumb_off_t_needs_to_be_at_least_8_bytes { \
+		unsigned int dumb_off_t_needs_to_be_at_least_8_bytes: \
+			((sizeof(dumb_off_t) >= 8) ? 1 : -42); \
+	};
+#endif
+
 
 typedef struct DUMBFILE_SYSTEM
 {
 	void *(*open)(const char *filename);
-	int (*skip)(void *f, long n);
+	int (*skip)(void *f, dumb_off_t n);
 	int (*getc)(void *f);
-	long (*getnc)(char *ptr, long n, void *f);
+	size_t (*getnc)(char *ptr, size_t n, void *f);
 	void (*close)(void *f);
-    int (*seek)(void *f, long n);
-    long (*get_size)(void *f);
+    int (*seek)(void *f, dumb_off_t offset);
+    dumb_off_t (*get_size)(void *f);
 }
 DUMBFILE_SYSTEM;
 
@@ -149,16 +180,16 @@ void register_dumbfile_system(const DUMBFILE_SYSTEM *dfs);
 DUMBFILE *dumbfile_open(const char *filename);
 DUMBFILE *dumbfile_open_ex(void *file, const DUMBFILE_SYSTEM *dfs);
 
-long dumbfile_pos(DUMBFILE *f);
-int dumbfile_skip(DUMBFILE *f, long n);
+dumb_off_t dumbfile_pos(DUMBFILE *f);
+int dumbfile_skip(DUMBFILE *f, dumb_off_t n);
 
 #define DFS_SEEK_SET 0
 #define DFS_SEEK_CUR 1
 #define DFS_SEEK_END 2
 
-int dumbfile_seek(DUMBFILE *f, long n, int origin);
+int dumbfile_seek(DUMBFILE *f, dumb_off_t n, int origin);
 
-long dumbfile_get_size(DUMBFILE *f);
+dumb_off_t dumbfile_get_size(DUMBFILE *f);
 
 int dumbfile_getc(DUMBFILE *f);
 
@@ -171,7 +202,7 @@ long dumbfile_mgetl(DUMBFILE *f);
 unsigned long dumbfile_cgetul(DUMBFILE *f);
 signed long dumbfile_cgetsl(DUMBFILE *f);
 
-long dumbfile_getnc(char *ptr, long n, DUMBFILE *f);
+size_t dumbfile_getnc(char *ptr, size_t n, DUMBFILE *f);
 
 int dumbfile_error(DUMBFILE *f);
 int dumbfile_close(DUMBFILE *f);
@@ -186,7 +217,7 @@ DUMBFILE *dumbfile_open_stdfile(FILE *p);
 
 /* Memory File Input Module */
 
-DUMBFILE *dumbfile_open_memory(const char *data, long size);
+DUMBFILE *dumbfile_open_memory(const char *data, size_t size);
 
 
 /* DUH Management */
@@ -200,7 +231,7 @@ void unload_duh(DUH *duh);
 DUH *load_duh(const char *filename);
 DUH *read_duh(DUMBFILE *f);
 
-long duh_get_length(DUH *duh);
+dumb_off_t duh_get_length(DUH *duh);
 
 const char *duh_get_tag(DUH *duh, const char *key);
 int duh_get_tag_iterator_size(DUH *duh);
@@ -785,7 +816,7 @@ extern int dumb_it_default_panning_separation; /* in percent, default 25 */
 /* DUH Construction */
 
 DUH *make_duh(
-	long length,
+	dumb_off_t length,
 	int n_tags,
 	const char *const tag[][2],
 	int n_signals,
@@ -793,7 +824,7 @@ DUH *make_duh(
 	sigdata_t *sigdata[]
 );
 
-void duh_set_length(DUH *duh, long length);
+void duh_set_length(DUH *duh, dumb_off_t length);
 
 
 #ifdef __cplusplus
