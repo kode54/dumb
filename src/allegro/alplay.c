@@ -251,27 +251,3 @@ DUH_SIGRENDERER *al_duh_decompose_to_sigrenderer(AL_DUH_PLAYER *dp)
 	}
 	return NULL;
 }
-
-
-
-/* DEPRECATED */
-AL_DUH_PLAYER *al_duh_encapsulate_renderer(DUH_SIGRENDERER *dr, float volume, long bufsize, int freq)
-{
-	return al_duh_encapsulate_sigrenderer(dr, volume, bufsize, freq);
-}
-
-
-
-/* DEPRECATED */
-DUH_SIGRENDERER *al_duh_get_renderer(AL_DUH_PLAYER *dp)
-{
-	return al_duh_get_sigrenderer(dp);
-}
-
-
-
-/* DEPRECATED */
-DUH_SIGRENDERER *al_duh_decompose_to_renderer(AL_DUH_PLAYER *dp)
-{
-	return al_duh_decompose_to_sigrenderer(dp);
-}

@@ -46,36 +46,6 @@
 
 #define DUMB_NAME "DUMB v" DUMB_VERSION_STR
 
-#define DUMB_YEAR  2015
-#define DUMB_MONTH 1
-#define DUMB_DAY   17
-
-#define DUMB_YEAR_STR2  "15"
-#define DUMB_YEAR_STR4  "2015"
-#define DUMB_MONTH_STR1 "1"
-#define DUMB_DAY_STR1   "17"
-
-#if DUMB_MONTH < 10
-#define DUMB_MONTH_STR2 "0" DUMB_MONTH_STR1
-#else
-#define DUMB_MONTH_STR2 DUMB_MONTH_STR1
-#endif
-
-#if DUMB_DAY < 10
-#define DUMB_DAY_STR2 "0" DUMB_DAY_STR1
-#else
-#define DUMB_DAY_STR2 DUMB_DAY_STR1
-#endif
-
-
-/* WARNING: The month and day were inadvertently swapped in the v0.8 release.
- *          Please do not compare this constant against any date in 2002. In
- *          any case, DUMB_VERSION is probably more useful for this purpose.
- */
-#define DUMB_DATE (DUMB_YEAR*10000 + DUMB_MONTH*100 + DUMB_DAY)
-
-#define DUMB_DATE_STR DUMB_DAY_STR1 "." DUMB_MONTH_STR1 "." DUMB_YEAR_STR4
-
 
 #ifdef DEBUGMODE
 
@@ -97,14 +67,13 @@
 #define TRACE 1 ? (void)0 : (void)printf
 #endif
 
-#endif
+#endif // DEBUGMODE
 
 
 #define DUMB_ID(a,b,c,d) (((unsigned int)(a) << 24) | \
                           ((unsigned int)(b) << 16) | \
                           ((unsigned int)(c) <<  8) | \
                           ((unsigned int)(d)      ))
-
 
 #if __GNUC__ * 100 + __GNUC_MINOR__ >= 301 /* GCC 3.1+ */
 #ifndef DUMB_DECLARE_DEPRECATED
@@ -243,50 +212,6 @@ typedef struct DUH_SIGRENDERER DUH_SIGRENDERER;
 
 DUH_SIGRENDERER *duh_start_sigrenderer(DUH *duh, int sig, int n_channels, long pos);
 
-#ifdef DUMB_DECLARE_DEPRECATED
-typedef void (*DUH_SIGRENDERER_CALLBACK)(void *data, sample_t **samples, int n_channels, long length);
-/* This is deprecated, but is not marked as such because GCC tends to
- * complain spuriously when the typedef is used later. See comments below.
- */
-
-void duh_sigrenderer_set_callback(
-	DUH_SIGRENDERER *sigrenderer,
-	DUH_SIGRENDERER_CALLBACK callback, void *data
-) DUMB_DEPRECATED;
-/* The 'callback' argument's type has changed for const-correctness. See the
- * DUH_SIGRENDERER_CALLBACK definition just above. Also note that the samples
- * in the buffer are now 256 times as large; the normal range is -0x800000 to
- * 0x7FFFFF. The function has been renamed partly because its functionality
- * has changed slightly and partly so that its name is more meaningful. The
- * new one is duh_sigrenderer_set_analyser_callback(), and the typedef for
- * the function pointer has also changed, from DUH_SIGRENDERER_CALLBACK to
- * DUH_SIGRENDERER_ANALYSER_CALLBACK. (If you wanted to use this callback to
- * apply a DSP effect, don't worry; there is a better way of doing this. It
- * is undocumented, so contact me and I shall try to help. Contact details
- * are in readme.txt.)
- */
-
-typedef void (*DUH_SIGRENDERER_ANALYSER_CALLBACK)(void *data, const sample_t *const *samples, int n_channels, long length);
-/* This is deprecated, but is not marked as such because GCC tends to
- * complain spuriously when the typedef is used later. See comments below.
- */
-
-void duh_sigrenderer_set_analyser_callback(
-	DUH_SIGRENDERER *sigrenderer,
-	DUH_SIGRENDERER_ANALYSER_CALLBACK callback, void *data
-) DUMB_DEPRECATED;
-/* This is deprecated because the meaning of the 'samples' parameter in the
- * callback needed to change. For stereo applications, the array used to be
- * indexed with samples[channel][pos]. It is now indexed with
- * samples[0][pos*2+channel]. Mono sample data are still indexed with
- * samples[0][pos]. The array is still 2D because samples will probably only
- * ever be interleaved in twos. In order to fix your code, adapt it to the
- * new sample layout and then call
- * duh_sigrenderer_set_sample_analyser_callback below instead of this
- * function.
- */
-#endif
-
 typedef void (*DUH_SIGRENDERER_SAMPLE_ANALYSER_CALLBACK)(void *data, const sample_t *const *samples, int n_channels, long length);
 
 void duh_sigrenderer_set_sample_analyser_callback(
@@ -298,19 +223,6 @@ int duh_sigrenderer_get_n_channels(DUH_SIGRENDERER *sigrenderer);
 long duh_sigrenderer_get_position(DUH_SIGRENDERER *sigrenderer);
 
 void duh_sigrenderer_set_sigparam(DUH_SIGRENDERER *sigrenderer, unsigned char id, long value);
-
-#ifdef DUMB_DECLARE_DEPRECATED
-long duh_sigrenderer_get_samples(
-	DUH_SIGRENDERER *sigrenderer,
-	float volume, float delta,
-	long size, sample_t **samples
-) DUMB_DEPRECATED;
-/* The sample format has changed, so if you were using this function,
- * you should switch to duh_sigrenderer_generate_samples() and change
- * how you interpret the samples array. See the comments for
- * duh_sigrenderer_set_analyser_callback().
- */
-#endif
 
 long duh_sigrenderer_generate_samples(
 	DUH_SIGRENDERER *sigrenderer,
@@ -325,7 +237,7 @@ void duh_end_sigrenderer(DUH_SIGRENDERER *sigrenderer);
 
 /* DUH Rendering Functions */
 
-/* For packed integers: 8, 16, 24-bit wide. 
+/* For packed integers: 8, 16, 24-bit wide.
  * Intermediary buffer sig_samples must be freed with destroy_sample_buffer()
  * in the end of the rendering loop.
  */
@@ -353,44 +265,13 @@ long duh_render_float(
 
 #ifdef DUMB_DECLARE_DEPRECATED
 
+/* DEPRECATED since 2.0.0. Please use duh_render_int or duh_render_float. */
 long duh_render(
 	DUH_SIGRENDERER *sigrenderer,
 	int bits, int unsign,
 	float volume, float delta,
 	long size, void *sptr
 ) DUMB_DEPRECATED;
-
-long duh_render_signal(
-	DUH_SIGRENDERER *sigrenderer,
-	float volume, float delta,
-	long size, sample_t **samples
-) DUMB_DEPRECATED;
-/* Please use duh_sigrenderer_generate_samples(), and see the
- * comments for the deprecated duh_sigrenderer_get_samples() too.
- */
-
-typedef DUH_SIGRENDERER DUH_RENDERER DUMB_DEPRECATED;
-/* Please use DUH_SIGRENDERER instead of DUH_RENDERER. */
-
-DUH_SIGRENDERER *duh_start_renderer(DUH *duh, int n_channels, long pos) DUMB_DEPRECATED;
-/* Please use duh_start_sigrenderer() instead. Pass 0 for 'sig'. */
-
-int duh_renderer_get_n_channels(DUH_SIGRENDERER *dr) DUMB_DEPRECATED;
-long duh_renderer_get_position(DUH_SIGRENDERER *dr) DUMB_DEPRECATED;
-/* Please use the duh_sigrenderer_*() equivalents of these two functions. */
-
-void duh_end_renderer(DUH_SIGRENDERER *dr) DUMB_DEPRECATED;
-/* Please use duh_end_sigrenderer() instead. */
-
-DUH_SIGRENDERER *duh_renderer_encapsulate_sigrenderer(DUH_SIGRENDERER *sigrenderer) DUMB_DEPRECATED;
-DUH_SIGRENDERER *duh_renderer_get_sigrenderer(DUH_SIGRENDERER *dr) DUMB_DEPRECATED;
-DUH_SIGRENDERER *duh_renderer_decompose_to_sigrenderer(DUH_SIGRENDERER *dr) DUMB_DEPRECATED;
-/* These functions have become no-ops that just return the parameter.
- * So, for instance, replace
- *   duh_renderer_encapsulate_sigrenderer(my_sigrenderer)
- * with
- *   my_sigrenderer
- */
 
 #endif
 
@@ -676,13 +557,6 @@ sigrenderer_t *duh_get_raw_sigrenderer(DUH_SIGRENDERER *sigrenderer, long type);
 
 /* Sample Buffer Allocation Helpers */
 
-#ifdef DUMB_DECLARE_DEPRECATED
-sample_t **create_sample_buffer(int n_channels, long length) DUMB_DEPRECATED;
-/* DUMB has been changed to interleave stereo samples. Use
- * allocate_sample_buffer() instead, and see the comments for
- * duh_sigrenderer_set_analyser_callback().
- */
-#endif
 sample_t **allocate_sample_buffer(int n_channels, long length);
 void destroy_sample_buffer(sample_t **samples);
 

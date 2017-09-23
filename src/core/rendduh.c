@@ -87,13 +87,8 @@
 }
 
 
-/* DEPRECATED */
-DUH_SIGRENDERER *duh_start_renderer(DUH *duh, int n_channels, long pos)
-{
-	return duh_start_sigrenderer(duh, 0, n_channels, pos);
-}
 
-
+/* This is the only deprecated function in 2.0.0. */
 /* DEPRECATED */
 long duh_render(
 	DUH_SIGRENDERER *sigrenderer,
@@ -200,7 +195,7 @@ long duh_render_int(
 	if (bits == 24) {
 		long i = 0;
 		ASSERT(unsign == 0);
-		
+
 		for (n = 0; n < size * n_channels; n++, i += 3) {
 			CONVERT24(sampptr[0][n], i);
 		}
@@ -278,54 +273,7 @@ long duh_render_float(
 		for (n = 0; n < size * n_channels; n++) {
 			CONVERT32F(sampptr[0][n], n);
 		}
-	} 
+	}
 
 	return size;
-}
-
-
-/* DEPRECATED */
-int duh_renderer_get_n_channels(DUH_SIGRENDERER *dr)
-{
-	return duh_sigrenderer_get_n_channels(dr);
-}
-
-
-
-/* DEPRECATED */
-long duh_renderer_get_position(DUH_SIGRENDERER *dr)
-{
-	return duh_sigrenderer_get_position(dr);
-}
-
-
-
-/* DEPRECATED */
-void duh_end_renderer(DUH_SIGRENDERER *dr)
-{
-	duh_end_sigrenderer(dr);
-}
-
-
-
-/* DEPRECATED */
-DUH_SIGRENDERER *duh_renderer_encapsulate_sigrenderer(DUH_SIGRENDERER *sigrenderer)
-{
-	return sigrenderer;
-}
-
-
-
-/* DEPRECATED */
-DUH_SIGRENDERER *duh_renderer_get_sigrenderer(DUH_SIGRENDERER *dr)
-{
-	return dr;
-}
-
-
-
-/* DEPRECATED */
-DUH_SIGRENDERER *duh_renderer_decompose_to_sigrenderer(DUH_SIGRENDERER *dr)
-{
-	return dr;
 }
