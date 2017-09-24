@@ -216,7 +216,7 @@ static int it_ptm_read_pattern(IT_PATTERN *pattern, DUMBFILE *f, unsigned char *
 		/* Great. We ran out of data, but there should be data for more rows.
 		 * Fill the rest with null data...
 		 */
-		if (buflen >= length && pattern->n_rows < 64)
+		if (buflen >= (dumb_ssize_t) length && pattern->n_rows < 64)
 		{
 			while (pattern->n_rows < 64)
 			{

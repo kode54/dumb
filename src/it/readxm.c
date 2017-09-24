@@ -419,12 +419,12 @@ static int limit_xm_getc(void *f)
 
 
 
-static size_t limit_xm_getnc(char *ptr, size_t n, void *f)
+static dumb_ssize_t limit_xm_getnc(char *ptr, size_t n, void *f)
 {
 	LIMITED_XM *lx = f;
-	long left;
+	dumb_ssize_t left;
 	left = lx->allocated - lx->ptr;
-	if (n > left) {
+	if ((dumb_ssize_t) n > left) {
 		if (left > 0) {
 			memcpy( ptr, lx->buffered + lx->ptr, left );
 			memset( ptr + left, 0, n - left );

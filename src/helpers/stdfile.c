@@ -70,7 +70,7 @@ static int dumb_stdfile_getc(void *f)
 
 
 
-static size_t dumb_stdfile_getnc(char *ptr, size_t n, void *f)
+static dumb_ssize_t dumb_stdfile_getnc(char *ptr, size_t n, void *f)
 {
     dumb_stdfile * file = ( dumb_stdfile * ) f;
     return fread(ptr, 1, n, file->file);

@@ -129,13 +129,30 @@ void dumb_exit(void);
 	};
 #endif
 
+/*
+ * ssize_t is defined in POSIX to hold either a size_t or an error.
+ * We will use dumb_ssize_t on all platforms for (either size_t or error) in
+ * all getnc-type functions. See DUMBFILE_SYSTEM.md for that function's spec.
+ */
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T dumb_ssize_t;
+#else
+#include <sys/types.h>
+typedef ssize_t dumb_ssize_t;
+#endif
 
+/*
+ * Register your own file-handling functions as callbacks via this struct.
+ * See DUMBFILE_SYSTEM.md in the project root directory for the spec.
+ * DUMB 2.0 doesn't use long anymore. The 64-bit dumb_*_t are defined above.
+ */
 typedef struct DUMBFILE_SYSTEM
 {
 	void *(*open)(const char *filename);
 	int (*skip)(void *f, dumb_off_t n);
 	int (*getc)(void *f);
-	size_t (*getnc)(char *ptr, size_t n, void *f);
+	dumb_ssize_t (*getnc)(char *ptr, size_t n, void *f);
 	void (*close)(void *f);
     int (*seek)(void *f, dumb_off_t offset);
     dumb_off_t (*get_size)(void *f);
@@ -171,7 +188,7 @@ long dumbfile_mgetl(DUMBFILE *f);
 unsigned long dumbfile_cgetul(DUMBFILE *f);
 signed long dumbfile_cgetsl(DUMBFILE *f);
 
-size_t dumbfile_getnc(char *ptr, size_t n, DUMBFILE *f);
+dumb_ssize_t dumbfile_getnc(char *ptr, size_t n, DUMBFILE *f);
 
 int dumbfile_error(DUMBFILE *f);
 int dumbfile_close(DUMBFILE *f);

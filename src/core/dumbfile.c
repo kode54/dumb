@@ -340,9 +340,9 @@ signed long dumbfile_cgetsl(DUMBFILE *f)
 
 
 
-size_t dumbfile_getnc(char *ptr, size_t n, DUMBFILE *f)
+dumb_ssize_t dumbfile_getnc(char *ptr, size_t n, DUMBFILE *f)
 {
-	long rv;
+	dumb_ssize_t rv;
 
 	ASSERT(f);
 	ASSERT(n >= 0);
@@ -352,12 +352,12 @@ size_t dumbfile_getnc(char *ptr, size_t n, DUMBFILE *f)
 
 	if (f->dfs->getnc) {
 		rv = (*f->dfs->getnc)(ptr, n, f->file);
-		if (rv < n) {
+		if (rv < (dumb_ssize_t) n) {
 			f->pos = -1;
 			return MAX(rv, 0);
 		}
 	} else {
-		for (rv = 0; rv < n; rv++) {
+		for (rv = 0; rv < (dumb_ssize_t) n; rv++) {
 			int c = (*f->dfs->getc)(f->file);
 			if (c < 0) {
 				f->pos = -1;

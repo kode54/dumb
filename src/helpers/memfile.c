@@ -37,7 +37,7 @@ struct MEMFILE
 static int dumb_memfile_skip(void *f, dumb_off_t n)
 {
 	MEMFILE *m = f;
-	if (n > m->left) return -1;
+	if (n > (dumb_off_t)m->left) return -1;
 	m->ptr += n;
 	m->left -= n;
 	return 0;
@@ -55,7 +55,7 @@ static int dumb_memfile_getc(void *f)
 
 
 
-static size_t dumb_memfile_getnc(char *ptr, size_t n, void *f)
+static dumb_ssize_t dumb_memfile_getnc(char *ptr, size_t n, void *f)
 {
 	MEMFILE *m = f;
 	if (n > m->left) n = m->left;

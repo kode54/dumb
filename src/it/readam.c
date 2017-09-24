@@ -267,7 +267,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 	DUMB_IT_SIGDATA *sigdata;
 
     int n, found;
-    size_t o, p;
+    int o, p;
 
 	if ( ! stream ) goto error;
 
@@ -301,7 +301,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
         case DUMB_ID( 'P', 'A', 'T', 'T' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_sd;
             o = dumbfile_getc( f );
-            if ( o >= sigdata->n_patterns ) sigdata->n_patterns = (int)(o + 1);
+            if ( o >= sigdata->n_patterns ) sigdata->n_patterns = (o + 1);
             o = dumbfile_igetl( f );
             if ( (unsigned)o + 5 > c->size ) goto error_sd;
 			break;
@@ -468,7 +468,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 	DUMB_IT_SIGDATA *sigdata;
 
 	int n, found;
-    size_t o, p;
+    int o, p;
 
     if ( ! f || ! stream ) goto error;
 

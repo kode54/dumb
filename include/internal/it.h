@@ -385,7 +385,7 @@ struct IT_ENTRY
 struct IT_PATTERN
 {
 	int n_rows;
-	size_t n_entries;
+	int n_entries;
 	IT_ENTRY *entry;
 };
 
@@ -724,7 +724,7 @@ struct DUMB_IT_SIGRENDERER
 	void * played;
 
 	/*
-	   Loop indicator for internal processes, may also be useful for external processes 
+	   Loop indicator for internal processes, may also be useful for external processes
 	   0 - Not looped
 	   1 - Looped
 	  -1 - Continued past loop
@@ -743,7 +743,7 @@ struct DUMB_IT_SIGRENDERER
 	int gvz_sub_time;
 
     int ramp_style;
-    
+
 	//int max_output;
 };
 

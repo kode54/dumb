@@ -1,22 +1,6 @@
 Specification of DUMBFILE_SYSTEM
 ================================
 
-The header `dumb.h` defines `DUMBFILE_SYSTEM` as a struct of function pointers:
-
-```
-typedef struct DUMBFILE_SYSTEM
-{
-    void *(*open)(const char *filename);
-    int (*skip)(void *f, long n);
-    int (*getc)(void *f);
-    long (*getnc)(char *ptr, long n, void *f);
-    void (*close)(void *f);
-    int (*seek)(void *f, long n);
-    long (*get_size)(void *f);
-}
-DUMBFILE_SYSTEM;
-```
-
 DUMB is designed filesystem-agnostic, even though the C standard library
 already defines an abstraction over files on a disk. This is useful because
 Allegro 4 and 5 define their own abstractions.
@@ -25,6 +9,27 @@ To register your own filesystem abstraction with DUMB, you must create an
 instance of struct `DUMBFILE_SYSTEM`, fill in your own function pointers
 according to the specification below, and call `register_dumbfile_system` on
 your instance.
+
+The header `dumb.h` defines `DUMBFILE_SYSTEM` as a struct of function pointers:
+
+```
+typedef struct DUMBFILE_SYSTEM
+{
+    void *(*open)(const char *filename);
+    int (*skip)(void *f, dumb_off_t n);
+    int (*getc)(void *f);
+    dumb_ssize_t (*getnc)(char *ptr, size_t n, void *f);
+    void (*close)(void *f);
+    int (*seek)(void *f, dumb_off_t n);
+    dumb_off_t (*get_size)(void *f);
+}
+DUMBFILE_SYSTEM;
+```
+
+Here, `dumb_off_t` is a signed integer at least 64 bits wide, it is intended
+to measure file offsets. The return type `dumb_ssize_t` is a signed integer
+exactly as wide as `size_t`, it is intended to store either a `size_t` or a
+negative error code. Both `dumb_*_t` are defined in `dumb.h`.
 
 The function pointers `skip` and `getnc` are optional, i.e., you may set
 some of these to `NULL` in your struct instance. DUMB will then try to
@@ -75,7 +80,7 @@ skip
 ----
 
 ```
-int (*skip)(void *f, long n);
+int (*skip)(void *f, dumb_off_t n);
 ```
 
 Advance the position in the file.
@@ -84,8 +89,8 @@ Arguments:
 
 * `void *f`: A file handle that `open` returned. Guaranteed non-`NULL`.
 
-* `long n`: Number of bytes to advance in the file. DUMB guarantees to
-    call this function only with `n >= 0`.
+* `dumb_off_t n`: Number of bytes to advance in the file. DUMB will only
+call this with `n >= 0`. For `n < 0`, the behavior of `skip` is undefined.
 
 Returns as `int`:
 
@@ -126,21 +131,21 @@ getnc
 -----
 
 ```
-long (*getnc)(char *ptr, long n, void *f);
+dumb_ssize_t (*getnc)(char *ptr, size_t n, void *f);
 ```
 
 Read up to the given number of bytes from the file into a given buffer.
 
 * `char *ptr`: The start of a buffer provided by DUMB.
 
-* `long n`: The length of the number of bytes to be read. DUMB guarantees
-    to call this function only with `n >= 0`.
+* `size_t n`: The length of the number of bytes to be read.
 
 * `void *f`: A file handle that `open` returned. Guaranteed non-`NULL`.
 
-Returns as `long`:
+Returns as `dumb_ssize_t`:
 
-* the number of bytes successfully read.
+* the number of bytes successfully read, if it was possible to read at least
+one byte.
 
 * `-1` on error.
 
@@ -178,7 +183,7 @@ seek
 ----
 
 ```
-int (*seek)(void *f, long n);
+int (*seek)(void *f, dumb_off_t n);
 ```
 
 Jump to an arbitrary position in the file.
@@ -187,7 +192,7 @@ Arguments:
 
 * `void *f`: A file handle that `open` returned. Guaranteed non-`NULL`.
 
-* `long n`: The position in the file, relative to the beginning.
+* `dumb_off_t n`: The position in the file, relative to the beginning.
     There is no guarantee whether `n >= 0`.
 
 Returns as `int`:
@@ -207,7 +212,7 @@ get_size
 --------
 
 ```
-long (*get_size)(void *f);
+dumb_off_t (*get_size)(void *f);
 ```
 
 Get the length in bytes, i.e., the position after the final byte, of a file.
@@ -216,6 +221,6 @@ Arguments:
 
 * `void *f`: A file handle that `open` returned. Guaranteed non-`NULL`.
 
-Returns as `long`:
+Returns as `dumb_off_t`:
 
 * the length of the file in bytes.
