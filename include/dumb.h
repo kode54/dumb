@@ -143,19 +143,44 @@ typedef ssize_t dumb_ssize_t;
 #endif
 
 /*
+ * DUMB provides an abstraction over files, to work with memory-mapped files,
+ * files on disk, files read into memory by other libraries in their own
+ * custom formats, ...
+ *
  * Register your own file-handling functions as callbacks via this struct.
- * See DUMBFILE_SYSTEM.md in the project root directory for the spec.
  * DUMB 2.0 doesn't use long anymore. The 64-bit dumb_*_t are defined above.
+ *
+ * See DUMBFILE_SYSTEM.md in project's root for a complete spec.
  */
 typedef struct DUMBFILE_SYSTEM
 {
+	/* open */
+	/* Open filename. Returned file may be of any custom type. */
 	void *(*open)(const char *filename);
+
+	/* skip */
+	/* Ignore the next n bytes in file f. Returns 0 on succes, -1 on error. */
 	int (*skip)(void *f, dumb_off_t n);
+
+	/* getc */
+	/* Read the next byte. Returns byte as unsigned, or -1 on error. */
 	int (*getc)(void *f);
+
+	/* getnc */
+	/* Read n bytes into buffer ptr. Returns number of bytes read or -1. */
 	dumb_ssize_t (*getnc)(char *ptr, size_t n, void *f);
+
+	/* close */
+	/* Called when DUMB is done with the file. User code may do anything. */
 	void (*close)(void *f);
-    int (*seek)(void *f, dumb_off_t offset);
-    dumb_off_t (*get_size)(void *f);
+
+	/* seek */
+	/* Jump to offset in bytes from beginning. Returns 0 if OK, -1 on error. */
+	int (*seek)(void *f, dumb_off_t offset);
+
+	/* get_size */
+	/* Returns the size in bytes of the file. */
+	dumb_off_t (*get_size)(void *f);
 }
 DUMBFILE_SYSTEM;
 
