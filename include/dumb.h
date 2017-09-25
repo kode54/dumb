@@ -35,15 +35,16 @@
 	extern "C" {
 #endif
 
-
-#define DUMB_MAJOR_VERSION    1
+/*
+ * When you bump major, minor, or patch, bump both the number and the string.
+ * When you bump major or minor version, bump them in CMakeLists.txt, too.
+ */
+#define DUMB_MAJOR_VERSION    2
 #define DUMB_MINOR_VERSION    0
 #define DUMB_REVISION_VERSION 0
+#define DUMB_VERSION_STR "2.0.0"
 
 #define DUMB_VERSION (DUMB_MAJOR_VERSION*10000 + DUMB_MINOR_VERSION*100 + DUMB_REVISION_VERSION)
-
-#define DUMB_VERSION_STR "1.0.0"
-
 #define DUMB_NAME "DUMB v" DUMB_VERSION_STR
 
 

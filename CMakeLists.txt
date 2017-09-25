@@ -3,7 +3,7 @@ project(libdumb C)
 include(GNUInstallDirs)
 
 # Bump major (== soversion) on API breakages
-set(DUMB_VERSION_MAJOR 1)
+set(DUMB_VERSION_MAJOR 2)
 set(DUMB_VERSION_MINOR 0)
 set(DUMB_VERSION ${DUMB_VERSION_MAJOR}.${DUMB_VERSION_MINOR})
 
