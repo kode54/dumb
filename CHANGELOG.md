@@ -21,7 +21,7 @@
 
 # DUMB Changelog
 
-## v2.0.0, not released yet
+## v2.0.0, released 26 September 2017
 
 * Memory leak and bug fixes
 * Audio playback quality improvements for STM
