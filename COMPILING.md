@@ -27,6 +27,7 @@ make install
 * `BUILD_SHARED_LIBS` selects whether cmake should build a dynamic (`ON`) or static (`OFF`) library. Default is `OFF`.
 * `BUILD_ALLEGRO4` enables (`ON`) or disables (`OFF`) the optional Allegro 4 support. This requires Allegro 4 installed on the system. Default is `ON`.
 * `BUILD_EXAMPLES` selects example binaries. These example binaries require argtable2 and SDL2 libraries. Default is `ON`.
+* `USE_SSE` enables or disables SSE support. Default is `ON`.
 * You may also need to tell cmake what kind of makefiles to create with the "-G" flag. Eg. for MSYS one would say something like `cmake -G "MSYS Makefiles" .`.
 
 ## 2. Visual Studio
