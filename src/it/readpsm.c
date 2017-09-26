@@ -438,7 +438,7 @@ static int it_psm_process_pattern(IT_PATTERN * pattern, const unsigned char * da
 		row++;
 	}
 
-	pattern->n_entries = entry - pattern->entry;
+	pattern->n_entries = (int)((long)entry - (long)pattern->entry);
 	if (!pattern->n_entries) return -1;
 
 	return 0;
@@ -491,7 +491,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 
 	if (dumbfile_mgetl(f) != DUMB_ID('P','S','M',' ')) goto error;
 
-	length = dumbfile_igetl(f);
+	length = (int)dumbfile_igetl(f);
 
 	if (dumbfile_mgetl(f) != DUMB_ID('F','I','L','E')) goto error;
 
@@ -500,7 +500,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 	while (length >= 8) {
 		if (n_chunks >= 768) goto error_fc;
 		chunk[n_chunks].id = (unsigned int) dumbfile_mgetl(f);
-		n = dumbfile_igetl(f);
+		n = (int)dumbfile_igetl(f);
 		length -= 8;
 		if ((signed int)n <= 0 || n > length)
 			goto error_fc;
@@ -588,7 +588,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 			ptr = c->data;
 			if (ptr[10] > 32) goto error_usd;
 			sigdata->n_pchannels = ptr[10];
-			length = c->len - 11;
+			length = (int)(c->len - 11);
 			ptr += 11;
 			songchunk = 0;
 			if (length >= 8) {
@@ -621,7 +621,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 		if (c->id == DUMB_ID('D','A','T','E')) {
 			/* date of the library build / format spec */
 			if (c->len == 6) {
-				length = c->len;
+				length = (int)c->len;
 				ptr = c->data;
 				while (length > 0) {
 					if (*ptr >= '0' && *ptr <= '9') {
@@ -686,7 +686,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 				if (!o) goto error_sc;
 				event = malloc(o * sizeof(*event));
 				if (!event) goto error_sc;
-				length = c->len - 2;
+				length = (int)(c->len - 2);
 				ptr += 2;
 				while ((length > 0) && (n_events < o)) {
 					event[n_events].type = *ptr;
@@ -748,7 +748,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 				break;
 
 			case DUMB_ID('P','P','A','N'):
-				length = c->len;
+				length = (int)c->len;
 				if (length & 1) goto error_ev;
 				ptr = c->data;
 				o = 0;
@@ -808,7 +808,7 @@ static DUMB_IT_SIGDATA *it_psm_load_sigdata(DUMBFILE *f, int * ver, int subsong)
 				PSMCHUNK * c = &chunk[o];
 				if (c->id == DUMB_ID('P','B','O','D')) {
 					ptr = c->data;
-					length = c->len;
+					length = (int)c->len;
 					if (found == PSMV_OLD) {
 						if (length < 8) goto error_ev;
 						if (!pattcmp(ptr + 4, e->data, 4)) {
@@ -1223,7 +1223,7 @@ int dumb_get_psm_subsong_count(DUMBFILE *f) {
 /* Eww */
 int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 {
-    size_t i, j;
+    long i, j;
     unsigned long na, nb;
 	char * p;
 
@@ -1260,9 +1260,9 @@ int pattcmp( const unsigned char * a, const unsigned char * b, size_t l )
 	else if ( i > j ) return 1;
 
 	i = memcmp( a, b, j );
-	if ( i ) return i;
+	if ( i ) return (int)i;
 
-	return (int)((long)na) - ((long)nb);
+	return (int)(((long)na) - ((long)nb));
 }
 
 

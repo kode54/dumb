@@ -256,7 +256,7 @@ static int it_riff_am_process_pattern( IT_PATTERN * pattern, DUMBFILE * f, size_
 		++ row;
 	}
 
-	pattern->n_entries = entry - pattern->entry;
+	pattern->n_entries = (int)((long)entry - (long)pattern->entry);
 	if ( ! pattern->n_entries ) return -1;
 
 	return 0;
@@ -302,7 +302,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_sd;
             o = dumbfile_getc( f );
             if ( o >= sigdata->n_patterns ) sigdata->n_patterns = (o + 1);
-            o = dumbfile_igetl( f );
+            o = (int) dumbfile_igetl( f );
             if ( (unsigned)o + 5 > c->size ) goto error_sd;
 			break;
 
@@ -423,7 +423,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata( DUMBFILE * f, struct riff * s
 		case DUMB_ID( 'P', 'A', 'T', 'T' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_usd;
             o = dumbfile_getc( f );
-            p = dumbfile_igetl( f );
+            p = (int) dumbfile_igetl( f );
             if ( it_riff_am_process_pattern( sigdata->pattern + o, f, p, 0 ) ) goto error_usd;
 			break;
 
@@ -503,7 +503,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_sd;
             o = dumbfile_getc( f );
             if ( o >= sigdata->n_patterns ) sigdata->n_patterns = (int)(o + 1);
-            o = dumbfile_igetl( f );
+            o = (int) dumbfile_igetl( f );
             if ( (unsigned)o + 5 > c->size ) goto error_sd;
 			break;
 
@@ -659,7 +659,7 @@ static DUMB_IT_SIGDATA *it_riff_am_load_sigdata( DUMBFILE * f, struct riff * str
 		case DUMB_ID( 'P', 'A', 'T', 'T' ):
             if ( dumbfile_seek( f, c->offset, DFS_SEEK_SET ) ) goto error_usd;
             o = dumbfile_getc( f );
-            p = dumbfile_igetl( f );
+            p = (int) dumbfile_igetl( f );
             if ( it_riff_am_process_pattern( sigdata->pattern + o, f, p, 1 ) ) goto error_usd;
 			break;
 
