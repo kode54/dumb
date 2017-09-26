@@ -22,28 +22,23 @@
 #include "aldumb.h"
 #include "internal/aldumb.h"
 
+static void *dat_read_xm(PACKFILE *f, long size) {
+    DUMBFILE *df;
+    DUH *duh;
 
+    (void)size;
 
-static void *dat_read_xm(PACKFILE *f, long size)
-{
-	DUMBFILE *df;
-	DUH *duh;
+    df = dumbfile_open_packfile(f);
 
-	(void)size;
+    if (!df)
+        return NULL;
 
-	df = dumbfile_open_packfile(f);
+    duh = dumb_read_xm(df);
 
-	if (!df)
-		return NULL;
+    dumbfile_close(df);
 
-	duh = dumb_read_xm(df);
-
-	dumbfile_close(df);
-
-	return duh;
+    return duh;
 }
-
-
 
 /* dumb_register_dat_xm(): tells Allegro about the XM datafile object. If you
  * intend to load a datafile containing an XM object, you must call this
@@ -51,12 +46,6 @@ static void *dat_read_xm(PACKFILE *f, long size)
  * reason to use a different type (perhaps you already have a datafile with
  * XM files in and they use a different type).
  */
-void dumb_register_dat_xm(long type)
-{
-	register_datafile_object(
-		type,
-		&dat_read_xm,
-		&_dat_unload_duh
-	);
+void dumb_register_dat_xm(long type) {
+    register_datafile_object(type, &dat_read_xm, &_dat_unload_duh);
 }
-

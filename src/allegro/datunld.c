@@ -22,10 +22,4 @@
 #include "aldumb.h"
 #include "internal/aldumb.h"
 
-
-
-void _dat_unload_duh(void *duh)
-{
-	unload_duh(duh);
-}
-
+void _dat_unload_duh(void *duh) { unload_duh(duh); }

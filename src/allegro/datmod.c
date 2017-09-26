@@ -22,28 +22,23 @@
 #include "aldumb.h"
 #include "internal/aldumb.h"
 
+static void *dat_read_mod(PACKFILE *f, long size) {
+    DUMBFILE *df;
+    DUH *duh;
 
+    (void)size;
 
-static void *dat_read_mod(PACKFILE *f, long size)
-{
-	DUMBFILE *df;
-	DUH *duh;
+    df = dumbfile_open_packfile(f);
 
-	(void)size;
+    if (!df)
+        return NULL;
 
-	df = dumbfile_open_packfile(f);
+    duh = dumb_read_mod(df, 2);
 
-	if (!df)
-		return NULL;
+    dumbfile_close(df);
 
-	duh = dumb_read_mod(df, 2);
-
-	dumbfile_close(df);
-
-	return duh;
+    return duh;
 }
-
-
 
 /* dumb_register_dat_mod(): tells Allegro about the MOD datafile object. If
  * you intend to load a datafile containing a MOD object, you must call this
@@ -51,11 +46,6 @@ static void *dat_read_mod(PACKFILE *f, long size)
  * a reason to use a different type (perhaps you already have a datafile with
  * MOD files in and they use a different type).
  */
-void dumb_register_dat_mod(long type)
-{
-	register_datafile_object(
-		type,
-		&dat_read_mod,
-		&_dat_unload_duh
-	);
+void dumb_register_dat_mod(long type) {
+    register_datafile_object(type, &dat_read_mod, &_dat_unload_duh);
 }

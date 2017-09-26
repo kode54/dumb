@@ -22,28 +22,23 @@
 #include "aldumb.h"
 #include "internal/aldumb.h"
 
+static void *dat_read_it_quick(PACKFILE *f, long size) {
+    DUMBFILE *df;
+    DUH *duh;
 
+    (void)size;
 
-static void *dat_read_it_quick(PACKFILE *f, long size)
-{
-	DUMBFILE *df;
-	DUH *duh;
+    df = dumbfile_open_packfile(f);
 
-	(void)size;
+    if (!df)
+        return NULL;
 
-	df = dumbfile_open_packfile(f);
+    duh = dumb_read_it_quick(df);
 
-	if (!df)
-		return NULL;
+    dumbfile_close(df);
 
-	duh = dumb_read_it_quick(df);
-
-	dumbfile_close(df);
-
-	return duh;
+    return duh;
 }
-
-
 
 /* dumb_register_dat_it_quick(): tells Allegro about the IT datafile object.
  * If you intend to load a datafile containing an IT object, you must call
@@ -54,11 +49,6 @@ static void *dat_read_it_quick(PACKFILE *f, long size)
  * This installs the quick loader: the song length and fast seek points are
  * not calculated.
  */
-void dumb_register_dat_it_quick(long type)
-{
-	register_datafile_object(
-		type,
-		&dat_read_it_quick,
-		&_dat_unload_duh
-	);
+void dumb_register_dat_it_quick(long type) {
+    register_datafile_object(type, &dat_read_it_quick, &_dat_unload_duh);
 }
