@@ -25,6 +25,8 @@
 DUMB is a module audio renderer library. It reads module files and
 outputs audio that can be dumped to the actual audio playback library.
 
+This is a fork of the original dumb (http://dumb.sf.net/) by Ben Davis.
+
 ## Features
 
 - Supports playback of the following module formats. The tracker software or
