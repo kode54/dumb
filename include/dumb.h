@@ -121,7 +121,7 @@ typedef long long dumb_off_t;
 _Static_assert(sizeof(dumb_off_t) >= 8, "fuse: off_t must be 64bit");
 #else
 struct dumb_off_t_needs_to_be_at_least_8_bytes {
-    unsigned int dumb_off_t_needs_to_be_at_least_8_bytes
+    unsigned int dumb_off_t_needs_to_be_at_least_8_bytes_
         : ((sizeof(dumb_off_t) >= 8) ? 1 : -42);
 };
 #endif
