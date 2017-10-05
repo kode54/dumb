@@ -95,7 +95,7 @@ void dumb_exit(void);
 
 /* File Input Functions */
 #ifdef DUMB_OFF_T_CUSTOM
-typedef dumb_off_t DUMB_OFF_T_CUSTOM;
+typedef DUMB_OFF_T_CUSTOM dumb_off_t;
 #elif defined _MSC_VER || defined __WATCOMC__
 typedef __int64 dumb_off_t;
 #elif defined __DJGPP__
