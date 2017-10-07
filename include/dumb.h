@@ -98,9 +98,18 @@ void dumb_exit(void);
 typedef DUMB_OFF_T_CUSTOM dumb_off_t;
 #elif defined _MSC_VER || defined __WATCOMC__
 typedef __int64 dumb_off_t;
-#elif defined __DJGPP__
+#elif defined __DJGPP__ || defined __MINGW32__
+/* MingW-W64 does not have off64_t and supports _FILE_OFFSET_BITS,
+ * DJGPP and old MinGW do have off64_t, but don't support _FILE_OFFSET_BITS.
+ */
+#include <sys/types.h>
+#if defined(__MINGW64_VERSION_MAJOR)
+typedef off_t dumb_off_t;
+#else
 typedef off64_t dumb_off_t;
-#elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 500 || defined __MINGW32__
+#endif
+#elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 500
+#include <sys/types.h>
 typedef off_t dumb_off_t;
 #else
 typedef long long dumb_off_t;
@@ -118,7 +127,7 @@ typedef long long dumb_off_t;
  */
 #if (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)) &&                \
     !defined __cplusplus
-_Static_assert(sizeof(dumb_off_t) >= 8, "fuse: off_t must be 64bit");
+_Static_assert(sizeof(dumb_off_t) >= 8, "dumb: off_t must be 64bit");
 #else
 struct dumb_off_t_needs_to_be_at_least_8_bytes {
     unsigned int dumb_off_t_needs_to_be_at_least_8_bytes_
