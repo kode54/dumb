@@ -111,7 +111,7 @@ static int it_old_psm_read_samples(IT_SAMPLE **sample, DUMBFILE *f, int *num) {
         } else
             smp.finetune = 0;
 
-        smp.flags |= IT_SAMPLE_EXISTS;
+        smp.flags = IT_SAMPLE_EXISTS;
         if (flags & 0x41)
             continue;
         if (flags & 0x20)
