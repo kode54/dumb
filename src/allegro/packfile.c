@@ -59,12 +59,15 @@ static int dumb_packfile_getc(void *f) {
     return c;
 }
 
-static size_t dumb_packfile_getnc(char *ptr, size_t n, void *f) {
+static dumb_ssize_t dumb_packfile_getnc(char *ptr, size_t n, void *f) {
     dumb_packfile *file = (dumb_packfile *)f;
-    int nr = pack_fread(ptr, n, file->p);
-    if (nr > 0)
+    errno = 0;
+    long nr = pack_fread(ptr, n, file->p);
+    if (nr > 0) {
         file->pos += nr;
-    return nr;
+        return nr;
+    }
+    return errno != 0 ? -1 : 0;
 }
 
 static void dumb_packfile_close(void *f) {

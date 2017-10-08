@@ -147,7 +147,7 @@ Returns as `dumb_ssize_t`:
 * the number of bytes successfully read, if it was possible to read at least
 one byte.
 
-* `-1` on error.
+* `-1` on error, when it was not possible to read even a single byte.
 
 This function shall bytes from the file `f` and store them in sequence in the
 buffer beginning at `ptr`. It shall read fewer than `n` bytes if end of file
