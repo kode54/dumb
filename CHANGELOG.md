@@ -21,6 +21,15 @@
 
 # DUMB Changelog
 
+## v2.0.2, released 9 October 2017
+
+* Amended order scanner to also look for blank type patterns that would
+  cause problems with the renderer.
+* Changed all format readers to check order scanner for errors and return
+  them to the caller.
+* Changed all credits references to the correct name, now that it's more
+  widely known.
+
 ## v2.0.1, released 9 October 2017
 
 * #66, Can't Use DUMB_OFF_T_CUSTOM to Fix Static Assertion On 32-Bit System
