@@ -11,7 +11,7 @@
  * readamf.c - Code to read a DSMI AMF module from    / / \  \
  *             an open file.                         | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/

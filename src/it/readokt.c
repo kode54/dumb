@@ -11,7 +11,7 @@
  * readokt.c - Code to read an Oktalyzer module       / / \  \
  *             from an open file.                    | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/

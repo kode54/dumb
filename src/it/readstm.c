@@ -11,7 +11,7 @@
  * readstm.c - Code to read a ScreamTracker 2         / / \  \
  *             module from an open file.             | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/

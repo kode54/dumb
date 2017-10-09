@@ -11,7 +11,7 @@
  * readptm.c - Code to read a Poly Tracker v2.03      / / \  \
  *             module from an open file.             | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller. Based on reads3m.c               \_  /  > /
+ * By Christopher Snowhill. Based on reads3m.c        \_  /  > /
  * by entheh.                                           | \ / /
  *                                                      |  ' /
  *                                                       \__/

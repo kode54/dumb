@@ -11,7 +11,7 @@
  * read669.c - Code to read a 669 Composer module     / / \  \
  *             from an open file.                    | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/

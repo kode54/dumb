@@ -11,7 +11,7 @@
  * readam.c - Code to read a RIFF DSMF module         / / \  \
  *             from a parsed RIFF structure.         | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/

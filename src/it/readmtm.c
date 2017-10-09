@@ -11,7 +11,7 @@
  * readmtm.c - Code to read a MultiTracker Module     / / \  \
  *             from an open file.                    | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/

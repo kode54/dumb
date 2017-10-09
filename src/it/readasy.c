@@ -11,7 +11,7 @@
  * readasy.c - Code to read an ASYLUM Music Format    / / \  \
  *             module from an open file.             | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/

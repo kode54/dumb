@@ -11,7 +11,7 @@
  * readpsm.c - Code to read a Protracker Studio       / / \  \
  *             module from an open file.             | <  /   \_
  *                                                   |  \/ /\   /
- * By Chris Moeller.                                  \_  /  > /
+ * By Christopher Snowhill.                           \_  /  > /
  *                                                      | \ / /
  *                                                      |  ' /
  *                                                       \__/
