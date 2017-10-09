@@ -21,13 +21,18 @@
 
 # DUMB Changelog
 
-## v2.0.1, not released yet.
+## v2.0.1, released 9 October 2017
 
 * #66, Can't Use DUMB_OFF_T_CUSTOM to Fix Static Assertion On 32-Bit System
 * #69, Make LFS-checks work with MinGW.org-MinGW
 * #70, Fix internal getnc to return dumb_ssize_t
 * #71, PSM Playback Has Garbled Sound
 * Documentation updates
+* More fuzz testing revealed places where order counts were allowed
+  to be extremely high, blowing out the memory requested for the
+  timekeeping arrays. This has been severely limited now to throw errors
+  on load.
+* Added some considerations to a porting document.
 
 ## v2.0.0, released 26 September 2017
 
