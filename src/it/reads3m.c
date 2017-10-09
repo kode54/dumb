@@ -734,7 +734,10 @@ static DUMB_IT_SIGDATA *it_s3m_load_sigdata(DUMBFILE *f, int *cwtv) {
     free(buffer);
     free(component);
 
-    _dumb_it_fix_invalid_orders(sigdata);
+    if (_dumb_it_fix_invalid_orders(sigdata) < 0) {
+        _dumb_it_unload_sigdata(sigdata);
+        return NULL;
+    }
 
     return sigdata;
 }

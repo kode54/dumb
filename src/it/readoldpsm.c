@@ -705,7 +705,8 @@ static DUMB_IT_SIGDATA *it_old_psm_load_sigdata(DUMBFILE *f) {
         }
     }
 
-    _dumb_it_fix_invalid_orders(sigdata);
+    if (_dumb_it_fix_invalid_orders(sigdata) < 0)
+        goto error_fc;
 
     free(component);
 
