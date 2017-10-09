@@ -352,6 +352,7 @@ static DUMB_IT_SIGDATA *it_ptm_load_sigdata(DUMBFILE *f) {
     sigdata->n_patterns = dumbfile_igetw(f);
 
     if (dumbfile_error(f) || sigdata->n_orders <= 0 ||
+        sigdata->n_orders > 1024 || // Whoa, nelly.
         sigdata->n_samples > 255 || sigdata->n_patterns > 128) {
         _dumb_it_unload_sigdata(sigdata);
         return NULL;

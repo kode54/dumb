@@ -293,6 +293,8 @@ static DUMB_IT_SIGDATA *it_riff_dsmf_load_sigdata(DUMBFILE *f,
             sigdata->flags = IT_STEREO | IT_OLD_EFFECTS | IT_COMPATIBLE_GXX;
             dumbfile_skip(f, 36 - 28);
             sigdata->n_orders = dumbfile_igetw(f);
+            if (sigdata->n_orders > 1024) // Whoa, nelly.
+                goto error_usd;
             // sigdata->n_samples = ptr[ 38 ] | ( ptr[ 39 ] << 8 ); // whatever
             // sigdata->n_patterns = ptr[ 40 ] | ( ptr[ 41 ] << 8 );
             dumbfile_skip(f, 42 - 38);
