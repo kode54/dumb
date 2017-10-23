@@ -168,6 +168,7 @@ if(BUILD_ALLEGRO4)
     set_target_properties(aldmb PROPERTIES SOVERSION ${DUMB_VERSION_MAJOR})
     list(APPEND DUMB_TARGETS aldmb)
     list(APPEND INSTALL_HEADERS include/aldumb.h)
+    target_include_directories(aldmb PUBLIC ${ALLEGRO_INCLUDE_DIR})
     target_link_libraries(aldmb ${ALLEGRO_LIBRARIES} dumb)
 endif()
 
