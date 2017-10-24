@@ -168,6 +168,7 @@ if(BUILD_ALLEGRO4)
     set_target_properties(aldmb PROPERTIES SOVERSION ${DUMB_VERSION_MAJOR})
     list(APPEND DUMB_TARGETS aldmb)
     list(APPEND INSTALL_HEADERS include/aldumb.h)
+    target_include_directories(aldmb PUBLIC ${ALLEGRO_INCLUDE_DIR})
     target_link_libraries(aldmb ${ALLEGRO_LIBRARIES} dumb)
 endif()
 
@@ -180,10 +181,12 @@ if(BUILD_EXAMPLES)
         target_link_libraries(dumbplay mingw32)
     endif()
 
+    target_include_directories(dumbout PRIVATE ${ARGTABLE2_INCLUDE_DIR})
     target_link_libraries(dumbout ${ARGTABLE2_LIBRARY} m dumb)
+
+    target_include_directories(dumbplay PRIVATE ${ARGTABLE2_INCLUDE_DIR} ${SDL2_INCLUDE_DIR})
     target_link_libraries(dumbplay ${ARGTABLE2_LIBRARY} ${SDL2_LIBRARY} dumb)
 
-    include_directories(${ARGTABLE2_INCLUDE_DIR} ${SDL2_INCLUDE_DIR} "examples/")
     list(APPEND DUMB_TARGETS "dumbout" "dumbplay")
 endif()
 
