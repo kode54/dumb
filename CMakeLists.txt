@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(libdumb C)
 include(GNUInstallDirs)
+include(CheckCCompilerFlag)
 
 # Bump major (== soversion) on API breakages
 set(DUMB_VERSION_MAJOR 2)
@@ -13,15 +14,42 @@ option(BUILD_EXAMPLES "Build example binaries" ON)
 option(BUILD_ALLEGRO4 "Build Allegro4 support" ON)
 option(USE_SSE "Use SSE instructions" ON)
 
-set(CMAKE_C_FLAGS "-Wall -Wno-unused-variable -Wno-unused-but-set-variable")
-add_definitions(-D_FILE_OFFSET_BITS=64)
-add_definitions(-DDUMB_DECLARE_DEPRECATED)
-set(CMAKE_C_FLAGS_DEBUG "-ggdb -DDEBUGMODE=1 -D_DEBUG")
+function(check_and_add_c_compiler_flag flag flag_variable_to_add_to)
+    string(TOUPPER "${flag}" check_name)
+    string(MAKE_C_IDENTIFIER "CC_HAS${check_name}" check_name)
+    check_c_compiler_flag("${flag}" "${check_name}")
+    if(${check_name})
+        set(${flag_variable_to_add_to} "${flag} ${${flag_variable_to_add_to}}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+check_and_add_c_compiler_flag("-Wno-unused-variable" CMAKE_C_FLAGS)
+check_and_add_c_compiler_flag("-Wno-unused-but-set-variable" CMAKE_C_FLAGS)
+check_and_add_c_compiler_flag("-Wall" CMAKE_C_FLAGS)
+add_definitions("-D_FILE_OFFSET_BITS=64")
+add_definitions("-DDUMB_DECLARE_DEPRECATED")
+
+set(CMAKE_C_FLAGS_DEBUG "-DDEBUGMODE=1 -D_DEBUG")
+check_and_add_c_compiler_flag("-ggdb" CMAKE_C_FLAGS_DEBUG)
+check_and_add_c_compiler_flag("-Zi" CMAKE_C_FLAGS_DEBUG)
+
 set(CMAKE_C_FLAGS_RELEASE "-ffast-math -O2 -DNDEBUG")
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "-ffast-math -g -O2 -DNDEBUG")
+
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-ffast-math -O2 -DNDEBUG")
+check_and_add_c_compiler_flag("-g" CMAKE_C_FLAGS_RELWITHDEBINFO)
+check_and_add_c_compiler_flag("-Zi" CMAKE_C_FLAGS_RELWITHDEBINFO)
+
 set(CMAKE_C_FLAGS_MINSIZEREL "-ffast-math -Os -DNDEBUG")
+
 if(USE_SSE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_SSE -msse")
+    check_c_compiler_flag("-msse" "CC_HAS_MSSE")
+    if(CC_HAS_MSSE)
+        message(STATUS "Compiling with SSE support")
+        set(CMAKE_C_FLAGS "-msse ${CMAKE_C_FLAGS}")
+        add_definitions("-D_USE_SSE")
+    else()
+        message(STATUS "Compiling without SSE support")
+    endif()
 endif()
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
