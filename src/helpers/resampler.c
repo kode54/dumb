@@ -12,7 +12,7 @@
 #if TARGET_CPU_ARM || TARGET_CPU_ARM64
 #define RESAMPLER_NEON
 #endif
-#elif (defined(__arm__) && defined(__ARM_NEON__)) || defined(_M_ARM)
+#elif (defined(__arm__) && defined(__ARM_NEON__))
 #define RESAMPLER_NEON
 #endif
 #ifdef RESAMPLER_NEON
