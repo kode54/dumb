@@ -4380,18 +4380,16 @@ static void process_playing(DUMB_IT_SIGRENDERER *sigrenderer,
     playing->sample_vibrato_time += playing->sample->vibrato_speed;
 }
 
-#if (defined(_MSC_VER) && _MSC_VER < 1800) || defined(__ANDROID__)
-static float log2(float x) { return (float)log(x) / (float)log(2.0f); }
-#endif
-
 static int delta_to_note(float delta, int base) {
+#define DUMB_LOG2(x) ((float)log((x))/(float)log(2.0f))
     float note;
-    note = log2(delta * 65536.f / (float)base) * 12.0f + 60.5f;
+    note = DUMB_LOG2(delta * 65536.f / (float)base) * 12.0f + 60.5f;
     if (note > 119)
         note = 119;
     else if (note < 0)
         note = 0;
     return (int)note;
+#undef DUMB_LOG2
 }
 
 // Period table for Protracker octaves 0-5:
