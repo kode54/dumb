@@ -2,7 +2,9 @@
 #include <string.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
-#if (defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__amd64__))
+#if (defined(_M_IX86) && (_M_IX86_FP != 0)) ||\
+    (defined(__i386__) && defined(__SSE__)) ||\
+     defined(_M_X64) || defined(_M_AMD64) || defined(__amd64__)
 #include <xmmintrin.h>
 #define RESAMPLER_SSE
 #endif
@@ -11,7 +13,7 @@
 #if TARGET_CPU_ARM || TARGET_CPU_ARM64
 #define RESAMPLER_NEON
 #endif
-#elif (defined(__arm__) && defined(__ARM_NEON__))
+#elif (defined(__arm__) && defined(__ARM_NEON__)) || defined(_M_ARM)
 #define RESAMPLER_NEON
 #endif
 #ifdef RESAMPLER_NEON
