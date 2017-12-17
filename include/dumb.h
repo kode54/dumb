@@ -108,6 +108,12 @@ typedef off_t dumb_off_t;
 #else
 typedef off64_t dumb_off_t;
 #endif
+#elif defined __ANDROID__
+/* Android NDK does not support _FILE_OFFSET_BITS before API level 24
+ * and off_t is is always 32-bit regardless of _FILE_OFFSET_BITS.
+ */
+#include <sys/types.h>
+typedef off64_t dumb_off_t;
 #elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 500
 #include <sys/types.h>
 typedef off_t dumb_off_t;
