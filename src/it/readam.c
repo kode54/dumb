@@ -383,7 +383,7 @@ static DUMB_IT_SIGDATA *it_riff_amff_load_sigdata(DUMBFILE *f,
             sigdata->speed = dumbfile_getc(f);
             sigdata->tempo = dumbfile_getc(f);
 
-            dumbfile_skip(f, 4);
+            dumbfile_skip(f, 4); // min period, max period, 16x amiga periods, often invalid
 
             sigdata->global_volume = dumbfile_getc(f);
 
