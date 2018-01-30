@@ -202,7 +202,7 @@ static int it_riff_dsmf_process_pattern(IT_PATTERN *pattern, DUMBFILE *f,
         ++row;
     }
 
-    pattern->n_entries = (int)((long)entry - (long)pattern->entry);
+    pattern->n_entries = (int)(entry - pattern->entry);
     if (!pattern->n_entries)
         return -1;
 

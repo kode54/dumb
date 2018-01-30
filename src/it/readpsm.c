@@ -485,7 +485,7 @@ static int it_psm_process_pattern(IT_PATTERN *pattern,
         row++;
     }
 
-    pattern->n_entries = (int)((long)entry - (long)pattern->entry);
+    pattern->n_entries = (int)(entry - pattern->entry);
     if (!pattern->n_entries)
         return -1;
 
