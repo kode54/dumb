@@ -21,6 +21,12 @@
 
 # DUMB Changelog
 
+## v2.0.3, released 30 January 2018
+
+* Fix pattern n_entries calculation, which was broken when attempting to fix the
+  warning incorrectly with long casts, which resulted in n_entries that were horribly
+  inflated, possibly breaking code that didn't expect the change.
+
 ## v2.0.2, released 9 October 2017
 
 * Amended order scanner to also look for blank type patterns that would
