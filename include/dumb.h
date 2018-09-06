@@ -114,6 +114,9 @@ typedef off64_t dumb_off_t;
  */
 #include <sys/types.h>
 typedef off64_t dumb_off_t;
+#elif defined __EMSCRIPTEN__
+#include <sys/types.h>
+typedef int64_t dumb_off_t;
 #elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 500
 #include <sys/types.h>
 typedef off_t dumb_off_t;
