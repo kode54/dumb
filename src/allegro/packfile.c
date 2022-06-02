@@ -48,7 +48,7 @@ static void *dumb_packfile_open(const char *filename) {
 static int dumb_packfile_skip(void *f, dumb_off_t n) {
     dumb_packfile *file = (dumb_packfile *)f;
     file->pos += n;
-    return pack_fseek(file->p, file->pos);
+    return pack_fseek(file->p, n);
 }
 
 static int dumb_packfile_getc(void *f) {
